@@ -1,0 +1,228 @@
+/*
+ * Copyright (c) 2023 European Commission
+ *
+ * Licensed under the EUPL, Version 1.2 or - as soon they will be approved by the European
+ * Commission - subsequent versions of the EUPL (the "Licence"); You may not use this work
+ * except in compliance with the Licence.
+ *
+ * You may obtain a copy of the Licence at:
+ * https://joinup.ec.europa.eu/software/page/eupl
+ *
+ * Unless required by applicable law or agreed to in writing, software distributed under
+ * the Licence is distributed on an "AS IS" basis, WITHOUT WARRANTIES OR CONDITIONS OF
+ * ANY KIND, either express or implied. See the Licence for the specific language
+ * governing permissions and limitations under the Licence.
+ */
+
+package eu.europa.ec.issuancefeature.ui.document.code
+
+import android.content.Context
+import androidx.lifecycle.viewModelScope
+import eu.europa.ec.commonfeature.config.OfferCodeUiConfig
+import eu.europa.ec.issuancefeature.interactor.document.DocumentOfferInteractor
+import eu.europa.ec.issuancefeature.interactor.document.IssueDocumentsInteractorPartialState
+import eu.europa.ec.resourceslogic.R
+import eu.europa.ec.resourceslogic.provider.ResourceProvider
+import eu.europa.ec.uilogic.component.content.ContentErrorConfig
+import eu.europa.ec.uilogic.mvi.MviViewModel
+import eu.europa.ec.uilogic.mvi.ViewEvent
+import eu.europa.ec.uilogic.mvi.ViewSideEffect
+import eu.europa.ec.uilogic.mvi.ViewState
+import eu.europa.ec.uilogic.navigation.ModuleRoute
+import eu.europa.ec.uilogic.serializer.UiSerializer
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+import org.koin.android.annotation.KoinViewModel
+import org.koin.core.annotation.InjectedParam
+import org.sprind.wallet.uilogic.component.CodeEntryBuffer
+import org.sprind.wallet.uilogic.component.CodeEntryState
+import kotlin.time.Duration.Companion.seconds
+
+data class State(
+    val offerCodeUiConfig: OfferCodeUiConfig,
+
+    val isLoading: Boolean = false,
+    val isSuccess: Boolean = false,
+    val error: ContentErrorConfig? = null,
+    val notifyOnAuthenticationFailure: Boolean = false,
+
+    val screenTitle: String,
+    val screenSubtitle: String,
+    val codeState: CodeEntryState,
+) : ViewState
+
+sealed class Event : ViewEvent {
+    data object Pop : Event()
+    data object DismissError : Event()
+    data object OnPinChange : Event()
+    data class OnSendData(val context: Context) : Event()
+}
+
+sealed class Effect : ViewSideEffect {
+    sealed class Navigation : Effect() {
+        data class SwitchScreen(
+            val screenRoute: String
+        ) : Navigation()
+
+        data object Pop : Navigation()
+    }
+}
+
+@KoinViewModel
+class DocumentOfferCodeViewModel(
+    private val documentOfferInteractor: DocumentOfferInteractor,
+    private val resourceProvider: ResourceProvider,
+    private val uiSerializer: UiSerializer,
+    @InjectedParam private val offerCodeSerializedConfig: String
+) : MviViewModel<Event, State, Effect>() {
+
+    override fun setInitialState(): State {
+        val deserializedOfferCodeUiConfig = uiSerializer.fromBase64(
+            offerCodeSerializedConfig,
+            OfferCodeUiConfig::class.java,
+            OfferCodeUiConfig.Parser
+        ) ?: throw RuntimeException("OfferCodeUiConfig:: is Missing or invalid")
+        val codeLength = deserializedOfferCodeUiConfig.txCodeLength
+            .takeIf { it >= 1 }
+            ?: throw RuntimeException("OfferCode:: is Code length missing or invalid")
+        return State(
+            offerCodeUiConfig = deserializedOfferCodeUiConfig,
+            screenTitle = calculateScreenTitle(issuerName = deserializedOfferCodeUiConfig.issuerName),
+            screenSubtitle = calculateScreenCaption(txCodeLength = codeLength),
+            codeState = CodeEntryState(CodeEntryBuffer(codeLength)),
+        )
+    }
+
+    override fun onCleared() {
+        documentOfferInteractor.clearCachedOffer(viewState.value.offerCodeUiConfig.offerURI)
+        viewState.value.codeState.buffer.wipe()
+    }
+
+    override fun handleEvents(event: Event) {
+        when (event) {
+            is Event.Pop -> {
+                setState { copy(error = null) }
+                setEffect { Effect.Navigation.Pop }
+            }
+
+            is Event.DismissError -> {
+                setState { copy(error = null) }
+            }
+
+            is Event.OnPinChange -> {
+                val isValid = viewState.value.codeState.buffer.isComplete
+                setState { copy(codeState = codeState.copy(isValid = isValid)) }
+            }
+
+            is Event.OnSendData -> {
+                issueDocuments(event.context)
+            }
+        }
+    }
+
+    private fun issueDocuments(context: Context) {
+        // The issuer's API takes the transaction code as a String, so it becomes one here and
+        // nowhere earlier; the buffer is erased in the same breath.
+        val txCode = viewState.value.codeState.buffer.consumeAsPin().getAndClear().use { String(it.chars) }
+        viewModelScope.launch {
+
+            setState {
+                copy(
+                    isLoading = true,
+                    error = null
+                )
+            }
+
+            documentOfferInteractor.issueDocuments(
+                offerUri = viewState.value.offerCodeUiConfig.offerURI,
+                issuerName = viewState.value.offerCodeUiConfig.issuerName,
+                navigation = viewState.value.offerCodeUiConfig.onSuccessNavigation,
+                txCode = txCode
+            ).collect { response ->
+                when (response) {
+                    is IssueDocumentsInteractorPartialState.Failure -> {
+                        documentOfferInteractor.clearCachedOffer(
+                            viewState.value.offerCodeUiConfig.offerURI
+                        )
+                        setState {
+                            copy(
+                                isLoading = false,
+                                error = ContentErrorConfig(
+                                    errorSubTitle = response.errorMessage,
+                                    onCancel = { setEvent(Event.DismissError) }
+                                )
+                            )
+                        }
+                    }
+
+                    is IssueDocumentsInteractorPartialState.Success -> {
+                        documentOfferInteractor.clearCachedOffer(
+                            viewState.value.offerCodeUiConfig.offerURI
+                        )
+                        setState {
+                            copy(
+                                isLoading = false,
+                                error = null,
+                                isSuccess = true,
+                            )
+                        }
+
+                        delay(2.seconds)
+
+                        goToDashboard()
+                    }
+
+                    is IssueDocumentsInteractorPartialState.DeferredSuccess -> {
+                        documentOfferInteractor.clearCachedOffer(
+                            viewState.value.offerCodeUiConfig.offerURI
+                        )
+                        // ATM, this is unsupported, make it clear to the user and our self
+                        setState {
+                            copy(
+                                isLoading = false,
+                                error = ContentErrorConfig(
+                                    errorTitle = "Unsupported Deferred Credential",
+                                    onCancel = { goToDashboard() }
+                                )
+                            )
+                        }
+                    }
+
+                    is IssueDocumentsInteractorPartialState.UserAuthRequired -> {
+                        documentOfferInteractor.handleUserAuthentication(
+                            context = context,
+                            crypto = response.crypto,
+                            notifyOnAuthenticationFailure = viewState.value.notifyOnAuthenticationFailure,
+                            resultHandler = response.resultHandler
+                        )
+                    }
+
+                    is IssueDocumentsInteractorPartialState.OnRefreshTokenReceived -> {
+                        /* nothing to do here unless we want to do something with the token in the UI layer*/
+                    }
+
+                    is IssueDocumentsInteractorPartialState.OnCNonce -> {
+                        /* nothing to do here unless we want to do something with the nonce in the UI layer*/
+                    }
+                }
+            }
+        }
+    }
+
+    private fun goToDashboard() {
+        setEffect {
+            Effect.Navigation.SwitchScreen(
+                screenRoute = ModuleRoute.DashboardModule.route
+            )
+        }
+    }
+
+    private fun calculateScreenTitle(issuerName: String): String = resourceProvider.getString(
+        R.string.issuance_code_title,
+        issuerName
+    )
+
+    private fun calculateScreenCaption(txCodeLength: Int): String =
+        resourceProvider.getString(R.string.issuance_code_caption, txCodeLength)
+
+}

@@ -1,0 +1,57 @@
+EU Digital Identity Wallet — German implementation (Android)
+
+This application is a derivative of the European Commission's EUDI Wallet
+reference implementation for Android:
+
+    eu-digital-identity-wallet/eudi-app-android-wallet-ui
+    Copyright (c) 2023 European Commission
+
+Licensed under the EUPL, Version 1.2 or - as soon they will be approved by the
+European Commission - subsequent versions of the EUPL (the "Licence"); You may
+not use this work except in compliance with the Licence.
+
+You may obtain a copy of the Licence at:
+https://joinup.ec.europa.eu/software/page/eupl
+
+Unless required by applicable law or agreed to in writing, software distributed
+under the Licence is distributed on an "AS IS" basis, WITHOUT WARRANTIES OR
+CONDITIONS OF ANY KIND, either express or implied. See the Licence for the
+specific language governing permissions and limitations under the Licence.
+
+Per-file copyright headers are preserved where upstream carried them; files
+without a header are not backfilled. The `eu.europa.ec.*` package tree is
+upstream-derived code. The `org.sprind.*` tree is first-party.
+
+
+THIRD-PARTY COMPONENTS
+----------------------
+
+The declared dependency set is published in `gradle/libs.versions.toml`. The
+components below are called out because they are either not publicly
+resolvable, or carry licence terms distinct from the EUPL.
+
+(1) AusweisApp2 SDK — com.governikus.ausweisapp:sdkwrapper
+    Governikus GmbH & Co. KG. Distributed from a Governikus-operated Maven
+    repository rather than Maven Central, under the SDK's own terms. Not
+    redistributed here.
+
+(2) Multipaz — org.multipaz:multipaz-android, org.multipaz:multipaz-longfellow-android
+    Apache License 2.0. The successor project to google/identity-credential.
+
+(3) eudi-lib-android-wallet-core, eudi-lib-jvm-openid4vci-kt
+    Forks of European Commission libraries, consumed as git submodules and
+    published separately under github.com/german-national-wallet. Their own
+    NOTICE files govern their contents; this notice does not restate them.
+
+
+OPEN ITEM
+---------
+
+The upstream wallet core library records that certain packages originally
+created under the Apache License 2.0 were copied and modified, and states those
+modifications remain under Apache-2.0. The corresponding iOS notice describes
+the same upstream code as relicensed under the EUPL. These two statements
+disagree, and the correct characterisation for this repository has not yet been
+confirmed by legal review. This notice will be corrected once it has been.
+
+Nothing in this file grants rights beyond those in LICENSE.txt.
