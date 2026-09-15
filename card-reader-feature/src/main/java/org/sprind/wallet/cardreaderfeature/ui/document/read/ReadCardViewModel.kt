@@ -40,6 +40,12 @@ import eu.europa.ec.corelogic.interactor.walletattestation.WalletAttestationInte
 import eu.europa.ec.corelogic.interactor.walletattestation.WalletAttestationResult
 import eu.europa.ec.eudi.openid4vci.CredentialConfigurationIdentifier
 import eu.europa.ec.resourceslogic.R
+import eu.europa.ec.commonfeature.ui.document_details.transformer.DocumentDetailsTransformer
+import eu.europa.ec.corelogic.controller.WalletCoreDocumentsController
+import eu.europa.ec.corelogic.model.toDocumentIdentifier
+import eu.europa.ec.uilogic.component.ListItemMainContentData
+import org.sprind.wallet.commonfeature.ui.transformer.toListItemData
+import org.sprind.wallet.uilogic.component.CredentialAttribute
 import eu.europa.ec.resourceslogic.provider.ResourceProvider
 import eu.europa.ec.uilogic.component.dialog.GenericErrorDialogConfig
 import eu.europa.ec.uilogic.mvi.MviViewModel
@@ -77,6 +83,7 @@ class ReadCardViewModel(
     private val configLogic: ConfigLogic,
     private val resourceProvider: ResourceProvider,
     private val cardReaderInteractor: CardReaderInteractor,
+    private val walletCoreDocumentsController: WalletCoreDocumentsController,
     private val walletAttestationInteractor: WalletAttestationInteractor,
     private val addDocumentsInteractor: AddDocumentInteractor,
     private val logController: LogController,
@@ -165,6 +172,21 @@ class ReadCardViewModel(
             }
 
             Event.DismissCancelFlowDialog -> setState { copy(isCancelFlowDialogVisible = false) }
+
+            Event.OnCredentialDetailsClick -> setState { copy(isBottomSheetOpen = true) }
+
+            Event.OnRejectIssuanceClick -> setState { copy(isRejectIssuanceDialogVisible = true) }
+
+            Event.DismissRejectIssuanceDialog -> setState {
+                copy(isRejectIssuanceDialogVisible = false)
+            }
+
+            Event.OnAcceptIssuanceClick -> {
+                (scanCompletion as? ScanCompletion.Issuance)?.let {
+                    navigateToWalletPinSet(it.redirectUrl)
+                }
+                scanCompletion = null
+            }
 
             is Event.Pin -> {
                 val entered = viewState.value.pinState.buffer
@@ -446,12 +468,25 @@ class ReadCardViewModel(
     }
 
     private fun continueAfterScan() {
-        when (val completion = scanCompletion) {
-            is ScanCompletion.Issuance -> navigateToWalletPinSet(completion.redirectUrl)
-            ScanCompletion.PinChanged -> navigateToAddDocument()
+        when (scanCompletion) {
+             is ScanCompletion.Issuance -> {
+                val attributes = readCredentialAttributes()
+                transitionTo(ReadCardScreenStep.IssuanceConsent) {
+                    copy(
+                        isBottomSheetOpen = false,
+                        bottomSheetTitle = null,
+                        issuedCredentialAttributes = attributes,
+                    )
+                }
+            }
+
+            ScanCompletion.PinChanged -> {
+                navigateToAddDocument()
+                scanCompletion = null
+            }
+
             null -> Unit
         }
-        scanCompletion = null
     }
 
     /**
@@ -1123,6 +1158,26 @@ class ReadCardViewModel(
                 ), inclusive = false
             )
         }
+    }
+    private fun readCredentialAttributes(): List<CredentialAttribute> {
+        val document = walletCoreDocumentsController.getMainPidDocument() ?: return emptyList()
+        val details = DocumentDetailsTransformer.transformToDocumentDetailsDomain(
+            document = document,
+            resourceProvider = resourceProvider,
+        ).getOrNull() ?: return emptyList()
+
+        return details.detailsItems
+            .toListItemData(
+                resourceProvider = resourceProvider,
+                documentFormat = document.format,
+                documentIdentifier = document.toDocumentIdentifier(),
+            )
+            .mapNotNull { item ->
+                val label = item.overlineText ?: return@mapNotNull null
+                val value = (item.mainContentData as? ListItemMainContentData.Text)?.text
+                    ?: return@mapNotNull null
+                CredentialAttribute(label = label, value = value)
+            }
     }
 
     private fun navigateToWalletPinSet(redirectUrl: String) {

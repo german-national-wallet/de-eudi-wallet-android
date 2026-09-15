@@ -97,6 +97,7 @@ private fun Content(
             config = WalletPinEntryConfig(
                 title = stringResource(R.string.pid_issuance_wallet_pin_setup_title),
                 primaryButtonText = stringResource(R.string.pid_issuance_wallet_pin_setup_prim_button),
+                step = WalletPinStep.Set,
             ),
             state = state.pinState,
             onCodeChange = {
@@ -115,6 +116,7 @@ private fun Content(
             config = WalletPinEntryConfig(
                 title = stringResource(R.string.pid_issuance_wallet_pin_reenter_title),
                 primaryButtonText = stringResource(R.string.pid_issuance_wallet_pin_reenter_prim_button),
+                step = WalletPinStep.Confirm,
                 isLoading = state.isLoading,
                 errorDialog = state.errorDialog,
             ),

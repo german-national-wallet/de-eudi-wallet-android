@@ -33,6 +33,6 @@ internal class PrefsRevocationStorageProvider(
     }
 
     override fun storeUserConfirmedSavingCode(value: Boolean) {
-        prefsController.setBool(SHARED_PREFERENCE_REVOCATION_SAVED_CODE_CONFIRMATION_KEY, value)
+        prefsController.setBoolSync(SHARED_PREFERENCE_REVOCATION_SAVED_CODE_CONFIRMATION_KEY, value)
     }
 }

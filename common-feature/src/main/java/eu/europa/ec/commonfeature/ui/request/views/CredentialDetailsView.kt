@@ -58,6 +58,8 @@ import eu.europa.ec.uilogic.component.wrap.TextConfig
 import eu.europa.ec.uilogic.component.wrap.WrapIcon
 import eu.europa.ec.uilogic.component.wrap.WrapIconButton
 import eu.europa.ec.uilogic.component.wrap.WrapText
+import kotlinx.serialization.json.JsonArray
+import org.multipaz.request.MdocRequestedClaim
 
 /**
  * Credentials to present content section
@@ -80,12 +82,11 @@ fun CredentialDetailsView(
     ) {
         val requestDocuments: List<RequestDocumentItemUi?> = state.items.ifEmpty { listOf(null) }
         requestDocuments.forEach { requestDocument ->
-            // claims for the given document
-            val claimItems = requestDocument
-                ?.expandedUiItems
-                ?.firstOrNull()
-                ?.domainPayload
-                ?.docClaimsDomain
+            // claims for the given document. Read off the document row, not its first claim
+            // row: a Credential Query without `claims` (OpenID4VP §6.4.1) leaves the document
+            // with no rows, and falling through to state.claimItems would then render the
+            // *previous* document's claims on this card.
+            val claimItems = requestDocument?.domainPayload?.docClaimsDomain
                 ?: state.claimItems
 
             val claimItemLabels =  claimItems.map { it.readableName }.distinct()
@@ -125,14 +126,12 @@ fun CredentialDetailsView(
  */
 @Composable
 private fun RequestDocumentItemUi.credentialName(): String {
-    val docType = expandedUiItems.firstOrNull()
-        ?.domainPayload
-        ?.documentType
-
-    return if (docType == DocumentType.PID) {
+    // Off the document row, not its first claim row: a Credential Query without `claims`
+    // leaves the document with no rows, and the card would then be titled with an empty name.
+    return if (domainPayload.documentType == DocumentType.PID) {
         stringResource(R.string.global_pid_credential_name)
     } else {
-        expandedUiItems.firstOrNull()?.domainPayload?.docName ?: ""
+        domainPayload.docName
     }
 }
 
@@ -332,11 +331,22 @@ private fun DataWithoutDetail(
     }
 }
 
+/** Placeholder request entry for the previews below; real rows carry the request's own. */
+private val previewRequestedClaim = MdocRequestedClaim(
+    id = null,
+    docType = "",
+    namespaceName = "",
+    dataElementName = "",
+    intentToRetain = false,
+    values = JsonArray(emptyList()),
+)
+
 @ThemeModeWithGermanAndEnglishPreviews
 @Composable
 private fun CredentialDetailsPreviewWithoutDetail() {
     val claimItems = listOf(
         RequestDocumentClaim(
+            requestedClaim = previewRequestedClaim,
             elementIdentifier = "",
             value = "MUSTERMANN",
             readableName = stringResource(R.string.pid_issuance_data_consent_label_name),
@@ -347,6 +357,7 @@ private fun CredentialDetailsPreviewWithoutDetail() {
             path = listOf(),
         ),
         RequestDocumentClaim(
+            requestedClaim = previewRequestedClaim,
             elementIdentifier = "",
             value = "ERIKA",
             readableName = stringResource(R.string.pid_issuance_data_consent_label_first_names),
@@ -357,6 +368,7 @@ private fun CredentialDetailsPreviewWithoutDetail() {
             path = listOf(),
         ),
         RequestDocumentClaim(
+            requestedClaim = previewRequestedClaim,
             elementIdentifier = "",
             value = "23.05.1983",
             readableName = stringResource(R.string.pid_issuance_data_consent_label_birth_date),
@@ -400,6 +412,7 @@ private fun CredentialDetailsPreviewWithDetail() {
     PreviewTheme {
         val claimItems = listOf(
             RequestDocumentClaim(
+                requestedClaim = previewRequestedClaim,
                 elementIdentifier = "",
                 value = "MUSTERMANN",
                 readableName = stringResource(R.string.pid_issuance_data_consent_label_name),
@@ -410,6 +423,7 @@ private fun CredentialDetailsPreviewWithDetail() {
                 path = listOf(),
             ),
             RequestDocumentClaim(
+                requestedClaim = previewRequestedClaim,
                 elementIdentifier = "",
                 value = "ERIKA",
                 readableName = stringResource(R.string.pid_issuance_data_consent_label_first_names),
@@ -420,6 +434,7 @@ private fun CredentialDetailsPreviewWithDetail() {
                 path = listOf(),
             ),
             RequestDocumentClaim(
+                requestedClaim = previewRequestedClaim,
                 elementIdentifier = "",
                 value = "23.05.1983",
                 readableName = stringResource(R.string.pid_issuance_data_consent_label_birth_date),

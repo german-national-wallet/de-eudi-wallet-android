@@ -93,6 +93,9 @@ class AddDocumentViewModel(
     override fun handleEvents(event: Event) {
         when (event) {
             is Event.Init.DeepLinkReceived -> {
+                // This screen only forwards a credential-offer deep link, so without one nothing
+                // navigates away and the spinner it starts with would run forever.
+                if (event.deepLink == null) setState { copy(isLoading = false) }
                 handleDeepLink(event.deepLink)
             }
 

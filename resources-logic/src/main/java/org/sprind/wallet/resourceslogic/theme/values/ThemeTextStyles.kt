@@ -17,7 +17,9 @@
 package org.sprind.wallet.resourceslogic.theme.values
 
 import androidx.compose.ui.text.style.TextAlign
+import eu.europa.ec.resourceslogic.theme.templates.ThemeTextStyle
 import eu.europa.ec.resourceslogic.theme.templates.ThemeTextStyle.Companion.toTextStyle
+import eu.europa.ec.resourceslogic.theme.templates.structures.ThemeFontWeight
 import eu.europa.ec.resourceslogic.theme.values.ThemeColors
 import eu.europa.ec.resourceslogic.theme.values.ThemeTypography
 
@@ -33,5 +35,10 @@ class ThemeTextStyles {
             textAlign = TextAlign.Center,
         )
         val key get() = ThemeTypography.key.toTextStyle()
+
+        val bottomNavigationLabelSelected get() = ThemeTextStyle(
+            fontFamily = ThemeTypography.labelLargeProminent.fontFamily,
+            fontWeight = ThemeFontWeight.W700,
+        ).toTextStyle()
     }
 }

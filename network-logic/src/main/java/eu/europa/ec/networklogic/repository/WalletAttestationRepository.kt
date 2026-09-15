@@ -51,7 +51,14 @@ class WalletAttestationRepositoryImpl(
 
     private companion object {
         const val WALLET_INSTANCE_ATTESTATION_PATH = "/wallet-instance-attestation/jwk"
-        const val WALLET_UNIT_ATTESTATION_PATH = "/wallet-unit-attestation/jwk-set"
+
+        // The wallet provider serves key attestations at /key-attestation/jwk-set and answers
+        // with a "keyAttestation" property. This path was never exercised before core-lib 0.30:
+        // wallet-core only asked for a key attestation when the issuer required one, and the two
+        // issuers that did use rWSCA keys, which short-circuit in WalletCoreAttestationProvider
+        // before reaching this repository. 0.30 requests a key attestation for every JWT proof,
+        // which is what surfaced the wrong path and the wrong response property.
+        const val KEY_ATTESTATION_PATH = "/key-attestation/jwk-set"
     }
 
     override suspend fun getWalletAttestation(
@@ -76,7 +83,7 @@ class WalletAttestationRepositoryImpl(
         keys: List<JsonObject>,
         nonce: String?
     ): Result<String> = runCatching {
-        httpClient.post(baseUrl + WALLET_UNIT_ATTESTATION_PATH) {
+        httpClient.post(baseUrl + KEY_ATTESTATION_PATH) {
             contentType(ContentType.Application.Json)
             setBody(
                 buildJsonObject {
@@ -90,7 +97,7 @@ class WalletAttestationRepositoryImpl(
             )
         }.bodyAsText()
             .let { Json.decodeFromString<JsonObject>(it) }
-            .let { it.jsonObject["walletUnitAttestation"]?.jsonPrimitive?.content }
+            .let { it.jsonObject["keyAttestation"]?.jsonPrimitive?.content }
             ?: throw IllegalStateException("No attestation response")
     }
 }

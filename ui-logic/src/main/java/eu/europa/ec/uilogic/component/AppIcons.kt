@@ -287,6 +287,24 @@ object AppIcons {
         imageVector = null
     )
 
+    val Overview: IconData = IconData(
+        resourceId = R.drawable.ic_overview,
+        contentDescriptionId = R.string.tap_navigation_label_1,
+        imageVector = null,
+    )
+
+    val Activities: IconData = IconData(
+        resourceId = R.drawable.ic_activities,
+        contentDescriptionId = R.string.tap_navigation_label_2,
+        imageVector = null,
+    )
+
+    val Settings: IconData = IconData(
+        resourceId = R.drawable.ic_settings,
+        contentDescriptionId = R.string.tap_navigation_label_3,
+        imageVector = null,
+    )
+
     val Contract: IconData = IconData(
         resourceId = R.drawable.ic_contract,
         contentDescriptionId = R.string.content_description_signature_icon,
@@ -435,6 +453,12 @@ object AppIcons {
     val PhoneSecurity = IconData(
         resourceId = R.drawable.ic_phone_security,
         contentDescriptionId = R.string.content_description_phone_security,
+        imageVector = null
+    )
+
+    val CardPin = IconData(
+        resourceId = R.drawable.card_pin,
+        contentDescriptionId = R.string.content_description_card_pin,
         imageVector = null
     )
 

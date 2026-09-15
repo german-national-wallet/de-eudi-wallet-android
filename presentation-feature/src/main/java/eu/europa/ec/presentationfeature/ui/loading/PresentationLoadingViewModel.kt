@@ -29,6 +29,7 @@ import eu.europa.ec.presentationfeature.interactor.PresentationLoadingInteractor
 import eu.europa.ec.presentationfeature.interactor.PresentationLoadingObserveResponsePartialState
 import eu.europa.ec.presentationfeature.interactor.PresentationLoadingReissuePartialState
 import eu.europa.ec.presentationfeature.interactor.PresentationLoadingSendRequestedDocumentPartialState
+import eu.europa.ec.presentationfeature.interactor.REISSUE_TIMEOUT
 import eu.europa.ec.resourceslogic.R
 import eu.europa.ec.resourceslogic.provider.ResourceProvider
 import eu.europa.ec.uilogic.component.content.ContentErrorConfig
@@ -46,6 +47,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeout
+import kotlinx.coroutines.withTimeoutOrNull
 import org.koin.android.annotation.KoinViewModel
 import java.net.URI
 import kotlin.time.Duration
@@ -189,7 +191,7 @@ class PresentationLoadingViewModel(
         }
     }
 
-    private fun sendRequestedDocuments(event: Event) {
+    private suspend fun sendRequestedDocuments(event: Event) {
         when (val result = interactor.sendRequestedDocuments()) {
             is PresentationLoadingSendRequestedDocumentPartialState.Success -> { /*no op*/
             }
@@ -218,7 +220,7 @@ class PresentationLoadingViewModel(
         context: Context,
         popEffect: Effect,
         authenticationDataList: List<AuthenticationData>,
-        sendRequestedDocumentsAction: () -> Unit,
+        sendRequestedDocumentsAction: suspend () -> Unit,
         index: Int = 0,
     ) {
         val authenticationData = authenticationDataList[index]
@@ -339,36 +341,30 @@ class PresentationLoadingViewModel(
             return
         }
 
-        // NOTE: unlike PresentationRequestViewModel's redirect path, the refresh here is
-        // intentionally BLOCKING (runs before navigation), not backgrounded. This screen is only
-        // reached when a credential needs on-device authentication, and two things make a
-        // background refresh unsafe on this path:
-        //   1. onRedirect() below tears down the presentation via cleanUpPresentation() ->
-        //      closePresentationScope(), which clears the rWSCA PIN session. On the request VM's
-        //      redirect path cleanUp() short-circuits and the session survives, so backgrounding is
-        //      safe there; here the session is gone the moment we navigate.
-        //   2. A refresh on this path can itself require user authentication (biometric); a prompt
-        //      that appears after the user has navigated away would be broken UX.
-        // A brief spinner is acceptable here because this is already a loading/progress screen.
-        // If this ever needs to be backgrounded, navigate first, launch the refresh on an
-        // application-scoped coroutine, and move cleanUpPresentation() to AFTER it completes.
+        // The refresh runs before navigation, as on the request screen: onRedirect() below tears
+        // down the presentation and clears the rWSCA PIN session that RwscaSecureArea.sign() needs,
+        // and a refresh reached from here can raise its own biometric prompt, which would be broken
+        // UX after the user has navigated away. A failure is only logged — it must never disrupt an
+        // already-completed presentation nor send the user back.
         viewModelScope.launch {
-            // Refill the one-time-use batch (spec step 043) while the rWSCA PIN session opened for
-            // this presentation is still available. closePresentationScope() clears that session
-            // (see pinSessionClearCallback), and RwscaSecureArea.sign() fails without it, so the
-            // refresh MUST run to completion before the presentation is torn down in onRedirect()/
-            // the success screen. A refresh failure is only logged — it must never disrupt the
-            // already-completed presentation nor send the user back.
             try {
-                val reissueFailure = reissueIfNeeded(
-                    context = context,
-                    notifyOnAuthenticationFailure = notifyOnAuthenticationFailure,
-                )
-                if (reissueFailure != null) {
-                    logController.d(logTag) { reissueFailure }
+                var reissueFailure: String? = null
+                val completed = withTimeoutOrNull(REISSUE_TIMEOUT) {
+                    reissueFailure = reissueIfNeeded(
+                        context = context,
+                        notifyOnAuthenticationFailure = notifyOnAuthenticationFailure,
+                    )
+                }
+                if (completed == null) {
+                    logController.d(logTag) { "Batch refresh timed out after $REISSUE_TIMEOUT" }
+                } else {
+                    reissueFailure?.let { failure -> logController.d(logTag) { failure } }
                 }
             } catch (e: CancellationException) {
-                // Preserve structured concurrency: if the scope was cancelled, don't navigate.
+                // The user left via the cancel affordance mid-refresh, so nothing below will
+                // navigate. Tear down here or the next presentation inherits this one's controller,
+                // replayed terminal events and all.
+                cleanUpPresentation()
                 throw e
             } catch (e: Exception) {
                 // The refresh performs a network WIA call that can throw; it must never strand the

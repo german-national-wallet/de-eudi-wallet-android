@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<lint>
+    <!-- Critical Errors -->
+    <issue id="NewApi" severity="error" />
+    <issue id="OldTargetApi" severity="error" />
+    <issue id="MissingClass" severity="error" />
+    <issue id="Registered" severity="error" />
+    
+    <!-- Code Quality - Errors -->
+    <issue id="UnusedImports" severity="error" />
+    <issue id="RedundantImport" severity="error" />
+    <issue id="WildcardImport" severity="error" />
+    <issue id="UnusedVariable" severity="error" />
+    <issue id="UnusedParameter" severity="error" />
+    <issue id="UnusedResource" severity="error" />
+    
+    <!-- Null Safety -->
+    <issue id="NullableBooleanElvis" severity="error" />
+    <issue id="RedundantNullableReturnType" severity="error" />
+    
+    <!-- Security - Errors -->
+    <issue id="ExportedActivity" severity="error" />
+    <issue id="ExportedService" severity="error" />
+    <issue id="ExportedReceiver" severity="error" />
+    <issue id="ExportedContentProvider" severity="error" />
+    <issue id="WorldReadableFiles" severity="error" />
+    <issue id="WorldWriteableFiles" severity="error" />
+    
+    <!-- Warnings -->
+    <issue id="HardcodedText" severity="warning" />
+    <issue id="MissingTranslation" severity="warning" />
+    <issue id="TypographyQuotes" severity="warning" />
+    <issue id="ImplicitDefaultLocale" severity="warning" />
+    <issue id="DefaultLocale" severity="warning" />
+    <issue id="InlinedApi" severity="warning" />
+    <issue id="InvalidPackage" severity="warning" />
+    
+    <!-- Kotlin-specific -->
+    <issue id="KotlinPropertyAccess" severity="warning" />
+    <issue id="KotlinUnused" severity="error" />
+    <issue id="KotlinRedundant" severity="warning" />
+    
+    <!-- Performance -->
+    <issue id="Recycle" severity="error" />
+    <issue id="ViewHolder" severity="error" />
+
+    <!-- Ignore non-code problems -->
+    <issue id="AndroidGradlePluginVersion" severity="ignore" />
+    <issue id="GradleDependency" severity="ignore" />
+</lint>

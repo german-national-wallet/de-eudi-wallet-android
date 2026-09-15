@@ -22,6 +22,9 @@ import org.sprind.wallet.authenticationlogic.model.MdvmRegistration
 interface MdvmRegistrationStorageController {
     fun getMdvmRegistration(): MdvmRegistration?
     fun saveMdvmRegistration(response: MdvmRegistration)
+
+    /** Removes the stored MDVM registration. Used by the wallet self-lock wipe. */
+    fun clearMdvmRegistration()
 }
 
 class MdvmRegistrationStorageControllerImpl(
@@ -32,4 +35,7 @@ class MdvmRegistrationStorageControllerImpl(
 
     override fun saveMdvmRegistration(response: MdvmRegistration) =
         storageConfig.mdvmRegistrationStorageProvider.saveMdvmRegistration(response)
+
+    override fun clearMdvmRegistration() =
+        storageConfig.mdvmRegistrationStorageProvider.removeMdvmRegistration()
 }

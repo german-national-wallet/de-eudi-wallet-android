@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Custom (non-Figma) localizations for the force-update blocking screen.
+     Kept out of string_figma.xml so a Figma re-export cannot overwrite them.
+     TODO(WD-1162): move to Figma-managed strings once designed. -->
+<resources>
+    <string name="app_update_required_title">Update required</string>
+    <string name="app_update_required_description">A newer version of the app is required before you can continue. Please update the app, then open it again.</string>
+    <string name="app_update_required_button">Update app</string>
+
+    <!-- Wallet self-lock (revocation) blocking screen + notification. Copy mirrors the iOS
+         wallet's global.error.Wallet_revoked strings. -->
+    <string name="app_revoked_title">Your wallet has been blocked</string>
+    <string name="app_revoked_description">A security risk was detected in your wallet. To protect your data, your IDs and documents have been removed. You can simply add them again.</string>
+    <string name="app_revoked_button">Understood</string>
+    <string name="notification_revoked_title">Your wallet has been blocked</string>
+    <string name="notification_revoked_body">Open the wallet for more information.</string>
+    <string name="notification_channel_revocation_name">Wallet security</string>
+</resources>

@@ -16,10 +16,13 @@
 
 package org.sprind.wallet.commonfeature.interactor
 
+import org.sprind.wallet.authenticationlogic.model.MdvmError
 import org.sprind.wallet.authenticationlogic.model.MdvmRegistration
 import org.sprind.wallet.authenticationlogic.model.MdvmResult
-import org.sprind.wallet.businesslogic.controller.storage.StorageController
+import org.sprind.wallet.businesslogic.controller.revocation.WalletRevocationStore
+import org.sprind.wallet.corelogic.revocation.WalletRevocationHandler
 import org.sprind.wallet.networklogic.common.model.ApiResult
+import org.sprind.wallet.networklogic.mdvm.model.error.MdvmErrorResponse
 import org.sprind.wallet.networklogic.mdvm.model.error.MdvmErrorType
 
 /**
@@ -28,22 +31,37 @@ import org.sprind.wallet.networklogic.mdvm.model.error.MdvmErrorType
  *
  * The push flow (revocation push) and the regular renewal path (app startup, PIN session,
  * document deletion, attestation generation) all flow through [MdvmInteractor], so this
- * decorator is the single interception point for the self-lock policy. The self-lock is
- * destructive: [StorageController.wipeAppData] tears the process down via
- * `ActivityManager.clearApplicationUserData`.
+ * decorator is the single interception point for the self-lock policy. The lock persists a
+ * flag, notifies the user, and selectively wipes wallet data ([WalletRevocationHandler]); the
+ * process stays alive and a blocking screen gates the app until the user resets.
+ *
+ * A wallet that is already locked never reaches the backend again: every call short-circuits
+ * to a synthetic ACCOUNT_REVOKED failure. The nav graph keeps running underneath the blocking
+ * overlay, so this guard - not the overlay - is what stops a wiped wallet from silently
+ * re-registering as a fresh instance.
  *
  * See `docs/architecture-documentation/.../03-data-flows/13-wallet-revocation.md`
  * (Wallet Instance Self-locking), AD-16 / AD-17: the WI must self-lock upon an explicit
  * REVOKED error from the MDVM and must never self-lock on transient failures.
  */
 internal class RevocationHandlingMdvmInteractor(
-    private val storageController: StorageController,
+    private val revocationStore: WalletRevocationStore,
+    private val revocationHandler: () -> WalletRevocationHandler,
     private val delegate: MdvmInteractor,
 ) : MdvmInteractor {
-    override suspend fun mdvmRegistration(forceRenewal: Boolean): MdvmResult<MdvmRegistration> =
-        delegate.mdvmRegistration(forceRenewal).also { result ->
+    override suspend fun mdvmRegistration(forceRenewal: Boolean): MdvmResult<MdvmRegistration> {
+        if (revocationStore.isRevoked()) {
+            return ApiResult.Failure(revokedFailure())
+        }
+        return delegate.mdvmRegistration(forceRenewal).also { result ->
             if (result is ApiResult.Failure && result.error.type == MdvmErrorType.ACCOUNT_REVOKED) {
-                storageController.wipeAppData()
+                revocationHandler().lockWallet()
             }
         }
+    }
+
+    private fun revokedFailure(): MdvmError = MdvmError(
+        type = MdvmErrorType.ACCOUNT_REVOKED,
+        serverResponse = MdvmErrorResponse(code = MdvmErrorType.ACCOUNT_REVOKED.code),
+    )
 }

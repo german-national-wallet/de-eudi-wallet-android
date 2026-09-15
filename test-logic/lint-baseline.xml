@@ -1,0 +1,102 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<issues format="6" by="lint 9.0.0" type="baseline" client="gradle" dependencies="false" name="AGP (9.0.0)" variant="all" version="9.0.0">
+
+    <issue
+        id="InvalidPackage"
+        message="Invalid package reference in org.bouncycastle:bcprov-jdk18on; not included in Android: `javax.naming.directory`. Referenced from `org.bouncycastle.jce.provider.CrlCache`.">
+        <location
+            file="$GRADLE_USER_HOME/caches/modules-2/files-2.1/org.bouncycastle/bcprov-jdk18on/1.83/310e719f391bd9f4ee5103ca299c172643efb595/bcprov-jdk18on-1.83.jar"/>
+    </issue>
+
+    <issue
+        id="InvalidPackage"
+        message="Invalid package reference in org.bouncycastle:bcprov-jdk18on; not included in Android: `javax.naming`. Referenced from `org.bouncycastle.jce.provider.X509LDAPCertStoreSpi`.">
+        <location
+            file="$GRADLE_USER_HOME/caches/modules-2/files-2.1/org.bouncycastle/bcprov-jdk18on/1.83/310e719f391bd9f4ee5103ca299c172643efb595/bcprov-jdk18on-1.83.jar"/>
+    </issue>
+
+    <issue
+        id="InvalidPackage"
+        message="Invalid package reference in net.bytebuddy:byte-buddy; not included in Android: `java.lang.classfile.attribute`. Referenced from `net.bytebuddy.jar.asmjdkbridge.AsmWrappedAttribute.AsmCharacterRangeTableAttribute`.">
+        <location
+            file="$GRADLE_USER_HOME/caches/modules-2/files-2.1/net.bytebuddy/byte-buddy/1.17.7/3856bfab61beb23e099a0d6629f2ba8de4b98ace/byte-buddy-1.17.7.jar"/>
+    </issue>
+
+    <issue
+        id="InvalidPackage"
+        message="Invalid package reference in net.bytebuddy:byte-buddy; not included in Android: `java.lang.classfile.constantpool`. Referenced from `net.bytebuddy.jar.asmjdkbridge.AsmAttribute.1`.">
+        <location
+            file="$GRADLE_USER_HOME/caches/modules-2/files-2.1/net.bytebuddy/byte-buddy/1.17.7/3856bfab61beb23e099a0d6629f2ba8de4b98ace/byte-buddy-1.17.7.jar"/>
+    </issue>
+
+    <issue
+        id="InvalidPackage"
+        message="Invalid package reference in net.bytebuddy:byte-buddy; not included in Android: `java.lang.classfile.instruction`. Referenced from `net.bytebuddy.jar.asmjdkbridge.AsmWrappedAttribute.AsmCharacterRangeTableAttribute`.">
+        <location
+            file="$GRADLE_USER_HOME/caches/modules-2/files-2.1/net.bytebuddy/byte-buddy/1.17.7/3856bfab61beb23e099a0d6629f2ba8de4b98ace/byte-buddy-1.17.7.jar"/>
+    </issue>
+
+    <issue
+        id="InvalidPackage"
+        message="Invalid package reference in net.bytebuddy:byte-buddy; not included in Android: `java.lang.classfile`. Referenced from `net.bytebuddy.jar.asmjdkbridge.AsmAttribute`.">
+        <location
+            file="$GRADLE_USER_HOME/caches/modules-2/files-2.1/net.bytebuddy/byte-buddy/1.17.7/3856bfab61beb23e099a0d6629f2ba8de4b98ace/byte-buddy-1.17.7.jar"/>
+    </issue>
+
+    <issue
+        id="InvalidPackage"
+        message="Invalid package reference in net.bytebuddy:byte-buddy; not included in Android: `java.lang.constant`. Referenced from `net.bytebuddy.jar.asmjdkbridge.AsmAttribute.DelegatingClassWriter`.">
+        <location
+            file="$GRADLE_USER_HOME/caches/modules-2/files-2.1/net.bytebuddy/byte-buddy/1.17.7/3856bfab61beb23e099a0d6629f2ba8de4b98ace/byte-buddy-1.17.7.jar"/>
+    </issue>
+
+    <issue
+        id="InvalidPackage"
+        message="Invalid package reference in org.robolectric:resources; not included in Android: `javax.xml.stream`. Referenced from `org.robolectric.res.NodeHandler`.">
+        <location
+            file="$GRADLE_USER_HOME/caches/modules-2/files-2.1/org.robolectric/resources/4.16.1/63f17dcabdc665a4c6526065a6988ad91ce94a2e/resources-4.16.1.jar"/>
+    </issue>
+
+    <issue
+        id="InvalidPackage"
+        message="Invalid package reference in org.robolectric:shadows-framework; not included in Android: `java.awt.geom`. Referenced from `org.robolectric.shadows.CachedPathIteratorFactory`.">
+        <location
+            file="$GRADLE_USER_HOME/caches/modules-2/files-2.1/org.robolectric/shadows-framework/4.16.1/8de8daee97c18b7cb305df2155e09352c3f4784b/shadows-framework-4.16.1.jar"/>
+    </issue>
+
+    <issue
+        id="InvalidPackage"
+        message="Invalid package reference in org.robolectric:shadows-framework; not included in Android: `java.awt.image`. Referenced from `org.robolectric.shadows.AutoValue_ImageUtil_RobolectricBufferedImage`.">
+        <location
+            file="$GRADLE_USER_HOME/caches/modules-2/files-2.1/org.robolectric/shadows-framework/4.16.1/8de8daee97c18b7cb305df2155e09352c3f4784b/shadows-framework-4.16.1.jar"/>
+    </issue>
+
+    <issue
+        id="InvalidPackage"
+        message="Invalid package reference in org.robolectric:shadows-framework; not included in Android: `java.awt`. Referenced from `org.robolectric.shadows.ImageUtil`.">
+        <location
+            file="$GRADLE_USER_HOME/caches/modules-2/files-2.1/org.robolectric/shadows-framework/4.16.1/8de8daee97c18b7cb305df2155e09352c3f4784b/shadows-framework-4.16.1.jar"/>
+    </issue>
+
+    <issue
+        id="InvalidPackage"
+        message="Invalid package reference in org.robolectric:shadows-framework; not included in Android: `javax.imageio.stream`. Referenced from `org.robolectric.shadows.ImageUtil`.">
+        <location
+            file="$GRADLE_USER_HOME/caches/modules-2/files-2.1/org.robolectric/shadows-framework/4.16.1/8de8daee97c18b7cb305df2155e09352c3f4784b/shadows-framework-4.16.1.jar"/>
+    </issue>
+
+    <issue
+        id="InvalidPackage"
+        message="Invalid package reference in org.robolectric:shadows-framework; not included in Android: `javax.imageio`. Referenced from `org.robolectric.shadows.ImageUtil`.">
+        <location
+            file="$GRADLE_USER_HOME/caches/modules-2/files-2.1/org.robolectric/shadows-framework/4.16.1/8de8daee97c18b7cb305df2155e09352c3f4784b/shadows-framework-4.16.1.jar"/>
+    </issue>
+
+    <issue
+        id="InvalidPackage"
+        message="Invalid package reference in org.robolectric:utils; not included in Android: `javax.inject`. Referenced from `org.robolectric.util.inject.Injector`.">
+        <location
+            file="$GRADLE_USER_HOME/caches/modules-2/files-2.1/org.robolectric/utils/4.16.1/a1161904b408aae53d895b4cd5d0238cc1f0583c/utils-4.16.1.jar"/>
+    </issue>
+
+</issues>

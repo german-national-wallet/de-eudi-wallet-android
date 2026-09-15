@@ -21,6 +21,9 @@ import org.sprind.wallet.assemblylogic.controller.AppBlockingController
 import org.sprind.wallet.assemblylogic.controller.AppBlockingControllerImpl
 import org.sprind.wallet.assemblylogic.controller.PlatformAuthenticationProvider
 import org.sprind.wallet.assemblylogic.controller.PlatformAuthenticationProviderImpl
+import org.sprind.wallet.assemblylogic.controller.WalletRevocationResetCoordinator
+import org.sprind.wallet.assemblylogic.controller.WalletRevokedProvider
+import org.sprind.wallet.assemblylogic.controller.WalletRevokedProviderImpl
 import eu.europa.ec.analyticslogic.di.LogicAnalyticsModule
 import eu.europa.ec.authenticationlogic.di.LogicAuthenticationModule
 import eu.europa.ec.businesslogic.config.ConfigLogic
@@ -57,10 +60,12 @@ private val featureFlagStorageModule = module {
     singleOf(::provideFeatureFlagConfig)
     singleOf(::provideFeatureFlagStorage).bind<FeatureFlagStorage>()
     singleOf(::PlatformAuthenticationProviderImpl).bind<PlatformAuthenticationProvider>()
+    singleOf(::WalletRevokedProviderImpl).bind<WalletRevokedProvider>()
+    singleOf(::WalletRevocationResetCoordinator)
     singleOf(::AppBlockingControllerImpl).bind<AppBlockingController>()
 }
 
-private val assembledModules = listOf(
+internal val assembledModules = listOf(
 
     // Logic Modules
     LogicNetworkModule().module,

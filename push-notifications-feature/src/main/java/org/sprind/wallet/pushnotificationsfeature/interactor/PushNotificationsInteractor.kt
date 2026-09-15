@@ -19,7 +19,11 @@ package org.sprind.wallet.pushnotificationsfeature.interactor
 import eu.europa.ec.businesslogic.controller.log.LogController
 import kotlinx.coroutines.delay
 import org.sprind.wallet.authenticationlogic.provider.MdvmAuthContextProvider
+import org.sprind.wallet.businesslogic.controller.revocation.WalletRevocationStore
+import org.sprind.wallet.authenticationlogic.model.MdvmRegistration
+import org.sprind.wallet.authenticationlogic.model.MdvmResult
 import org.sprind.wallet.commonfeature.interactor.MdvmInteractor
+import org.sprind.wallet.networklogic.mdvm.model.error.MdvmErrorType
 import org.sprind.wallet.networklogic.common.model.ApiResult
 import org.sprind.wallet.networklogic.pushnotifications.api.PushNotificationsApiClient
 import org.sprind.wallet.networklogic.pushnotifications.api.SigningPushNotificationsApiClient
@@ -70,6 +74,14 @@ interface PushNotificationsInteractor {
      * FCM service's [Dispatchers.IO] scope).
      */
     suspend fun handleRevocationPush()
+
+    /**
+     * Runs the one-shot recheck left behind by [handleRevocationPush] when its renewal did not
+     * reach a conclusive MDVM response (e.g. the device was offline). No-op unless such a push
+     * actually arrived — the wallet performs no unconditional revocation checks. A conclusive
+     * result clears the pending flag; a thrown transient error keeps it for the next attempt.
+     */
+    suspend fun runPendingRevocationRecheck()
 }
 
 private typealias PushNotificationsResult = ApiResult<Unit, PushNotificationsErrorResponse>
@@ -81,6 +93,7 @@ class PushNotificationsInteractorImpl(
     private val pushNotificationsApiClient: PushNotificationsApiClient,
     private val mdvmAuthContextProvider: MdvmAuthContextProvider,
     private val mdvmInteractor: MdvmInteractor,
+    private val walletRevocationStore: WalletRevocationStore,
     private val logController: LogController,
 ) : PushNotificationsInteractor {
 
@@ -137,23 +150,69 @@ class PushNotificationsInteractorImpl(
     }
 
     override suspend fun handleRevocationPush() {
+        if (walletRevocationStore.isRevoked()) {
+            logController.d(TAG) { "Revocation push received but the wallet is already locked" }
+            return
+        }
         logController.d(TAG) { "Revocation push received — performing authenticated MDVM renewal" }
+        // Pending until a conclusive MDVM answer about revocation. A thrown transient error
+        // (offline device), a transient server error (5xx — the MDVM answered but could not
+        // evaluate revocation), or a process death mid-retry all leave the flag set, and the
+        // next app resume performs the missing decisive renewal.
+        walletRevocationStore.markRecheckPending()
         // The RevocationHandlingMdvmInteractor decorator self-locks on ACCOUNT_REVOKED.
         when (val firstResult = mdvmInteractor.mdvmRegistration(forceRenewal = true)) {
             is ApiResult.Success -> {
                 // Race window: revocation may not yet have propagated to the MDVM. Retry once.
                 logController.d(TAG) { "Renewal still succeeds; retrying after race-window delay" }
                 delay(REVOCATION_RACE_RETRY_MS.milliseconds)
-                mdvmInteractor.mdvmRegistration(forceRenewal = true)
-                // The decorator self-locks if this retry returns ACCOUNT_REVOKED.
+                val retryResult = mdvmInteractor.mdvmRegistration(forceRenewal = true)
+                // The decorator self-locks if this retry returned ACCOUNT_REVOKED.
+                if (retryResult.isRevocationConclusive()) {
+                    walletRevocationStore.clearRecheckPending()
+                } else {
+                    logController.d(TAG) { "Retry renewal inconclusive; recheck stays pending" }
+                }
             }
             is ApiResult.Failure -> {
-                // The decorator already self-locked if this was ACCOUNT_REVOKED.
-                // For transient errors there is nothing more to do.
                 logController.d(TAG) { "Renewal error (${firstResult.error.code}); not retrying" }
+                if (firstResult.isRevocationConclusive()) {
+                    // ACCOUNT_REVOKED: the decorator already self-locked; nothing left to check.
+                    walletRevocationStore.clearRecheckPending()
+                } else {
+                    logController.d(TAG) { "Transient MDVM error; recheck stays pending" }
+                }
             }
         }
     }
+
+    override suspend fun runPendingRevocationRecheck() {
+        if (!walletRevocationStore.isRecheckPending() || walletRevocationStore.isRevoked()) return
+        logController.d(TAG) { "Running pending revocation recheck" }
+        try {
+            val result = mdvmInteractor.mdvmRegistration(forceRenewal = true)
+            // Conclusive only when the MDVM actually answered the revocation question: a
+            // successful renewal (not revoked; the decorator self-locked on ACCOUNT_REVOKED).
+            // A transient server error keeps the flag for the next resume.
+            if (result.isRevocationConclusive()) {
+                walletRevocationStore.clearRecheckPending()
+            } else {
+                logController.d(TAG) { "Recheck inconclusive (${(result as ApiResult.Failure).error.code}); staying pending" }
+            }
+        } catch (e: Exception) {
+            // Still no conclusive response; keep the flag for the next resume.
+            logController.e(TAG, e)
+        }
+    }
+
+    /**
+     * Whether this MDVM outcome answers the revocation question: a successful renewal proves
+     * the account is not revoked, and ACCOUNT_REVOKED proves it is. Any other failure means
+     * the MDVM could not evaluate revocation, so the pending recheck must survive it.
+     */
+    private fun MdvmResult<MdvmRegistration>.isRevocationConclusive(): Boolean =
+        this is ApiResult.Success ||
+            (this is ApiResult.Failure && error.type == MdvmErrorType.ACCOUNT_REVOKED)
 
     companion object {
         private const val TAG = "PushNotifInteractor"

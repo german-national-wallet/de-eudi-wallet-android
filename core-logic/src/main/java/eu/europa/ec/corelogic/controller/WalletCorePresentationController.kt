@@ -17,10 +17,7 @@
 package eu.europa.ec.corelogic.controller
 
 import androidx.activity.ComponentActivity
-import eu.europa.ec.eudi.iso18013.transfer.response.DisclosedDocument
-import eu.europa.ec.eudi.iso18013.transfer.response.DisclosedDocuments
 import eu.europa.ec.eudi.iso18013.transfer.response.RequestProcessor
-import eu.europa.ec.eudi.iso18013.transfer.response.RequestedDocument
 import eu.europa.ec.eudi.iso18013.transfer.toKotlinResult
 import eu.europa.ec.eudi.wallet.EudiWallet
 import eu.europa.ec.eudi.wallet.document.DocumentExtensions.getDefaultKeyUnlockData
@@ -28,11 +25,11 @@ import eu.europa.ec.eudi.wallet.document.DocumentId
 import eu.europa.ec.eudi.wallet.document.IssuedDocument
 import eu.europa.ec.authenticationlogic.model.BiometricCrypto
 import eu.europa.ec.businesslogic.controller.log.LogController
-import eu.europa.ec.businesslogic.extension.addOrReplace
 import eu.europa.ec.businesslogic.extension.safeAsync
 import eu.europa.ec.businesslogic.extension.toUri
 import eu.europa.ec.corelogic.di.WalletPresentationScope
 import eu.europa.ec.corelogic.model.AuthenticationData
+import eu.europa.ec.corelogic.model.DisclosedDocumentDomain
 import eu.europa.ec.corelogic.securearea.exception.RwscaException
 import eu.europa.ec.corelogic.util.EudiWalletListenerWrapper
 import eu.europa.ec.resourceslogic.provider.ResourceProvider
@@ -54,8 +51,16 @@ import kotlinx.coroutines.flow.shareIn
 import kotlinx.coroutines.launch
 import org.koin.core.annotation.Scope
 import org.koin.core.annotation.Scoped
+import org.multipaz.credential.Credential
+import org.multipaz.crypto.javaX509Certificates
+import org.multipaz.credential.SecureAreaBoundCredential
+import org.multipaz.presentment.CredentialPresentmentSelection
+import org.multipaz.presentment.CredentialPresentmentSetOptionMemberMatch
+import org.multipaz.request.RequestedClaim
+import org.multipaz.request.Requester
 import org.multipaz.securearea.AndroidKeystoreKeyUnlockData
 import org.multipaz.securearea.AndroidKeystoreSecureArea
+import org.multipaz.securearea.KeyUnlockData
 import java.net.URI
 
 sealed class PresentationControllerConfig(val initiatorRoute: String) {
@@ -72,7 +77,7 @@ sealed class TransferEventPartialState {
     data class Error(val error: String) : TransferEventPartialState()
     data class QrEngagementReady(val qrCode: String) : TransferEventPartialState()
     data class RequestReceived(
-        val requestData: List<RequestedDocument>,
+        val requestData: List<CredentialPresentmentSetOptionMemberMatch>,
         val verifierName: String?,
         val verifierIsTrusted: Boolean,
     ) : TransferEventPartialState()
@@ -128,9 +133,12 @@ interface WalletCorePresentationController {
     val events: SharedFlow<TransferEventPartialState>
 
     /**
-     * User selection data for request step
+     * What the presentation will disclose: the claims the user consented to, per document.
+     *
+     * Starts as everything the request asks for and is replaced by the consent UI's selection
+     * through [updateRequestedDocuments].
      * */
-    val disclosedDocuments: MutableList<DisclosedDocument>?
+    val disclosedDocuments: MutableList<DisclosedDocumentDomain>?
 
     /**
      * Verifier name so it can be retrieve across screens
@@ -180,13 +188,16 @@ interface WalletCorePresentationController {
      *  */
     fun checkForKeyUnlock(): Flow<CheckKeyUnlockPartialState>
 
-    fun sendRequestedDocuments(): SendRequestedDocumentsPartialState
+    suspend fun sendRequestedDocuments(): SendRequestedDocumentsPartialState
 
     /**
-     * Updates the UI model
+     * Applies the consent UI's selection: the presentment selection that will be sent is narrowed
+     * to exactly these claims, so an unticked row withholds that claim and a document with
+     * nothing ticked drops out of the response.
+     *
      * @param disclosedDocuments User updated data through UI Events
      * */
-    fun updateRequestedDocuments(disclosedDocuments: MutableList<DisclosedDocument>?)
+    fun updateRequestedDocuments(disclosedDocuments: MutableList<DisclosedDocumentDomain>?)
 
     /**
      * @return flow that maps the state from [events] emission to what we consider as success state
@@ -202,6 +213,18 @@ interface WalletCorePresentationController {
     fun observeSentDocumentsRequest(): Flow<WalletCorePartialState>
 }
 
+/**
+ * Drives one presentation, from engagement to response.
+ *
+ * Per-claim consent works differently since wallet-core v0.30.0. Up to v0.29.0 the wallet built
+ * the response from a `DisclosedDocuments` list it assembled itself; now
+ * `RequestProcessor.ProcessedRequest.Success` offers pre-computed
+ * [CredentialPresentmentSelection]s and `generateResponse` takes one of them. A partial disclosure
+ * is therefore expressed by narrowing a selection rather than by filtering a claim list:
+ * [fullPresentmentSelection] holds everything the request can be satisfied with,
+ * [updateRequestedDocuments] narrows it to what the user ticked, and [sendRequestedDocuments]
+ * sends the narrowed [presentmentSelection].
+ */
 @Scope(WalletPresentationScope::class)
 @Scoped
 class WalletCorePresentationControllerImpl(
@@ -218,9 +241,21 @@ class WalletCorePresentationControllerImpl(
 
     private lateinit var _config: PresentationControllerConfig
 
-    override var disclosedDocuments: MutableList<DisclosedDocument>? = null
+    override var disclosedDocuments: MutableList<DisclosedDocumentDomain>? = null
 
     private var processedRequest: RequestProcessor.ProcessedRequest.Success? = null
+
+    /** Everything the request can be satisfied with, as wallet-core computed it. */
+    private var fullPresentmentSelection: CredentialPresentmentSelection? = null
+
+    /**
+     * [fullPresentmentSelection] narrowed to the user's consent; this is what gets sent. Stays
+     * null until the consent UI reports a selection, so nothing is disclosed without it.
+     */
+    private var presentmentSelection: CredentialPresentmentSelection? = null
+
+    /** Unlock data gathered by [checkForKeyUnlock], keyed by `match.credential.identifier`. */
+    private val keyUnlockData: MutableMap<String, KeyUnlockData> = mutableMapOf()
 
     override var verifierName: String? = null
 
@@ -269,17 +304,27 @@ class WalletCorePresentationControllerImpl(
             },
             onRequestReceived = { requestedDocumentData, _ ->
                 trySendBlocking(
-                    requestedDocumentData.getOrNull()?.let { requestedDocuments ->
-                        processedRequest = requestedDocuments
-                        verifierName = requestedDocuments.requestedDocuments
-                            .firstOrNull()?.readerAuth?.readerCommonName
+                    requestedDocumentData.getOrNull()?.let { request ->
+                        processedRequest = request
 
-                        val isTrusted = requestedDocuments.requestedDocuments
-                            .firstOrNull()?.readerAuth?.isVerified == true
+                        // The first option holds every credential the wallet can present for this
+                        // request; updateRequestedDocuments() narrows it to the user's consent.
+                        fullPresentmentSelection = request.presentmentSelections.firstOrNull()
+                        presentmentSelection = null
+                        disclosedDocuments = null
+                        keyUnlockData.clear()
+
+                        // trustMetadata is populated only for readers that validated against the
+                        // reader trust store; its displayName is the verifier's legal name. For
+                        // untrusted readers fall back to the certificate's Common Name, which is
+                        // what RequestedDocument.readerAuth.readerCommonName used to carry.
+                        val isTrusted = request.trustMetadata != null
+                        verifierName = request.trustMetadata?.displayName
+                            ?: request.requester.readerCommonNameOrNull()
                         verifierIsTrusted = isTrusted
 
                         TransferEventPartialState.RequestReceived(
-                            requestData = requestedDocuments.requestedDocuments,
+                            requestData = fullPresentmentSelection?.matches.orEmpty(),
                             verifierName = verifierName,
                             verifierIsTrusted = isTrusted
                         )
@@ -335,20 +380,17 @@ class WalletCorePresentationControllerImpl(
     }
 
     override fun checkForKeyUnlock() = flow {
-        disclosedDocuments?.let { documents ->
-            val authenticationData = documents
-                .mapNotNull { doc ->
-                    val unlockData = getAndroidKeyUnlockDataIfRequired(doc.documentId)
+        presentmentSelection?.let { selection ->
+            val authenticationData = selection.matches
+                .distinctBy { it.credential.identifier }
+                .mapNotNull { match ->
+                    val credential = match.credential
+                    val unlockData = getAndroidKeyUnlockDataIfRequired(credential)
                         ?: return@mapNotNull null
                     AuthenticationData(
                         crypto = BiometricCrypto(unlockData.getCryptoObjectForSigning()),
                         onAuthenticationSuccess = {
-                            documents.addOrReplace(
-                                value = doc.copy(keyUnlockData = unlockData),
-                                replaceCondition = { disclosedDocument ->
-                                    disclosedDocument.documentId == doc.documentId
-                                }
-                            )
+                            keyUnlockData[credential.identifier] = unlockData
                         }
                     )
                 }
@@ -372,45 +414,46 @@ class WalletCorePresentationControllerImpl(
     }
 
     /**
-     * Looks up the requested document's active credential and checks whether presentation needs
-     * Android device authentication for its Android Keystore key.
+     * Checks whether presenting [credential] needs Android device authentication for its Android
+     * Keystore key.
      *
-     * @return [AndroidKeystoreKeyUnlockData] when the document is backed by an Android Keystore
-     * credential whose key requires user authentication, or `null` when no Android/device
-     * credential prompt is needed for this document.
+     * @return [AndroidKeystoreKeyUnlockData] when the credential is backed by an Android Keystore
+     * key that requires user authentication, or `null` when no Android/device credential prompt is
+     * needed for it.
      */
     private suspend fun getAndroidKeyUnlockDataIfRequired(
-        documentId: DocumentId,
+        credential: Credential,
     ): AndroidKeystoreKeyUnlockData? {
-        val document = eudiWallet.getDocumentById(documentId) as? IssuedDocument
-            // The presentation request references no issued document we can unlock here.
+        val secureAreaBound = credential as? SecureAreaBoundCredential
+            // Credentials not bound to a secure area have no key to unlock.
             ?: return null
-        val credential = document.findCredential()
-            // No active credential is available for this document.
-            ?: return null
-        val secureArea = credential.secureArea as? AndroidKeystoreSecureArea
+        val secureArea = secureAreaBound.secureArea as? AndroidKeystoreSecureArea
             // Non-Android secure areas, such as rWSCA, have their own unlock flow.
             ?: return null
-        val keyInfo = secureArea.getKeyInfo(credential.alias)
+        val keyInfo = secureArea.getKeyInfo(secureAreaBound.alias)
 
         if (!keyInfo.isUserAuthenticationRequired) {
             // Android Keystore key exists, but its settings do not require user authentication.
             return null
         }
 
-        return getDefaultKeyUnlockData(secureArea, credential.alias)
-            ?: throw IllegalStateException("Key data missing for $documentId")
+        return getDefaultKeyUnlockData(secureArea, secureAreaBound.alias)
+            ?: throw IllegalStateException(
+                "Key data missing for credential ${credential.identifier}"
+            )
     }
 
-    override fun sendRequestedDocuments(): SendRequestedDocumentsPartialState {
-        return disclosedDocuments?.let { safeDisclosedDocuments ->
+    override suspend fun sendRequestedDocuments(): SendRequestedDocumentsPartialState {
+        val request = processedRequest
+        val selection = presentmentSelection
+        return if (request != null && selection != null) {
 
             var result: SendRequestedDocumentsPartialState =
                 SendRequestedDocumentsPartialState.RequestSent
 
-            processedRequest?.generateResponse(DisclosedDocuments(safeDisclosedDocuments.toList()))
-                ?.toKotlinResult()
-                ?.onFailure {
+            request.generateResponse(selection, keyUnlockData.toMap())
+                .toKotlinResult()
+                .onFailure {
                     logController.e(logTag) {
                         "Error while sending the requested documents: ${it.localizedMessage}"
                     }
@@ -425,13 +468,69 @@ class WalletCorePresentationControllerImpl(
                         exception = rwscaException
                     )
 
-                }?.onSuccess {
+                }.onSuccess {
                     eudiWallet.sendResponse(it.response)
                     result = SendRequestedDocumentsPartialState.RequestSent
                 }
             result
-        } ?: SendRequestedDocumentsPartialState.Failure(null)
+        } else {
+            SendRequestedDocumentsPartialState.Failure(null)
+        }
     }
+
+    override fun updateRequestedDocuments(
+        disclosedDocuments: MutableList<DisclosedDocumentDomain>?,
+    ) {
+        this.disclosedDocuments = disclosedDocuments
+        presentmentSelection = disclosedDocuments?.let { fullPresentmentSelection?.narrowedTo(it) }
+        // A narrowed selection can drop whole credentials, so unlock data gathered for a previous
+        // one no longer applies.
+        keyUnlockData.keys.retainAll(
+            presentmentSelection?.matches?.mapTo(mutableSetOf()) { it.credential.identifier }
+                ?: emptySet()
+        )
+    }
+
+    /**
+     * This selection with every match reduced to the claims [consent] allows for that match's
+     * document. Documents absent from [consent], and matches the consent leaves without any of
+     * their requested claims, are dropped.
+     *
+     * A match that asks for no claims to begin with is kept as is: per OpenID4VP §6.4.1 a
+     * Credential Query without `claims` requests a presentation with no selectively disclosable
+     * claim, so there is nothing to narrow and dropping it would silently break the verifier's
+     * `credential_sets`.
+     */
+    private fun CredentialPresentmentSelection.narrowedTo(
+        consent: List<DisclosedDocumentDomain>,
+    ): CredentialPresentmentSelection {
+        val allowedByDocument: Map<DocumentId, Set<RequestedClaim>> =
+            consent.associate { it.documentId to it.disclosedClaims }
+        return CredentialPresentmentSelection(
+            matches = matches.mapNotNull { match ->
+                val allowed = allowedByDocument[match.credential.document.identifier]
+                    ?: return@mapNotNull null
+                if (match.claims.isEmpty()) return@mapNotNull match
+                val kept = match.claims.filterKeys { it in allowed }
+                if (kept.isEmpty()) null else match.copy(claims = kept)
+            }
+        )
+    }
+
+    /**
+     * The Common Name of the reader's leaf certificate, shown for verifiers that did not validate
+     * against the reader trust store. Up to wallet-core v0.29.0 this arrived ready-made as
+     * `RequestedDocument.readerAuth.readerCommonName`.
+     */
+    private fun Requester.readerCommonNameOrNull(): String? =
+        certChain?.javaX509Certificates?.firstOrNull()
+            ?.subjectX500Principal?.name
+            ?.split(",")
+            ?.map { it.split("=", limit = 2) }
+            ?.firstOrNull { it.size == 2 && it[0].trim() == "CN" }
+            ?.get(1)
+            ?.trim()
+            ?.takeIf { it.isNotBlank() }
 
     override fun mappedCallbackStateFlow(): Flow<ResponseReceivedPartialState> {
         return events.mapNotNull { response ->
@@ -502,10 +601,6 @@ class WalletCorePresentationControllerImpl(
                 error = it.localizedMessage ?: genericErrorMessage
             )
         }
-
-    override fun updateRequestedDocuments(disclosedDocuments: MutableList<DisclosedDocument>?) {
-        this.disclosedDocuments = disclosedDocuments
-    }
 
     override fun stopPresentation() {
         coroutineScope.cancel()

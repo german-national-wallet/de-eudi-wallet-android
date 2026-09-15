@@ -35,7 +35,10 @@ import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.http.ContentType
 import io.ktor.serialization.kotlinx.json.json
 import kotlinx.serialization.json.Json
+import okhttp3.CipherSuite
+import okhttp3.ConnectionSpec
 import okhttp3.OkHttpClient
+import okhttp3.TlsVersion
 import org.koin.core.annotation.ComponentScan
 import org.koin.core.annotation.Factory
 import org.koin.core.annotation.Module
@@ -96,6 +99,22 @@ fun provideNetworkLogInterceptor(logController: LogController): NetworkLogInterc
 internal fun provideTraceContextInterceptor(telemetry: Telemetry): TraceContextInterceptor =
     TraceContextInterceptor(telemetry = telemetry)
 
+private val secureSpec: ConnectionSpec
+    get() = ConnectionSpec.Builder(ConnectionSpec.RESTRICTED_TLS)
+        .tlsVersions(TlsVersion.TLS_1_3, TlsVersion.TLS_1_2)
+        .cipherSuites(
+            // TLS 1.3
+            CipherSuite.TLS_AES_256_GCM_SHA384,
+            CipherSuite.TLS_AES_128_GCM_SHA256,
+
+            // TLS 1.2
+            CipherSuite.TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384,
+            CipherSuite.TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,
+            CipherSuite.TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,
+            CipherSuite.TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256
+        )
+        .build()
+
 /**
  * A base OkHttpClient instance from which other instances can derive to
  * share the same connection pool, cache, and any global interceptors, as
@@ -108,6 +127,7 @@ internal fun provideBaseOkHttpClient(
     networkLogInterceptor: NetworkLogInterceptor,
     traceContextInterceptor: TraceContextInterceptor,
 ): OkHttpClient = OkHttpClient.Builder()
+    .connectionSpecs(listOf(secureSpec))
     .readTimeout(configLogic.environmentConfig.readTimeoutSeconds, TimeUnit.SECONDS)
     .connectTimeout(configLogic.environmentConfig.connectTimeoutSeconds, TimeUnit.SECONDS)
     // Added first so it stays outermost and observes failures thrown by the interceptors below,
@@ -115,6 +135,7 @@ internal fun provideBaseOkHttpClient(
     .addInterceptor(traceContextInterceptor)
     .addInterceptor(networkLogInterceptor)
     .addNetworkInterceptor(httpTelemetryInterceptor)
+    .certificatePinner(configLogic.environmentConfig.certificatePinnerSpecs.toCertificatePinner())
     .build()
 
 @Qualifier
@@ -125,12 +146,7 @@ annotation class OpenId4VciVp
 @OpenId4VciVp
 internal fun provideOpenid4VciVpOkHttpClient(
     baseOkHttpClient: OkHttpClient,
-    configLogic: ConfigLogic,
-): OkHttpClient {
-    return baseOkHttpClient.newBuilder()
-        .certificatePinner(configLogic.environmentConfig.pidIssuerSpec.okCertificatePinnerSpec.toCertificatePinner())
-        .build()
-}
+): OkHttpClient = baseOkHttpClient
 
 @Qualifier
 @Retention(AnnotationRetention.BINARY)

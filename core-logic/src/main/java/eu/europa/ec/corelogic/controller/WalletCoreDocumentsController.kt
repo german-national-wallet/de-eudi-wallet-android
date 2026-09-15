@@ -17,6 +17,7 @@
 package eu.europa.ec.corelogic.controller
 
 
+import androidx.annotation.StringRes
 import eu.europa.ec.authenticationlogic.controller.appattestation.AppAttestationController
 import eu.europa.ec.authenticationlogic.controller.appattestation.WalletAttestationGenerationResult
 import eu.europa.ec.authenticationlogic.controller.authentication.DeviceAuthenticationResult
@@ -45,7 +46,7 @@ import eu.europa.ec.eudi.wallet.EudiWallet
 import eu.europa.ec.eudi.wallet.document.CreateDocumentSettings
 import eu.europa.ec.eudi.wallet.document.DeferredDocument
 import eu.europa.ec.eudi.wallet.document.Document
-import eu.europa.ec.eudi.wallet.document.DocumentExtensions.getDefaultCreateDocumentSettings
+import eu.europa.ec.eudi.wallet.document.DocumentExtensions.getDefaultCreateKeySettings
 import eu.europa.ec.eudi.wallet.document.DocumentExtensions.getDefaultKeyUnlockData
 import eu.europa.ec.eudi.wallet.document.DocumentId
 import eu.europa.ec.eudi.wallet.document.IssuedDocument
@@ -56,6 +57,7 @@ import eu.europa.ec.eudi.wallet.issue.openid4vci.IssueEvent
 import eu.europa.ec.eudi.wallet.issue.openid4vci.Offer
 import eu.europa.ec.eudi.wallet.issue.openid4vci.OfferResult
 import eu.europa.ec.eudi.wallet.issue.openid4vci.OpenId4VciManager
+import eu.europa.ec.eudi.wallet.issue.openid4vci.reissue.ReissuanceAuthorizationException
 import eu.europa.ec.resourceslogic.R
 import eu.europa.ec.resourceslogic.provider.ResourceProvider
 import io.ktor.client.HttpClient
@@ -76,7 +78,6 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.json.JSONObject
 import org.multipaz.securearea.AndroidKeystoreCreateKeySettings
-import org.multipaz.securearea.CreateKeySettings
 import org.multipaz.securearea.UserAuthenticationType
 import org.sprind.wallet.corelogic.controller.ReissueDocumentPartialState
 import org.sprind.wallet.corelogic.securearea.RwscaSecureArea
@@ -259,6 +260,14 @@ interface WalletCoreDocumentsController {
 
     fun deleteAllDocuments(): Flow<DeleteAllDocumentsPartialState>
 
+    /**
+     * Deletes every stored document unconditionally, PID present or not, and succeeds on an
+     * already-empty wallet. Used by the wallet self-lock, where [deleteAllDocuments]'s
+     * requirement of a main PID does not hold (a revoked wallet may hold only EAAs, or nothing).
+     * Clears the wallet registration ids once all documents are gone, like [deleteAllDocuments].
+     */
+    fun wipeAllDocuments(): Flow<DeleteAllDocumentsPartialState>
+
     fun resolveDocumentOffer(offerUri: String): Flow<ResolveDocumentOfferPartialState>
 
     fun issueDeferredDocument(docId: DocumentId): Flow<IssueDeferredDocumentPartialState>
@@ -419,11 +428,11 @@ class WalletCoreDocumentsControllerImpl(
         get() = resourceProvider.getString(R.string.issuance_generic_error)
 
     private val openId4VciManagersDelegate = lazy {
-        walletCoreConfig.vciConfig.associateTo(mutableMapOf()) { config ->
-            config.issuerUrl to eudiWallet.createOpenId4VciManager(
+        walletCoreConfig.vciConfig.keys.associateWithTo(mutableMapOf()) { issuerUrl ->
+            eudiWallet.createOpenId4VciManager(
                 config = configForIssuer(
                     configs = walletCoreConfig.vciConfig,
-                    httpsUrl = config.issuerUrl
+                    httpsUrl = issuerUrl
                 )
             )
         }
@@ -441,8 +450,8 @@ class WalletCoreDocumentsControllerImpl(
             runCatching {
 
                 val metadata: Map<String, CredentialIssuerMetadata> =
-                    openId4VciManagers.mapValues { (_, manager) ->
-                        manager.getIssuerMetadata().getOrThrow()
+                    openId4VciManagers.mapValues { (issuerUrl, manager) ->
+                        manager.getIssuerMetadata(issuerUrl).getOrThrow()
                     }
 
                 val documents: List<ScopedDocumentDomain> =
@@ -490,7 +499,7 @@ class WalletCoreDocumentsControllerImpl(
         withContext(dispatcher) {
             runCatching {
                 val manager = getManagerForIssuer(pidIssuerUrl)
-                val metadata = manager.getIssuerMetadata().getOrThrow()
+                val metadata = manager.getIssuerMetadata(pidIssuerUrl).getOrThrow()
                 val advertised = metadata.credentialConfigurationsSupported.keys
                 val preferred =
                     WalletCoreDocumentsController.resolvePreferredPidConfigurationIds(advertised)
@@ -829,6 +838,36 @@ class WalletCoreDocumentsControllerImpl(
             )
         }
 
+    override fun wipeAllDocuments(): Flow<DeleteAllDocumentsPartialState> =
+        flow {
+            val allDocuments = getAllDocuments()
+            val mainPidId = getMainPidDocument()?.id
+
+            // Non-PID documents first, the PID last, so an interrupted wipe cannot leave EAAs
+            // behind without the PID they were issued against.
+            val orderedIds = allDocuments.map { it.id }.sortedBy { it == mainPidId }
+
+            var failureReason: String? = null
+            orderedIds.forEach { documentId ->
+                deleteDocument(documentId = documentId).collect { state ->
+                    if (state is DeleteDocumentPartialState.Failure) {
+                        failureReason = state.errorMessage
+                    }
+                }
+            }
+
+            failureReason?.let {
+                emit(DeleteAllDocumentsPartialState.Failure(errorMessage = it))
+            } ?: run {
+                hardwareKeyStorageController.removeWalletRegistrationIds()
+                emit(DeleteAllDocumentsPartialState.Success)
+            }
+        }.safeAsync {
+            DeleteAllDocumentsPartialState.Failure(
+                errorMessage = it.localizedMessage ?: genericErrorMessage
+            )
+        }
+
     override fun resolveDocumentOffer(offerUri: String): Flow<ResolveDocumentOfferPartialState> =
         callbackFlow {
 
@@ -940,19 +979,79 @@ class WalletCoreDocumentsControllerImpl(
         }
 
     // EUDI-added
+    private fun ProducerScope<ReissueDocumentPartialState>.sendReissueError(
+        @StringRes userErrorMessageId: Int,
+        logErrorMessage: () -> String
+    ) {
+        logController.d(REISSUE_DOCUMENT_LOG_TAG, logErrorMessage)
+        trySendBlocking(ReissueDocumentPartialState.Failure(
+            errorMessage = resourceProvider.getString(userErrorMessageId))
+        )
+        close()
+    }
+
+    // Handles OpenId4VciManager events during re-issuance
+    private fun ProducerScope<ReissueDocumentPartialState>.onIssueEvent(
+        documentId: DocumentId,
+    ): OpenId4VciManager.OnIssueEvent = { event ->
+        when (event) {
+            is IssueEvent.DocumentRequiresCreateSettings -> {
+                launch {
+                    handleDocumentRequiresCreateSettings(event)
+                }
+            }
+
+            is IssueEvent.DocumentRequiresUserAuth -> {
+                launch {
+                    handleDocumentRequiresUserAuth(event) { crypto, resultHandler ->
+                        trySendBlocking(
+                            ReissueDocumentPartialState.UserAuthRequired(
+                                crypto = crypto,
+                                resultHandler = resultHandler,
+                            )
+                        )
+                    }
+                }
+            }
+
+            is IssueEvent.Failure -> {
+                val cause = event.cause
+                val errorMessage = cause.message.toString()
+                logController.d(REISSUE_DOCUMENT_LOG_TAG) {
+                    if (cause is ReissuanceAuthorizationException) {
+                        "Re-issuance of $documentId needs user authorization: $errorMessage"
+                    } else {
+                        "Re-issuance of $documentId failed: $errorMessage"
+                    }
+                }
+                trySendBlocking(
+                    ReissueDocumentPartialState.Failure(errorMessage = errorMessage)
+                )
+                close()
+            }
+
+            is IssueEvent.Finished -> {
+                trySendBlocking(ReissueDocumentPartialState.Success(event.issuedDocuments))
+                close()
+            }
+
+            is IssueEvent.Started,
+            is IssueEvent.DocumentIssued,
+            is IssueEvent.DocumentFailed,
+            is IssueEvent.DocumentDeferred -> {
+                logController.d("IssueEvent:") { "$event" }
+            }
+        }
+    }
+
     override fun reissueDocument(
         documentId: DocumentId,
     ): Flow<ReissueDocumentPartialState> = callbackFlow {
         val document = getDocumentById(documentId) as? IssuedDocument
         if (document == null) {
-            logController.d(REISSUE_DOCUMENT_LOG_TAG) { "Document not found for reissue: $documentId" }
-
-            trySendBlocking(
-                ReissueDocumentPartialState.Failure(
-                    errorMessage = resourceProvider.getString(R.string.issuance_generic_error)
-                )
-            )
-            close()
+            sendReissueError(R.string.issuance_generic_error) {
+                "Document not found for reissue: $documentId"
+            }
             return@callbackFlow
         }
 
@@ -961,62 +1060,19 @@ class WalletCoreDocumentsControllerImpl(
             ?: openId4VciManagers.values.firstOrNull()
 
         if (manager == null) {
-            logController.d(REISSUE_DOCUMENT_LOG_TAG) { "No OpenID4VCI manager available for reissue" }
-            trySendBlocking(
-                ReissueDocumentPartialState.Failure(
-                    errorMessage = resourceProvider.getString(R.string.issuance_generic_error)
-                )
-            )
-            close()
+            sendReissueError(R.string.issuance_generic_error) {
+                "No OpenID4VCI manager available for reissue"
+            }
             return@callbackFlow
         }
 
-        pendingAuthorizationIssuerUrl = issuerId ?: pendingAuthorizationIssuerUrl
+        // NOTE: This must NOT set pendingAuthorizationIssuerUrl. Re-issuance uses the
+        // non-interactive refresh-token grant (allowAuthorizationFallback = false in both
+        // the PID-attested and the default paths below), so no authorization callback is
+        // ever expected. Claiming routing here would clobber the pending state of an
+        // issuance that is genuinely waiting for its authorization deep link (seen as
+        // issuance.resume.failed in the WD-3753 e2e run).
         trySendBlocking(ReissueDocumentPartialState.InProgress)
-
-        val onIssueEvent = OpenId4VciManager.OnIssueEvent { event ->
-            when (event) {
-                is IssueEvent.DocumentRequiresCreateSettings -> {
-                    launch {
-                        handleDocumentRequiresCreateSettings(event)
-                    }
-                }
-
-                is IssueEvent.DocumentRequiresUserAuth -> {
-                    launch {
-                        handleDocumentRequiresUserAuth(event) { crypto, resultHandler ->
-                            trySendBlocking(
-                                ReissueDocumentPartialState.UserAuthRequired(
-                                    crypto = crypto,
-                                    resultHandler = resultHandler,
-                                )
-                            )
-                        }
-                    }
-                }
-
-                is IssueEvent.Failure -> {
-                    trySendBlocking(
-                        ReissueDocumentPartialState.Failure(
-                            errorMessage = event.cause.message.toString()
-                        )
-                    )
-                    close()
-                }
-
-                is IssueEvent.Finished -> {
-                    trySendBlocking(ReissueDocumentPartialState.Success(event.issuedDocuments))
-                    close()
-                }
-
-                is IssueEvent.Started,
-                is IssueEvent.DocumentIssued,
-                is IssueEvent.DocumentFailed,
-                is IssueEvent.DocumentDeferred -> {
-                    logController.d("IssueEvent:") { "$event" }
-                }
-            }
-        }
 
         // Only the PID/RWSCA issuer needs a wallet instance attestation on re-issuance: its config
         // uses ClientAuthenticationType.None (credential proofs stay key-attested without WIA — see
@@ -1028,28 +1084,29 @@ class WalletCoreDocumentsControllerImpl(
                 when (val result = appAttestationController.generateAttestation().first()) {
                     is WalletAttestationGenerationResult.Success -> result.walletInstanceAttestationSpec
                     is WalletAttestationGenerationResult.Failure -> {
-                        logController.d(REISSUE_DOCUMENT_LOG_TAG) { "Wallet attestation failed: ${result.errorCode}" }
-                        trySendBlocking(
-                            ReissueDocumentPartialState.Failure(
-                                errorMessage = resourceProvider.getString(R.string.issuance_generic_error)
-                            )
-                        )
-                        close()
+                        sendReissueError(R.string.issuance_generic_error) {
+                            "Wallet attestation failed: ${result.errorCode}"
+                        }
                         return@callbackFlow
                     }
                 }
 
+            // allowAuthorizationFallback = false: the default would start an interactive eID flow
+            // on a dead refresh token, and AusweisSdkAuthorizationHandler.authorize() then suspends
+            // forever because only ReadCardViewModel drives it. A failure is reported instead.
             manager.reissueDocumentAttested(
                 documentId = documentId,
                 walletAttestation = attestationSpec.wbWiaJwt,
                 walletWiaPopPublicKey = attestationSpec.wiWiaPopKeyPair.public,
                 walletWiaPopPrivateKey = attestationSpec.wiWiaPopKeyPair.private,
-                onIssueEvent = onIssueEvent,
+                allowAuthorizationFallback = false,
+                onIssueEvent = onIssueEvent(documentId),
             )
         } else {
             manager.reissueDocument(
                 documentId = documentId,
-                onIssueEvent = onIssueEvent,
+                allowAuthorizationFallback = false,
+                onIssueEvent = onIssueEvent(documentId),
             )
         }
 
@@ -1068,6 +1125,25 @@ class WalletCoreDocumentsControllerImpl(
             recordResumeFailure("no_pending_authorization", uri)
             emitResumeFailure()
             return
+        }
+
+        // Diagnostic only: the callback does carry the issuer in the `iss` query parameter, so a
+        // mismatch means pending state pointed somewhere else (interleaved flows, stale routing).
+        // We still route to the pending manager unchanged — this exists to surface such bugs
+        // immediately in logs rather than as a distant downstream failure.
+        // Null-safe: toUri() can yield null under unit tests (isReturnDefaultValues makes
+        // Uri.parse return null instead of throwing); the diagnostic must never break the resume.
+        val callbackIss = try {
+            uri.toUri().getQueryParameter("iss")
+        } catch (_: Exception) {
+            null
+        }
+        callbackIss?.let {
+            if (issuerUrl != it) {
+                logController.w("resumeOpenId4Vci") {
+                    "Resume uri issuer mismatch: pending=$issuerUrl, uri=$it"
+                }
+            }
         }
 
         try {
@@ -1128,6 +1204,7 @@ class WalletCoreDocumentsControllerImpl(
             pendingAuthorizationIssuerUrl = issuerId
 
             manager.issueDocumentByConfigurationIdentifier(
+                issuerUrl = issuerId,
                 credentialConfigurationId = configId,
                 onIssueEvent = issuanceCallback()
             )
@@ -1152,6 +1229,7 @@ class WalletCoreDocumentsControllerImpl(
             pendingAuthorizationIssuerUrl = issuerId
 
             manager.issueDocumentByConfigurationIdentifiersAttested(
+                issuerUrl = issuerId,
                 credentialConfigurationIds = configIds,
                 walletAttestation = walletInstanceAttestationSpec.wbWiaJwt,
                 walletWiaPopPublicKey = walletInstanceAttestationSpec.wiWiaPopKeyPair.public,
@@ -1267,46 +1345,71 @@ class WalletCoreDocumentsControllerImpl(
         event: IssueEvent.DocumentRequiresCreateSettings,
     ) {
         val configurationIdentifier = event.offeredDocument.configurationIdentifier
-        val createDocumentSettings =
-            if (PIDS_ALL_CONFIGURATION_IDS.contains(configurationIdentifier)) {
-                val ppCNonce = fetchIssuerCNonce(
-                    event.offeredDocument.offer.credentialOffer.credentialIssuerMetadata
-                )
-                // For PID, use the Rwsc*SecureArea, generate a batch of one-time-use credentials.
-                CreateDocumentSettings.invoke(
-                    secureAreaIdentifier = RwscaSecureArea.IDENTIFIER,
-                    numberOfCredentials = 5, // Batch size of 5 per format [WD-2142]
-                    credentialPolicy = CreateDocumentSettings.CredentialPolicy.OneTimeUse,
-                    createKeySettings = RwscaCreateKeySettings(ppCNonce = ppCNonce),
-                )
-            } else {
-                // This is a policy in progress, current verifier/issuer of EAAs do not have a policy yet,
-                // currently, the assumption is that batchCredentialIssuanceSize > 1 we do OneTimeUse, so
-                // credentials are deleted after an operation is done and we can test features like refresh token
-                val credentialPolicy =
-                    if (event.offeredDocument.batchCredentialIssuanceSize > 1) {
-                        CreateDocumentSettings.CredentialPolicy.OneTimeUse
-                    } else {
-                        CreateDocumentSettings.CredentialPolicy.RotateUse
-                    }
+        val isPid = PIDS_ALL_CONFIGURATION_IDS.contains(configurationIdentifier)
 
-                eudiWallet.getDefaultCreateDocumentSettings(
-                    offeredDocument = event.offeredDocument,
-                    numberOfCredentials = event.offeredDocument.batchCredentialIssuanceSize,
-                    credentialPolicy = credentialPolicy,
-                    configure = { applyWalletDocumentKeyConfig() },
-                )
-            }
-
-        logController.d("CreateDocumentSettings: $createDocumentSettings") {
-            "SecureAreaIdentifier: ${createDocumentSettings.secureAreaIdentifier}"
+        // The key material settings are chosen the same way whoever decides the credential
+        // policy: PID keys live in the Rwsc*SecureArea, everything else uses the wallet's
+        // default Android Keystore settings.
+        val (secureAreaIdentifier, createKeySettings) = if (isPid) {
+            val ppCNonce = fetchIssuerCNonce(
+                event.offeredDocument.offer.credentialOffer.credentialIssuerMetadata
+            )
+            RwscaSecureArea.IDENTIFIER to RwscaCreateKeySettings(ppCNonce = ppCNonce)
+        } else {
+            eudiWallet.getDefaultCreateKeySettings(
+                configure = { applyWalletDocumentKeyConfig() },
+            )
         }
 
         val walletSecureArea =
-            eudiWallet.secureAreaRepository.getImplementation(createDocumentSettings.secureAreaIdentifier)
+            eudiWallet.secureAreaRepository.getImplementation(secureAreaIdentifier)
         requireNotNull(walletSecureArea)
 
-        event.resume(createDocumentSettings)
+        when (event) {
+            // The issuer advertises a mandatory credential reuse policy;
+            // wallet-core derives the credential policy from it and we only supply the keys.
+            is IssueEvent.DocumentRequiresCreateSettings.MandatoryReusePolicy -> {
+                logController.d("CreateDocumentSettings: mandatory reuse policy") {
+                    "SecureAreaIdentifier: $secureAreaIdentifier, " +
+                        "resolvedReusePolicy: ${event.resolvedReusePolicy}"
+                }
+                event.resume(secureAreaIdentifier, createKeySettings)
+            }
+
+            // No issuer reuse policy, so we keep choosing the policy ourselves.
+            is IssueEvent.DocumentRequiresCreateSettings.OptionalReusePolicy -> {
+                val credentialPolicy = when {
+                    // For PID, generate a batch of one-time-use credentials.
+                    // Batch size of 5 per format [WD-2142]
+                    isPid -> CreateDocumentSettings.CredentialPolicy.OnceOnly(
+                        numberOfCredentials = 5
+                    )
+
+                    // This is a policy in progress, current verifier/issuer of EAAs do not have a
+                    // policy yet, currently, the assumption is that batchCredentialIssuanceSize > 1
+                    // we do OnceOnly, so credentials are deleted after an operation is done and we
+                    // can test features like refresh token
+                    event.offeredDocument.batchCredentialIssuanceSize > 1 ->
+                        CreateDocumentSettings.CredentialPolicy.OnceOnly(
+                            numberOfCredentials = event.offeredDocument.batchCredentialIssuanceSize
+                        )
+
+                    else -> CreateDocumentSettings.CredentialPolicy.RotatingBatch()
+                }
+
+                val createDocumentSettings = CreateDocumentSettings(
+                    secureAreaIdentifier = secureAreaIdentifier,
+                    createKeySettings = createKeySettings,
+                    credentialPolicy = credentialPolicy,
+                )
+
+                logController.d("CreateDocumentSettings: $createDocumentSettings") {
+                    "SecureAreaIdentifier: ${createDocumentSettings.secureAreaIdentifier}"
+                }
+
+                event.resume(createDocumentSettings)
+            }
+        }
     }
 
     private suspend fun fetchIssuerCNonce(issuerMetadata: CredentialIssuerMetadata): String {
@@ -1404,14 +1507,13 @@ class WalletCoreDocumentsControllerImpl(
      * @throws IllegalArgumentException when no exact or fallback issuer configuration is available.
      */
     private fun configForIssuer(
-        configs: List<OpenId4VciManager.Config>,
+        configs: Map<String, OpenId4VciManager.Config>,
         httpsUrl: String
     ): OpenId4VciManager.Config {
-        val issuerConfig = configs.firstOrNull { it.issuerUrl == httpsUrl }
-            ?: configs
+        val issuerConfig = configs[httpsUrl]
+            ?: configs.values
                 .firstOrNull { it.clientAuthenticationType is OpenId4VciManager.ClientAuthenticationType.None }
                 ?.copy(
-                    issuerUrl = httpsUrl,
                     authFlowRedirectionURI = BuildConfig.ISSUE_AUTHORIZATION_DEEPLINK,
                     parUsage = OpenId4VciManager.Config.ParUsage.IF_SUPPORTED,
                 )
@@ -1419,7 +1521,7 @@ class WalletCoreDocumentsControllerImpl(
                 "No OpenID4VCI configuration found for issuer '$httpsUrl' and no fallback issuer without client authentication is configured."
             )
 
-        return if (issuerConfig.issuerUrl == pidIssuerUrl) {
+        return if (httpsUrl == pidIssuerUrl) {
             issuerConfig.copy(authorizationHandler = authorizationHandler)
         } else {
             // Non-PID issuers must not use the PID's KeyAttested DPoP config — that flow
@@ -1427,9 +1529,19 @@ class WalletCoreDocumentsControllerImpl(
             // endpoint, which breaks the standard browser flow (the PAR and token
             // requests must use the same DPoP key). Fall back to the default Android
             // Keystore DPoP config which uses a single key for the entire flow.
+            // Non-PID issuers get plain JWT proofs when they advertise a `jwt` proof type
+            // without `key_attestations_required`. Per the "key attestations for EAA issuance"
+            // decision the wallet sends no key attestation at the credential endpoint for EAAs:
+            // their credential keys live in the same local key store as the keys already covered
+            // by the wallet attestation, so a key attestation adds no information. Only the PID
+            // issuer, whose keys are rWSCA-backed and carry a real Wallet Trust Evidence, keeps
+            // the attestation proof - which is why this is set here and not globally.
             issuerConfig.copy(
                 authorizationHandler = null,
                 dpopConfig = walletCoreConfig.defaultDPopConfig,
+                proofTypes = issuerConfig.proofTypes.copy(
+                    allowJwtProofWithoutKeyAttestation = true
+                ),
             )
         }
     }

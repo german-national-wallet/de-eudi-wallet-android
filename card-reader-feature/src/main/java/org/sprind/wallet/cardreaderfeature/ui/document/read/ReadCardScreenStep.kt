@@ -32,6 +32,7 @@ sealed class ReadCardScreenStep {
     data object EnterCanSuccess : ReadCardScreenStep()
     data object EnterPuk : ReadCardScreenStep()
     data object EnterTransportPin : ReadCardScreenStep()
+    data object IssuanceConsent : ReadCardScreenStep()
     data object Completed : ReadCardScreenStep()
     data object OnboardingCard : ReadCardScreenStep()
     data object OnboardingPin : ReadCardScreenStep()

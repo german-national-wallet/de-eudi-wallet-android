@@ -40,6 +40,19 @@ import eu.europa.ec.eudi.wallet.document.format.SdJwtVcClaim
  * For [MsoMdocClaim]s, the function will:
  * - Create a [ClaimPathDomain] with a list containing only the claim's identifier.
  */
+/**
+ * The claim's own name.
+ *
+ * wallet-core up to v0.29.0 had this on [DocumentClaim] itself; since v0.30.0 it is split per
+ * format, into [MsoMdocClaim.dataElementName] and [SdJwtVcClaim]'s [ClaimPathElement][
+ * org.multipaz.request.RequestedClaim] name.
+ */
+val DocumentClaim.identifier: String
+    get() = when (this) {
+        is MsoMdocClaim -> dataElementName
+        is SdJwtVcClaim -> claimName.orEmpty()
+    }
+
 fun DocumentClaim.toClaimPaths(
     parentPath: List<String> = emptyList()
 ): List<ClaimPathDomain> {

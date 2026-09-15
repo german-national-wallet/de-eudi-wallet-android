@@ -74,6 +74,14 @@ import org.sprind.wallet.authenticationlogic.controller.rwsca.RwscaController
 import org.sprind.wallet.authenticationlogic.provider.RwscaPinSessionHolder
 import org.sprind.wallet.authenticationlogic.provider.RwscaRegistrationsProvider
 import org.sprind.wallet.corelogic.platformauth.PlatformAuthInvariant
+import eu.europa.ec.authenticationlogic.controller.storage.WalletPinUnBlockTimeStorageController
+import org.sprind.wallet.authenticationlogic.controller.mdvm.MdvmKeyManager
+import org.sprind.wallet.authenticationlogic.controller.storage.MdvmRegistrationStorageController
+import org.sprind.wallet.authenticationlogic.provider.RwscaStorageController
+import org.sprind.wallet.businesslogic.controller.revocation.WalletRevocationStore
+import org.sprind.wallet.corelogic.revocation.RevocationNotificationManager
+import org.sprind.wallet.corelogic.revocation.WalletRevocationHandler
+import org.sprind.wallet.corelogic.revocation.WalletRevocationHandlerImpl
 import org.sprind.wallet.corelogic.securearea.RwscaSecureArea
 import org.sprind.wallet.corelogic.storage.EncryptedStorageKeyManager
 import org.sprind.wallet.corelogic.storage.EncryptedStorageKeyManagerImpl
@@ -145,6 +153,35 @@ fun provideWalletAttestationInteractor(
     appAttestationController: AppAttestationController,
 ): WalletAttestationInteractor =
     WalletAttestationInteractorImpl(appAttestationController)
+
+@Single
+fun provideRevocationNotificationManager(
+    resourceProvider: ResourceProvider,
+    logController: LogController,
+): RevocationNotificationManager = RevocationNotificationManager(resourceProvider, logController)
+
+@Single
+fun provideWalletRevocationHandler(
+    walletRevocationStore: WalletRevocationStore,
+    revocationNotificationManager: RevocationNotificationManager,
+    walletCoreDocumentsController: WalletCoreDocumentsController,
+    hardwareKeyStorageController: HardwareKeyStorageController,
+    mdvmKeyManager: MdvmKeyManager,
+    mdvmRegistrationStorageController: MdvmRegistrationStorageController,
+    rwscaStorageController: RwscaStorageController,
+    walletPinUnBlockTimeStorageController: WalletPinUnBlockTimeStorageController,
+    logController: LogController,
+): WalletRevocationHandler = WalletRevocationHandlerImpl(
+    store = walletRevocationStore,
+    notificationManager = revocationNotificationManager,
+    documentsController = walletCoreDocumentsController,
+    hardwareKeyStorageController = hardwareKeyStorageController,
+    mdvmKeyManager = mdvmKeyManager,
+    mdvmRegistrationStorageController = mdvmRegistrationStorageController,
+    rwscaStorageController = rwscaStorageController,
+    walletPinUnBlockTimeStorageController = walletPinUnBlockTimeStorageController,
+    logController = logController,
+)
 
 @Single
 fun provideEncryptedStorageKeyManager(prefsController: PrefsController): EncryptedStorageKeyManager =

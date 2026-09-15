@@ -58,6 +58,8 @@ import org.sprind.wallet.cardreaderfeature.ui.document.read.Event.OnNewPinUpdate
 import org.sprind.wallet.cardreaderfeature.ui.document.read.Event.OnPinUpdate
 import org.sprind.wallet.cardreaderfeature.ui.document.read.Event.OnTransportPinUpdate
 import org.sprind.wallet.cardreaderfeature.ui.document.transport.TransportPinLetterContent
+import org.sprind.wallet.cardreaderfeature.ui.document.bottomsheet.CredentialAttributesSheetContent
+import org.sprind.wallet.cardreaderfeature.ui.document.issuance.IssuanceConsentView
 import org.sprind.wallet.uilogic.component.CodeEntryBody
 import java.util.Locale
 
@@ -268,6 +270,21 @@ internal fun CardReaderRouteScreen(
             },
             onIssuerTitleClick = { onEventSend(Event.OnIssuerInformationClick) }
         )
+
+        CardReaderRoute.ISSUANCE_CONSENT -> {
+            IssuanceConsentView(
+                modifier = Modifier.fillMaxSize(),
+                issuerName = stringResource(R.string.__variable_text_pid_issuer_var_issuer_name),
+                onShowCredentialDataClick = { onEventSend(Event.OnCredentialDetailsClick) },
+                onIssuerClick = { onEventSend(Event.OnIssuerInformationClick) },
+            )
+            ReadCardBottomSheet(state.bottomSheetConfig(bottomSheetState, onEventSend)) {
+                CredentialAttributesSheetContent(
+                    attributes = state.issuedCredentialAttributes,
+                    onCloseClick = { onEventSend(UpdateBottomSheetState(isOpen = false)) },
+                )
+            }
+        }
 
         else -> error("Unhandled non-NFC card reader route: $route")
     }

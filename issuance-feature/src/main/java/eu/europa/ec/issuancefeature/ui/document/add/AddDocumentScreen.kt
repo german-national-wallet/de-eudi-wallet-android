@@ -5,16 +5,11 @@ package eu.europa.ec.issuancefeature.ui.document.add
 import android.content.Context
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
@@ -24,9 +19,7 @@ import androidx.navigation.NavController
 import eu.europa.ec.corelogic.util.CoreActions
 import eu.europa.ec.uilogic.component.SystemBroadcastReceiver
 import eu.europa.ec.uilogic.component.content.ContentScreen
-import eu.europa.ec.uilogic.component.content.ScreenNavigateAction
 import eu.europa.ec.uilogic.component.utils.LifecycleEffect
-import eu.europa.ec.uilogic.component.utils.SPACING_EXTRA_MEDIUM
 import eu.europa.ec.uilogic.extension.finish
 import eu.europa.ec.uilogic.extension.getPendingDeepLink
 import eu.europa.ec.uilogic.navigation.IssuanceScreens
@@ -127,14 +120,9 @@ private fun MainContent(
     ContentScreen(
         genericErrorDialogConfig = state.errorDialog,
         isLoading = state.isLoading,
-        navigatableAction = ScreenNavigateAction.BACKABLE,
-        topBar = {
-            TopAppBar(
-                modifier = Modifier.padding(top = SPACING_EXTRA_MEDIUM.dp),
-                title = { },
-                colors = TopAppBarDefaults.topAppBarColors()
-                    .copy(containerColor = MaterialTheme.colorScheme.background),
-            )
-        }
+        // A caller-supplied topBar replaces ContentScreen's DefaultToolBar, and the one passed
+        // here had no navigation icon, so no back arrow could appear.
+        navigatableAction = state.navigatableAction,
+        onBack = state.onBackAction,
     ) { }
 }

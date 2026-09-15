@@ -115,12 +115,27 @@ private fun Content(
                             painter = painterResource(id = R.drawable.ic_splash_icon),
                             contentDescription = null,
                             modifier = Modifier
-                                .width(120.dp)
-                                .height(120.dp),
-                            contentScale = ContentScale.FillBounds
+                                .width(192.dp)
+                                .height(59.42.dp)
                         )
                     }
                 }
+            }
+            AnimatedVisibility(
+                visibleState = visibilityState,
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .padding(bottom = 56.dp),
+                enter = fadeIn(animationSpec = tween(state.logoAnimationDuration)),
+                exit = fadeOut(animationSpec = tween(state.logoAnimationDuration)),
+            ) {
+                Image(
+                    painter = painterResource(id = R.drawable.ic_splash_footer_logo),
+                    contentDescription = null,
+                    modifier = Modifier
+                        .width(120.dp)
+                        .height(48.125.dp)
+                )
             }
             state.errorDialog?.let { config ->
                 GenericErrorDialog(config = config)

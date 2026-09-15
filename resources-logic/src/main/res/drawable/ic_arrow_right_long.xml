@@ -1,0 +1,36 @@
+<!--
+  ~ Copyright (C) 2026 The Android Open Source Project
+  ~
+  ~ Licensed under the Apache License, Version 2.0 (the "License");
+  ~ you may not use this file except in compliance with the License.
+  ~ You may obtain a copy of the License at
+  ~
+  ~      http://www.apache.org/licenses/LICENSE-2.0
+  ~
+  ~ Unless required by applicable law or agreed to in writing, software
+  ~ distributed under the License is distributed on an "AS IS" BASIS,
+  ~ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  ~ See the License for the specific language governing permissions and
+  ~ limitations under the License.
+  -->
+<!--
+  ~ The export draws the arrow across a third of its canvas, which renders it tiny in an icon slot,
+  ~ so the group scales it to the fill the other icons here use and the intrinsic size is the
+  ~ standard 24dp. The circular clip the export carried is gone with it: it only ever enclosed the
+  ~ unscaled arrow.
+  -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="49"
+    android:viewportHeight="49">
+  <group
+      android:pivotX="24.18"
+      android:pivotY="24.19"
+      android:scaleX="2.26"
+      android:scaleY="2.26">
+    <path
+        android:pathData="M25.734,16.689L24.653,17.726L30.296,23.473L15.184,23.361L15.173,24.861L30.285,24.973L24.558,30.611L25.622,31.689L33.178,24.245L25.734,16.689Z"
+        android:fillColor="#000000"/>
+  </group>
+</vector>

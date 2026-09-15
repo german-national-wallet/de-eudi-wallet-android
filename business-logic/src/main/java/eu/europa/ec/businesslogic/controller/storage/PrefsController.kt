@@ -107,6 +107,10 @@ interface PrefsController {
      */
     fun setBool(key: String, value: Boolean)
 
+    fun setBoolSync(key: String, value: Boolean) {
+        setBool(key, value)
+    }
+
     /**
      * Retrieves a string value from device shared preferences that corresponds to given [key]. If
      * key does not exist or value of given key is null, [defaultValue] is returned.
@@ -285,6 +289,13 @@ class PrefsControllerImpl(
         logController.d(logTag) { "[STORAGE] store key=$key dest=prefs" }
         getSharedPrefs().edit(commit = true) {
             putString(key, value)
+        }
+    }
+
+    override fun setBoolSync(key: String, value: Boolean) {
+        logController.d(logTag) { "[STORAGE] store key=$key dest=prefs" }
+        getSharedPrefs().edit(commit = true) {
+            putBoolean(key, value)
         }
     }
 

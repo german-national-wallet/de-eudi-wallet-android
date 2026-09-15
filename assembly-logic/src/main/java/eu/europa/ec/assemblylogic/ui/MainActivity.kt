@@ -41,12 +41,15 @@ import androidx.core.net.toUri
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.lifecycle.lifecycleScope
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.isGranted
 import com.google.accompanist.permissions.rememberPermissionState
 import eu.europa.ec.businesslogic.BuildConfig
 import org.sprind.wallet.assemblylogic.controller.AppBlockingController
 import org.sprind.wallet.assemblylogic.controller.AppBlockingState
+import org.sprind.wallet.assemblylogic.controller.WalletRevocationResetCoordinator
+import org.sprind.wallet.businesslogic.controller.revocation.WalletRevocationStore
 import eu.europa.ec.commonfeature.router.featureCommonGraph
 import eu.europa.ec.dashboardfeature.router.featureDashboardGraph
 import eu.europa.ec.issuancefeature.router.featureIssuanceGraph
@@ -59,12 +62,14 @@ import eu.europa.ec.uilogic.container.EudiComponentActivity
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import org.koin.android.ext.android.inject
+import eu.europa.ec.businesslogic.controller.log.LogController
 import eu.europa.ec.businesslogic.controller.storage.PrefsController
 import org.sprind.wallet.businesslogic.controller.storage.StorageController
 import org.sprind.wallet.cardreaderfeature.router.featureCardReaderGraph
 import org.sprind.wallet.corelogic.platformauth.PlatformAuthInvariant
 import org.sprind.wallet.revocationfeature.router.featureRevocationGraph
 import org.sprind.wallet.networklogic.common.model.ApiResult
+import org.sprind.wallet.pushnotificationsfeature.dispatcher.FcmMessageDispatcher
 import org.sprind.wallet.pushnotificationsfeature.interactor.PushNotificationsInteractor
 import org.sprind.wallet.pushnotificationsfeature.service.WalletFirebaseMessagingService
 
@@ -75,12 +80,32 @@ class MainActivity : EudiComponentActivity() {
     private val storageController: StorageController by inject()
     private val prefsController: PrefsController by inject()
     private val pushNotificationsInteractor: PushNotificationsInteractor by inject()
+    private val walletRevocationStore: WalletRevocationStore by inject()
+    private val walletRevocationResetCoordinator: WalletRevocationResetCoordinator by inject()
+    private val logController: LogController by inject()
+    private val fcmMessageDispatcher: FcmMessageDispatcher by inject()
+
+    /** Guards the destructive revocation reset against double-taps. */
+    @Volatile
+    private var isResetting = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        handleFcmLaunchAction(intent)
         setContent {
             WalletContent()
         }
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        handleFcmLaunchAction(intent)
+    }
+
+    private fun handleFcmLaunchAction(intent: Intent?) {
+        val action = intent?.getStringExtra(WalletFirebaseMessagingService.KEY_ACTION) ?: return
+        intent.removeExtra(WalletFirebaseMessagingService.KEY_ACTION)
+        fcmMessageDispatcher.dispatch(action = action, scope = lifecycleScope)
     }
 
     @OptIn(ExperimentalPermissionsApi::class)
@@ -103,12 +128,21 @@ class MainActivity : EudiComponentActivity() {
             }
         }
 
+        LaunchedEffect(Unit) {
+            walletRevocationStore.revokedFlow.collect { revoked ->
+                if (revoked) {
+                    blockingState = appBlockingController.blockingState()
+                }
+            }
+        }
+
         DisposableEffect(lifecycleOwner) {
             val observer = LifecycleEventObserver { _, event ->
                 if (event == Lifecycle.Event.ON_RESUME) {
                     evaluateBlockingState { blockingState = it }
                     refreshFeatureFlagsInBackground(coroutineScope) { blockingState = it }
                     retryPushNotificationRegistrationIfNeeded(coroutineScope)
+                    runPendingRevocationRecheckIfNeeded(coroutineScope) { blockingState = it }
                 }
             }
             lifecycleOwner.lifecycle.addObserver(observer)
@@ -145,6 +179,15 @@ class MainActivity : EudiComponentActivity() {
                         description = stringResource(R.string.app_update_required_description),
                         buttonTitle = stringResource(R.string.app_update_required_button),
                         onButtonClick = { openAppUpdate(context) }
+                    )
+                }
+
+                AppBlockingState.WalletRevoked -> {
+                    AppBlockingScreen(
+                        title = stringResource(R.string.app_revoked_title),
+                        description = stringResource(R.string.app_revoked_description),
+                        buttonTitle = stringResource(R.string.app_revoked_button),
+                        onButtonClick = { acknowledgeRevocationAndReset() }
                     )
                 }
 
@@ -195,7 +238,36 @@ class MainActivity : EudiComponentActivity() {
         }
     }
 
+    private fun acknowledgeRevocationAndReset() {
+        if (isResetting) return
+        isResetting = true
+        lifecycleScope.launch {
+            try {
+                val unlocked = walletRevocationResetCoordinator.reset()
+                if (unlocked) {
+                    startActivity(Intent.makeRestartActivityTask(componentName))
+                } else {
+                    isResetting = false
+                }
+            } catch (e: Exception) {
+                logController.e(TAG, e)
+                isResetting = false
+            }
+        }
+    }
+    private fun runPendingRevocationRecheckIfNeeded(
+        scope: CoroutineScope,
+        onState: (AppBlockingState?) -> Unit,
+    ) {
+        if (!walletRevocationStore.isRecheckPending() || walletRevocationStore.isRevoked()) return
+        scope.launch {
+            pushNotificationsInteractor.runPendingRevocationRecheck()
+            onState(appBlockingController.blockingState())
+        }
+    }
+
     private fun retryPushNotificationRegistrationIfNeeded(scope: CoroutineScope) {
+        if (walletRevocationStore.isRevoked()) return
         val fcmToken = prefsController.getString(
             WalletFirebaseMessagingService.FCM_REGISTRATION_ID_KEY, "",
         )
@@ -212,5 +284,9 @@ class MainActivity : EudiComponentActivity() {
                 )
             }
         }
+    }
+
+    companion object {
+        private const val TAG = "MainActivity"
     }
 }

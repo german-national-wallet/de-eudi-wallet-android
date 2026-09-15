@@ -23,6 +23,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
+import eu.europa.ec.commonfeature.config.IssuanceFlowUiConfig
 import eu.europa.ec.resourceslogic.R
 import eu.europa.ec.uilogic.component.AppIcons
 import eu.europa.ec.uilogic.component.CancellableTopAppBar
@@ -37,6 +38,8 @@ import eu.europa.ec.uilogic.component.wrap.WrapImage
 import eu.europa.ec.uilogic.navigation.DashboardScreens
 import eu.europa.ec.uilogic.navigation.IssuanceScreens
 import eu.europa.ec.uilogic.navigation.ModuleRoute
+import eu.europa.ec.uilogic.navigation.helper.generateComposableArguments
+import eu.europa.ec.uilogic.navigation.helper.generateComposableNavigationLink
 
 @Composable
 fun PresentationNoDocumentScreen(
@@ -139,7 +142,19 @@ private fun NavController.navigateToDashboard() {
 }
 
 private fun NavController.navigateToAddDocument() {
-    navigate(IssuanceScreens.AddDocument.screenRoute) {
+    // screenRoute is the route template, navigating to it as-is leaves the flowType placeholder
+    // unfilled and the issuance graph throws while resolving the argument.
+    val route = generateComposableNavigationLink(
+        screen = IssuanceScreens.AddDocument,
+        arguments = generateComposableArguments(
+            mapOf(
+                "flowType" to IssuanceFlowUiConfig.fromIssuanceFlowUiConfig(
+                    IssuanceFlowUiConfig.EXTRA_DOCUMENT
+                )
+            )
+        )
+    )
+    navigate(route) {
         popUpTo(ModuleRoute.PresentationModule.route) {
             inclusive = true
         }

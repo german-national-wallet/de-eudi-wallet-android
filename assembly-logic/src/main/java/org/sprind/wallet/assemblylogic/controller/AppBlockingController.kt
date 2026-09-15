@@ -18,6 +18,7 @@ package org.sprind.wallet.assemblylogic.controller
 
 import eu.europa.ec.businesslogic.BuildConfig
 import eu.europa.ec.businesslogic.config.ConfigLogic
+import org.sprind.wallet.businesslogic.controller.revocation.WalletRevocationStore
 import org.sprind.wallet.businesslogic.model.SemanticVersion
 import org.sprind.wallet.corelogic.platformauth.PlatformAuthInvariant
 import org.sprind.wallet.flags.FeatureFlagManager
@@ -27,6 +28,7 @@ import org.sprind.wallet.flags.models.FeatureFlag
 interface AppBlockingController {
     fun blockingState(
         rules: Set<AppBlockingRule> = setOf(
+            AppBlockingRule.WalletRevoked,
             AppBlockingRule.PlatformAuthentication,
             AppBlockingRule.MinimumAppVersion,
         ),
@@ -35,11 +37,13 @@ interface AppBlockingController {
 }
 
 enum class AppBlockingState {
+    WalletRevoked,
     PlatformAuthentication,
     MinimumAppVersion,
 }
 
 enum class AppBlockingRule {
+    WalletRevoked,
     PlatformAuthentication,
     MinimumAppVersion,
 }
@@ -48,14 +52,22 @@ fun interface PlatformAuthenticationProvider {
     fun shouldShowBlockingScreen(): Boolean
 }
 
+fun interface WalletRevokedProvider {
+    fun isRevoked(): Boolean
+}
+
 class AppBlockingControllerImpl(
     private val configLogic: ConfigLogic,
     private val featureFlagManager: FeatureFlagManager,
     private val featureFlagUpdateService: FeatureFlagUpdateService,
     private val platformAuthenticationProvider: PlatformAuthenticationProvider,
+    private val walletRevokedProvider: WalletRevokedProvider,
 ) : AppBlockingController {
 
     override fun blockingState(rules: Set<AppBlockingRule>): AppBlockingState? {
+        if (rules.contains(AppBlockingRule.WalletRevoked) && walletRevokedProvider.isRevoked()) {
+            return AppBlockingState.WalletRevoked
+        }
         if (
             rules.contains(AppBlockingRule.PlatformAuthentication) &&
             platformAuthenticationProvider.shouldShowBlockingScreen()
@@ -99,4 +111,11 @@ class PlatformAuthenticationProviderImpl(
 
     override fun shouldShowBlockingScreen(): Boolean =
         !BuildConfig.IS_SIMULATOR.toBoolean() && platformAuthInvariant.shouldWarn()
+}
+
+class WalletRevokedProviderImpl(
+    private val walletRevocationStore: WalletRevocationStore,
+) : WalletRevokedProvider {
+
+    override fun isRevoked(): Boolean = walletRevocationStore.isRevoked()
 }

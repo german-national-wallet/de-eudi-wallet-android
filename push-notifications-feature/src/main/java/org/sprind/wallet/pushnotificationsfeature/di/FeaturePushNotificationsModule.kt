@@ -22,6 +22,7 @@ import org.koin.core.annotation.Factory
 import org.koin.core.annotation.Module
 import org.sprind.wallet.authenticationlogic.provider.MdvmAuthContextProvider
 import org.sprind.wallet.commonfeature.interactor.MdvmInteractor
+import org.sprind.wallet.businesslogic.controller.revocation.WalletRevocationStore
 import org.sprind.wallet.networklogic.pushnotifications.api.PushNotificationsApiClient
 import org.sprind.wallet.pushnotificationsfeature.dispatcher.FcmMessageDispatcher
 import org.sprind.wallet.pushnotificationsfeature.interactor.PushNotificationsInteractor
@@ -36,11 +37,13 @@ class FeaturePushNotificationsModule {
         pushNotificationsApiClient: PushNotificationsApiClient,
         mdvmAuthContextProvider: MdvmAuthContextProvider,
         mdvmInteractor: MdvmInteractor,
+        walletRevocationStore: WalletRevocationStore,
         logController: LogController,
     ): PushNotificationsInteractor = PushNotificationsInteractorImpl(
         pushNotificationsApiClient = pushNotificationsApiClient,
         mdvmAuthContextProvider = mdvmAuthContextProvider,
         mdvmInteractor = mdvmInteractor,
+        walletRevocationStore = walletRevocationStore,
         logController = logController,
     )
 

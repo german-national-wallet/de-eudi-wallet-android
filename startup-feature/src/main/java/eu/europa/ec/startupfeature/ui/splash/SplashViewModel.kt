@@ -85,6 +85,10 @@ class SplashViewModel(
                         enterApplication()
                     }
 
+                    WalletInitialRegistrationPartialState.Revoked -> {
+                        logController.d(javaClass.simpleName) { "wallet is revoked; staying on splash" }
+                    }
+
                     is WalletInitialRegistrationPartialState.Failure -> {
                         val (titleRes, bodyTextRes, primaryButtonTextRes) = when (result.errorCode) {
                             WalletInitialRegistrationPartialState.ErrorCode.WB_SERVICE_UNAVAILABLE -> Triple(

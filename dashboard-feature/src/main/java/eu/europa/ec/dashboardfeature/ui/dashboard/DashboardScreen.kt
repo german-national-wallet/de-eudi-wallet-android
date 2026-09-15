@@ -11,33 +11,26 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
-import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.dimensionResource
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LocalLifecycleOwner
@@ -47,31 +40,26 @@ import eu.europa.ec.commonfeature.util.extractFullNameFromDocumentOrEmpty
 import eu.europa.ec.corelogic.util.CoreActions
 import eu.europa.ec.resourceslogic.R
 import eu.europa.ec.resourceslogic.theme.values.ThemeColors
-import eu.europa.ec.uilogic.component.AppIcons
 import eu.europa.ec.uilogic.component.SystemBroadcastReceiver
 import eu.europa.ec.uilogic.component.content.ContentScreen
-import eu.europa.ec.uilogic.component.content.ContentScreenWithDrawerMenu
-import eu.europa.ec.uilogic.component.content.DrawerItemDataClass
 import eu.europa.ec.uilogic.component.content.ScreenNavigateAction
 import eu.europa.ec.uilogic.component.preview.PreviewTheme
 import eu.europa.ec.uilogic.component.preview.ThemeModeWithGermanAndEnglishPreviews
 import eu.europa.ec.uilogic.component.utils.BORDER_STROKE_1
 import eu.europa.ec.uilogic.component.utils.LifecycleEffect
-import eu.europa.ec.uilogic.component.utils.NAVIGATION_ICON_BOX_SIZE
 import eu.europa.ec.uilogic.component.utils.SPACING_EXTRA_MEDIUM
-import eu.europa.ec.uilogic.component.utils.SPACING_EXTRA_SMALL
 import eu.europa.ec.uilogic.component.utils.SPACING_MEDIUM
 import eu.europa.ec.uilogic.component.utils.SPACING_SMALL
 import eu.europa.ec.uilogic.extension.getPendingDeepLink
 import eu.europa.ec.uilogic.navigation.helper.handleDeepLinkAction
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.onEach
-import kotlinx.coroutines.launch
 import org.sprind.wallet.dashboardfeature.ui.dashboard.StackedCards
 import org.sprind.wallet.dashboardfeature.ui.documentdetail.restartApp
 import org.sprind.wallet.designsystem.typography.CustomTypography
-
-private const val DASHBOARD_DRAWER_LOG_EXPORT = "dashboard_drawer_log_export"
+import org.sprind.wallet.uilogic.component.BottomNavigationBar
+import org.sprind.wallet.uilogic.component.BottomNavigationTab
+import org.sprind.wallet.uilogic.component.navigateToBottomNavigationTab
 
 @Composable
 fun DashboardScreen(
@@ -121,6 +109,7 @@ fun DashboardScreen(
     MainScreen(
         state = state,
         onEventSend = { event -> viewModel.setEvent(event) },
+        onBottomNavigationTabSelected = navHostController::navigateToBottomNavigationTab,
     )
 }
 
@@ -156,56 +145,7 @@ private fun handleNavigationEffect(
 fun MainScreen(
     state: State,
     onEventSend: (Event) -> Unit,
-) {
-    val context = LocalContext.current
-    val drawerState = rememberDrawerState(DrawerValue.Closed)
-    val scope = rememberCoroutineScope()
-
-    // The drawer is the debug menu, so it is limited to the flavors carrying one; log export
-    // additionally needs the log files the log writer of those flavors leaves behind.
-    val drawerItems = buildList {
-        if (state.isDebugMenuEnabled && state.isLogWriterEnabled) {
-            add(
-                DrawerItemDataClass(
-                    id = DASHBOARD_DRAWER_LOG_EXPORT,
-                    label = stringResource(R.string.dashboard_drawer_log_export),
-                    iconData = AppIcons.Edit,
-                    onClick = {
-                        scope.launch {
-                            drawerState.close()
-                            onEventSend(Event.ExportLogs(context))
-                        }
-                    })
-            )
-        }
-    }
-
-    if (drawerItems.isEmpty()) {
-        DashboardContent(
-            state = state,
-            onEventSend = onEventSend,
-            onOpenDrawerMenu = null,
-        )
-    } else {
-        ContentScreenWithDrawerMenu(
-            drawerTitle = stringResource(R.string.dashboard_drawer_title),
-            drawerItems = drawerItems,
-            drawerState = drawerState,
-        ) {
-            DashboardContent(
-                state = state,
-                onEventSend = onEventSend,
-                onOpenDrawerMenu = { scope.launch { drawerState.open() } },
-            )
-        }
-    }
-}
-
-@Composable
-private fun DashboardContent(
-    state: State,
-    onEventSend: (Event) -> Unit,
-    onOpenDrawerMenu: (() -> Unit)?,
+    onBottomNavigationTabSelected: (BottomNavigationTab) -> Unit,
 ) {
     ContentScreen(
         genericErrorDialogConfig = state.errorDialog,
@@ -217,30 +157,12 @@ private fun DashboardContent(
                 title = { },
                 colors = TopAppBarDefaults.topAppBarColors()
                     .copy(containerColor = MaterialTheme.colorScheme.background),
-                navigationIcon = {
-                    if (onOpenDrawerMenu != null) {
-                        AppIcons.Menu.resourceId?.let { resId ->
-                            Box(
-                                modifier = Modifier
-                                    .padding(start = SPACING_EXTRA_SMALL.dp)
-                                    .size(NAVIGATION_ICON_BOX_SIZE.dp)
-                                    .clip(CircleShape)
-                                    .clickable(
-                                        onClickLabel = stringResource(id = R.string.content_description_open_menu_action),
-                                        role = Role.Button,
-                                        onClick = onOpenDrawerMenu,
-                                    ),
-                                contentAlignment = Alignment.Center,
-                            ) {
-                                Icon(
-                                    painter = painterResource(id = resId),
-                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    contentDescription = stringResource(id = AppIcons.Menu.contentDescriptionId)
-                                )
-                            }
-                        }
-                    }
-                }
+            )
+        },
+        bottomBar = {
+            BottomNavigationBar(
+                selectedTab = BottomNavigationTab.OVERVIEW,
+                onTabSelected = onBottomNavigationTabSelected,
             )
         }
     ) { paddingValues ->
@@ -362,27 +284,10 @@ private fun MainScreenPreview() {
         MainScreen(
             state = State(
                 isLoading = false,
-                isDebugMenuEnabled = true,
-                isLogWriterEnabled = true,
                 pidDocument = null,
             ),
             onEventSend = {},
-        )
-    }
-}
-
-@Composable
-@ThemeModeWithGermanAndEnglishPreviews
-private fun MainScreenWithoutDrawerMenuPreview() {
-    PreviewTheme {
-        MainScreen(
-            state = State(
-                isLoading = false,
-                isDebugMenuEnabled = false,
-                isLogWriterEnabled = false,
-                pidDocument = null,
-            ),
-            onEventSend = {},
+            onBottomNavigationTabSelected = {},
         )
     }
 }

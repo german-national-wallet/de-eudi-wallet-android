@@ -21,8 +21,15 @@ import eu.europa.ec.eudi.wallet.document.DocumentId
 import eu.europa.ec.eudi.wallet.document.ElementIdentifier
 import eu.europa.ec.eudi.wallet.document.NameSpace
 import eu.europa.ec.uilogic.component.ListItemData
+import org.multipaz.request.RequestedClaim
 
 data class RequestDocumentItemUi(
+    /**
+     * The document this row stands for. Also carried by every [ExpandedUiItem], but kept here
+     * too: a verifier can ask for a credential without naming any claim, which leaves the row
+     * with no expanded items and would otherwise make the document unidentifiable.
+     */
+    val domainPayload: DocumentPayloadDomain,
     val collapsedUiItem: CollapsedUiItem,
     val expandedUiItems: List<ExpandedUiItem>,
     val requestedClaimsCount: Int,
@@ -55,6 +62,8 @@ data class DocumentPayloadDomain(
 
 data class RequestDocumentClaim(
     val elementIdentifier: ElementIdentifier,
+    /** The request entry this row stands for; needed to narrow the presentment selection. */
+    val requestedClaim: RequestedClaim,
     val value: String,
     val newValue: DomainClaim? = null,
     val readableName: String,

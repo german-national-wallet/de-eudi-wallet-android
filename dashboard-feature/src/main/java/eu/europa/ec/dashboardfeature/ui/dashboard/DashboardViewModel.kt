@@ -16,10 +16,8 @@
 
 package eu.europa.ec.dashboardfeature.ui.dashboard
 
-import android.content.Context
 import android.net.Uri
 import androidx.lifecycle.viewModelScope
-import eu.europa.ec.businesslogic.config.ConfigLogic
 import eu.europa.ec.commonfeature.config.IssuanceFlowUiConfig
 import eu.europa.ec.commonfeature.config.OfferUiConfig
 import eu.europa.ec.commonfeature.config.PresentationMode
@@ -38,7 +36,6 @@ import eu.europa.ec.uilogic.component.content.ContentErrorConfig
 import eu.europa.ec.uilogic.component.dialog.GenericErrorDialogConfig
 import eu.europa.ec.uilogic.config.ConfigNavigation
 import eu.europa.ec.uilogic.config.NavigationType
-import eu.europa.ec.uilogic.extension.shareLogs
 import eu.europa.ec.uilogic.mvi.MviViewModel
 import eu.europa.ec.uilogic.mvi.ViewEvent
 import eu.europa.ec.uilogic.mvi.ViewSideEffect
@@ -66,8 +63,6 @@ data class State(
     val pidDocument: IssuedDocument? = null,
     val eaaDocuments: List<EaaCardData> = emptyList(),
     val eidCardType: EidCardType = EidCardType.PHYSICAL,
-    val isDebugMenuEnabled: Boolean = false,
-    val isLogWriterEnabled: Boolean = false,
     val isLoading: Boolean = true,
     val error: ContentErrorConfig? = null,
     val errorDialog: GenericErrorDialogConfig? = null,
@@ -82,7 +77,6 @@ sealed class Event : ViewEvent {
     data class OnDynamicPresentation(val uri: String) : Event()
     data object OnInterruptedIssuance : Event()
     data object DismissError : Event()
-    data class ExportLogs(val context: Context): Event()
     data class IssueDocument(val credentialTypes: Set<CredentialConfigurationIdentifier>) : Event()
     /**
      * Triggers async resolution of the preferred (beta-first) PID configuration
@@ -114,14 +108,11 @@ class DashboardViewModel(
     private val dashboardInteractor: DashboardInteractor,
     private val uiSerializer: UiSerializer,
     private val telemetry: Telemetry,
-    private val configLogic: ConfigLogic,
     private val userRuntimeConfig: UserRuntimeConfig,
     private val routerHost: RouterHost,
 ) : MviViewModel<Event, State, Effect>() {
     override fun setInitialState(): State {
         return State(
-            isDebugMenuEnabled = configLogic.isDebugMenuEnabled,
-            isLogWriterEnabled = configLogic.isLogWriterEnabled,
             appVersion = dashboardInteractor.getAppVersion(),
             eidCardType = userRuntimeConfig.eidCardType,
         )
@@ -212,12 +203,6 @@ class DashboardViewModel(
                         ),
                         inclusive = false
                     )
-                }
-            }
-
-            is Event.ExportLogs -> {
-                if (configLogic.isLogWriterEnabled) {
-                    event.context.shareLogs(dashboardInteractor.retrieveLogFileUris())
                 }
             }
 

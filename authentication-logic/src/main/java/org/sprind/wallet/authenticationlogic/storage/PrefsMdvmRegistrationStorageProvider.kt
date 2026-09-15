@@ -30,4 +30,6 @@ class PrefsMdvmRegistrationStorageProvider(
         jsonStorageProvider.get(SHARED_PREFERENCE_MDVM_REGISTRATION_KEY)
     override fun saveMdvmRegistration(mdvmRegistration: MdvmRegistration) =
         jsonStorageProvider.save(SHARED_PREFERENCE_MDVM_REGISTRATION_KEY, mdvmRegistration)
+    override fun removeMdvmRegistration() =
+        jsonStorageProvider.clear(SHARED_PREFERENCE_MDVM_REGISTRATION_KEY)
 }

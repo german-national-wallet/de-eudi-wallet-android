@@ -18,13 +18,9 @@ package eu.europa.ec.issuancefeature.interactor.document
 
 import android.content.Context
 import eu.europa.ec.authenticationlogic.controller.authentication.BiometricsAvailability
-import eu.europa.ec.businesslogic.extension.compareLocaleLanguage
-import eu.europa.ec.businesslogic.extension.getLocalizedString
-import eu.europa.ec.eudi.openid4vci.CredentialConfiguration
-import eu.europa.ec.eudi.openid4vci.TxCodeInputMode
-import eu.europa.ec.eudi.wallet.document.DocumentId
 import eu.europa.ec.authenticationlogic.controller.authentication.DeviceAuthenticationResult
 import eu.europa.ec.authenticationlogic.model.BiometricCrypto
+import eu.europa.ec.businesslogic.extension.getLocalizedString
 import eu.europa.ec.businesslogic.extension.safeAsync
 import eu.europa.ec.businesslogic.util.safeLet
 import eu.europa.ec.commonfeature.config.SuccessUIConfig
@@ -32,13 +28,17 @@ import eu.europa.ec.commonfeature.interactor.DeviceAuthenticationInteractor
 import eu.europa.ec.corelogic.controller.IssueDocumentsPartialState
 import eu.europa.ec.corelogic.controller.ResolveDocumentOfferPartialState
 import eu.europa.ec.corelogic.controller.WalletCoreDocumentsController
-import eu.europa.ec.corelogic.extension.documentIdentifier
 import eu.europa.ec.corelogic.extension.getIssuerLogo
 import eu.europa.ec.corelogic.extension.getIssuerName
 import eu.europa.ec.corelogic.extension.getName
 import eu.europa.ec.corelogic.extension.toEaaCardData
-import eu.europa.ec.corelogic.model.DocumentIdentifier
+import eu.europa.ec.corelogic.model.FormatType
+import eu.europa.ec.corelogic.model.toDocumentIdentifier
+import eu.europa.ec.eudi.openid4vci.CredentialConfiguration
 import eu.europa.ec.eudi.openid4vci.Nonce
+import eu.europa.ec.eudi.openid4vci.TxCodeInputMode
+import eu.europa.ec.eudi.wallet.document.Document
+import eu.europa.ec.eudi.wallet.document.DocumentId
 import eu.europa.ec.eudi.wallet.issue.openid4vci.Offer
 import eu.europa.ec.resourceslogic.R
 import eu.europa.ec.resourceslogic.provider.ResourceProvider
@@ -51,8 +51,10 @@ import eu.europa.ec.uilogic.navigation.helper.generateComposableArguments
 import eu.europa.ec.uilogic.navigation.helper.generateComposableNavigationLink
 import eu.europa.ec.uilogic.serializer.UiSerializer
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.onEach
 import java.net.URI
 
 sealed class ResolveDocumentOfferInteractorPartialState {
@@ -128,6 +130,16 @@ interface DocumentOfferInteractor {
 
     fun resumeOpenId4VciWithAuthorization(uri: String)
 }
+
+private data class DeduplicationInfo(val issuer: String?, val type: FormatType)
+
+/**
+ * Defines which data defines a duplicate.
+ */
+private fun Document.toDeduplicationInfo() = DeduplicationInfo(
+    issuer = issuerMetadata?.credentialIssuerIdentifier,
+    type = toDocumentIdentifier().formatType
+)
 
 class DocumentOfferInteractorImpl(
     private val walletCoreDocumentsController: WalletCoreDocumentsController,
@@ -280,7 +292,7 @@ class DocumentOfferInteractorImpl(
             walletCoreDocumentsController.issueDocumentsByOfferUri(
                 offerUri = offerUri,
                 txCode = txCode
-            ).map { response ->
+            ).onEach(::replacePreExistingDuplicates).map { response ->
                 response.toInteractorState(
                     navigation = navigation,
                     issuerName = issuerName
@@ -291,6 +303,38 @@ class DocumentOfferInteractorImpl(
         }.safeAsync {
             IssueDocumentsInteractorPartialState.Failure(errorMessage = it.toErrorMessage())
         }
+
+    private suspend fun replacePreExistingDuplicates(state: IssueDocumentsPartialState) {
+        when (state) {
+            is IssueDocumentsPartialState.PartialSuccess -> {
+                replacePreExistingDuplicates(newDocumentIds = state.documentIds)
+            }
+            is IssueDocumentsPartialState.Success -> {
+                replacePreExistingDuplicates(newDocumentIds = state.documentIds)
+            }
+            is IssueDocumentsPartialState.Failure,
+            is IssueDocumentsPartialState.DeferredSuccess,
+            is IssueDocumentsPartialState.RefreshTokenReceived,
+            is IssueDocumentsPartialState.UserAuthRequired -> {
+                // at the moment we do not deduplicate in these cases
+            }
+        }
+    }
+
+    private suspend fun replacePreExistingDuplicates(newDocumentIds: List<DocumentId>) {
+        val (newDocuments, preExistingDocuments) =
+            walletCoreDocumentsController.getAllIssuedDocuments()
+                .partition { it.id in newDocumentIds }
+
+        val deduplicationInfoOfNewDocuments =
+            newDocuments.map(Document::toDeduplicationInfo).toSet()
+
+        preExistingDocuments.filter {
+            it.toDeduplicationInfo() in deduplicationInfoOfNewDocuments
+        }.forEach {
+            walletCoreDocumentsController.deleteDocument(documentId = it.id).first()
+        }
+    }
 
     override fun handleUserAuthentication(
         context: Context,

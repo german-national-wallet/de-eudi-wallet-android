@@ -42,6 +42,7 @@ internal fun ReadCardScreenStep.toRoute(): CardReaderRoute = when (this) {
     ReadCardScreenStep.EnterCanSuccess -> CardReaderRoute.ENTER_CAN_SUCCESS
     ReadCardScreenStep.EnterPuk -> CardReaderRoute.ENTER_PUK
     ReadCardScreenStep.EnterTransportPin -> CardReaderRoute.ENTER_TRANSPORT_PIN
+    ReadCardScreenStep.IssuanceConsent -> CardReaderRoute.ISSUANCE_CONSENT
     ReadCardScreenStep.Completed -> CardReaderRoute.COMPLETED
     ReadCardScreenStep.OnboardingCard -> CardReaderRoute.ONBOARDING_CARD
     ReadCardScreenStep.OnboardingPin -> CardReaderRoute.ONBOARDING_PIN
@@ -71,6 +72,7 @@ internal fun CardReaderRoute.toStep(): ReadCardScreenStep = when (this) {
     CardReaderRoute.ENTER_CAN_SUCCESS -> ReadCardScreenStep.EnterCanSuccess
     CardReaderRoute.ENTER_PUK -> ReadCardScreenStep.EnterPuk
     CardReaderRoute.ENTER_TRANSPORT_PIN -> ReadCardScreenStep.EnterTransportPin
+    CardReaderRoute.ISSUANCE_CONSENT -> ReadCardScreenStep.IssuanceConsent
     CardReaderRoute.COMPLETED -> ReadCardScreenStep.Completed
     CardReaderRoute.ONBOARDING_CARD -> ReadCardScreenStep.OnboardingCard
     CardReaderRoute.ONBOARDING_PIN -> ReadCardScreenStep.OnboardingPin

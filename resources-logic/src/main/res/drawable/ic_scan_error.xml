@@ -1,0 +1,35 @@
+<!--
+  ~ Copyright (c) 2026 European Commission
+  ~
+  ~ Licensed under the Apache License, Version 2.0 (the "License");
+  ~ you may not use this file except in compliance with the License.
+  ~ You may obtain a copy of the License at
+  ~
+  ~      http://www.apache.org/licenses/LICENSE-2.0
+  ~
+  ~ Unless required by applicable law or agreed to in writing, software
+  ~ distributed under the License is distributed on an "AS IS" BASIS,
+  ~ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  ~ See the License for the specific language governing permissions and
+  ~ limitations under the License.
+  -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="55dp"
+    android:height="55dp"
+    android:viewportWidth="55"
+    android:viewportHeight="55">
+  <group
+      android:translateX="3.4375"
+      android:translateY="3.4375">
+    <path
+        android:pathData="M24.0625,0C19.3034,0 14.6512,1.41124 10.6941,4.05526C6.73704,6.69928 3.65289,10.4573 1.83166,14.8542C0.0104259,19.251 -0.466092,24.0892 0.462365,28.7569C1.39082,33.4245 3.68255,37.7121 7.04775,41.0773C10.413,44.4425 14.7005,46.7342 19.3682,47.6626C24.0358,48.5911 28.874,48.1146 33.2708,46.2934C37.6677,44.4721 41.4257,41.388 44.0697,37.4309C46.7138,33.4739 48.125,28.8216 48.125,24.0625C48.125,17.6807 45.5899,11.5603 41.0773,7.04774C36.5647,2.53515 30.4443,0 24.0625,0ZM24.0625,44.6875C19.9833,44.6875 15.9956,43.4779 12.6039,41.2116C9.21211,38.9453 6.56855,35.7241 5.0075,31.9553C3.44644,28.1866 3.03799,24.0396 3.83381,20.0388C4.62963,16.0379 6.59397,12.3629 9.47843,9.47842C12.3629,6.59396 16.0379,4.62962 20.0388,3.8338C24.0396,3.03798 28.1866,3.44643 31.9554,5.00748C35.7241,6.56854 38.9453,9.2121 41.2116,12.6039C43.4779,15.9956 44.6875,19.9833 44.6875,24.0625C44.6875,29.5326 42.5145,34.7786 38.6466,38.6466C34.7786,42.5145 29.5326,44.6875 24.0625,44.6875Z"
+        android:fillColor="#B3261E"/>
+  </group>
+  <group
+      android:translateX="6.0156"
+      android:translateY="6.0156">
+    <path
+        android:pathData="M32.2266,12.6221L30.3467,10.7422L21.4844,19.6045L12.6221,10.7422L10.7422,12.6221L19.6045,21.4844L10.7422,30.3467L12.6221,32.2266L21.4844,23.3643L30.3467,32.2266L32.2266,30.3467L23.3643,21.4844L32.2266,12.6221Z"
+        android:fillColor="#B3261E"/>
+  </group>
+</vector>

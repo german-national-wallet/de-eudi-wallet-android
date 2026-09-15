@@ -16,6 +16,7 @@
 
 package eu.europa.ec.presentationfeature.interactor
 
+import eu.europa.ec.corelogic.extension.identifier
 import eu.europa.ec.eudi.wallet.document.IssuedDocument
 import eu.europa.ec.businesslogic.extension.compareLocaleLanguage
 import eu.europa.ec.businesslogic.extension.ifEmptyOrNull
@@ -23,7 +24,6 @@ import eu.europa.ec.businesslogic.extension.safeAsync
 import eu.europa.ec.commonfeature.ui.document_details.transformer.DocumentDetailsTransformer.transformToDocumentDetailsDocumentItem
 import eu.europa.ec.commonfeature.ui.document_success.model.DocumentSuccessItemUi
 import eu.europa.ec.commonfeature.ui.request.model.CollapsedUiItem
-import eu.europa.ec.commonfeature.ui.request.transformer.toPath
 import eu.europa.ec.corelogic.controller.WalletCoreDocumentsController
 import eu.europa.ec.corelogic.controller.WalletCorePresentationController
 import eu.europa.ec.corelogic.model.toDocumentIdentifier
@@ -89,8 +89,8 @@ class PresentationSuccessInteractorImpl(
 
                     val detailsDocumentItems = document.data.claims
                         .filter { claim ->
-                            disclosedDocument.disclosedItems.any { disclosedItem ->
-                                claim.identifier == disclosedItem.toPath().last() //TODO check this
+                            disclosedDocument.disclosedClaimPaths.any { disclosedClaimPath ->
+                                claim.identifier == disclosedClaimPath.value.lastOrNull()
                             }
                         }
                         .map { claim ->

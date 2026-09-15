@@ -17,6 +17,7 @@
 package eu.europa.ec.businesslogic.config
 
 import eu.europa.ec.businesslogic.BuildConfig
+import org.sprind.wallet.businesslogic.config.OkCertificatePinnerSpec
 import org.sprind.wallet.businesslogic.config.PidIssuerSpec
 
 interface ConfigLogic {
@@ -100,6 +101,11 @@ abstract class EnvironmentConfig {
     abstract val serverHostURL: String
 
     abstract val pidIssuerSpec: PidIssuerSpec
+
+    abstract val walletBackendPinnerSpecs: List<OkCertificatePinnerSpec>
+
+    val certificatePinnerSpecs: List<OkCertificatePinnerSpec>
+        get() = walletBackendPinnerSpecs + pidIssuerSpec.okCertificatePinnerSpec
 
     /**
      * VCI Issuer endpoint

@@ -23,6 +23,8 @@ import eu.europa.ec.eudi.wallet.EudiWalletConfig
 import eu.europa.ec.eudi.wallet.issue.openid4vci.AuthorizationHandler
 import eu.europa.ec.eudi.wallet.issue.openid4vci.OpenId4VciManager
 import eu.europa.ec.eudi.wallet.issue.openid4vci.dpop.DPopConfig
+import eu.europa.ec.eudi.wallet.registration.relyingparty.WrpRegistrationPolicy
+import eu.europa.ec.eudi.iso18013.transfer.readerauth.RevocationPolicy
 import eu.europa.ec.eudi.wallet.transfer.openId4vp.ClientIdScheme
 import eu.europa.ec.eudi.wallet.transfer.openId4vp.EncryptionAlgorithm
 import eu.europa.ec.eudi.wallet.transfer.openId4vp.EncryptionMethod
@@ -87,7 +89,6 @@ internal class WalletCoreConfigImpl(
                     }
 
                     configureOpenId4Vci {
-                        withIssuerUrl(issuerUrl = configLogic.environmentConfig.pidIssuerURL)
                         withClientAuthenticationType(OpenId4VciManager.ClientAuthenticationType.None(BuildConfig.VCI_ISSUER_CLIENT_ID))
                         withAuthFlowRedirectionURI(BuildConfig.ISSUE_AUTHORIZATION_DEEPLINK)
                         withParUsage(OpenId4VciManager.Config.ParUsage.REQUIRED)
@@ -97,6 +98,10 @@ internal class WalletCoreConfigImpl(
                         withAuthorizationHandler(ausweisSdkAuthorizationHandler)
                     }
 
+                    // The revocation policy is passed explicitly because core-lib 0.30 flipped
+                    // the default from RevocationPolicy.NoCheck to RevocationPolicy.HardFail,
+                    // which fails reader authentication whenever a CRL cannot be retrieved -
+                    // several of the development CAs below publish none.
                     configureReaderTrustStore(
                         context,
                         R.raw.pidissuerca02_cz,
@@ -111,16 +116,27 @@ internal class WalletCoreConfigImpl(
                         R.raw.german_pg_cert,
                         R.raw.wrpac_ca,
                         R.raw.wrprc_ca,
+                        revocationPolicy = RevocationPolicy.NoCheck,
                     )
+                    // core-lib 0.30 introduced relying party registration certificates and
+                    // defaults the policy to Enabled. With it enabled, the OpenID4VP library
+                    // rejects *every* request from an `x509_hash` verifier that carries no
+                    // registration certificate, before the wallet's own (non-blocking) evaluation
+                    // runs - see RegistrationCertificatePolicyEvaluator, which fails such a
+                    // request with MissingRequiredRegistrationCertificate. The openid4vp version
+                    // core-lib 0.28.1 used to had no registration certificate concept at all, so
+                    // leaving the new default in place would reject verifiers the wallet accepted
+                    // before the upgrade. Disabled restores that behaviour. Turning the mechanism
+                    // on needs the ETSI Trusted Lists (`configureEtsiTrust`, `wrprcProviders`).
+                    configureWrpRegistrationPolicy(WrpRegistrationPolicy.Disabled)
                 }
             }
             return _config!!
         }
 
-    override val vciConfig: List<OpenId4VciManager.Config>
-        get() = listOf(
-            OpenId4VciManager.Config.Builder()
-                .withIssuerUrl(issuerUrl = configLogic.environmentConfig.pidIssuerURL)
+    override val vciConfig: Map<String, OpenId4VciManager.Config>
+        get() = mapOf(
+            configLogic.environmentConfig.pidIssuerURL to OpenId4VciManager.Config.Builder()
                 .withClientAuthenticationType(OpenId4VciManager.ClientAuthenticationType.None(BuildConfig.VCI_ISSUER_CLIENT_ID))
                 .withAuthFlowRedirectionURI(DEFAULT_AUTH_FLOW_REDIRECTION_URI)
                 .withParUsage(OpenId4VciManager.Config.ParUsage.REQUIRED)
@@ -128,9 +144,22 @@ internal class WalletCoreConfigImpl(
                 .withIssuanceMetadataStorage(storage)
                 .withAuthorizationHandler(authorizationHandler = ausweisSdkAuthorizationHandler)
                 .build(),
-            OpenId4VciManager.Config.Builder()
-                .withIssuerUrl(EUDIW_ISSUER_URL)
-                .withClientAuthenticationType(OpenId4VciManager.ClientAuthenticationType.AttestationBased)
+            EUDIW_ISSUER_URL to OpenId4VciManager.Config.Builder()
+                // ClientAuthenticationType.AttestationBased now requires an explicit client id;
+                // until v0.29.0 openid4vci derived it from the wallet attestation's `sub`. Per
+                // OAuth attestation-based client authentication the request `client_id` must equal
+                // that `sub`, so the value passed here is not what authenticates the authorization
+                // request: the core fork derives that from the attestation itself, on both the
+                // normal and the out-of-band attested path ("derive `client_id` from the
+                // attestation subject" in wiki/forks.md - the rebased stack rewrites hashes, so
+                // the wiki is the stable reference). What is left of this value is offer
+                // resolution: OfferResolver needs some client id to resolve issuer metadata and
+                // credential offers before an attestation is fetched.
+                .withClientAuthenticationType(
+                    OpenId4VciManager.ClientAuthenticationType.AttestationBased(
+                        BuildConfig.VCI_ISSUER_CLIENT_ID
+                    )
+                )
                 .withAuthFlowRedirectionURI(BuildConfig.ISSUE_AUTHORIZATION_DEEPLINK)
                 .withParUsage(OpenId4VciManager.Config.ParUsage.IF_SUPPORTED)
                 .withDPopConfig(defaultDPopConfig)
@@ -173,5 +202,6 @@ internal class WalletCoreConfigImpl(
         const val EUDIW_ISSUER_URL = "https://issuer.eudiw.dev"
 
         val DOCUMENT_USER_AUTHENTICATION_TIMEOUT = 5.seconds
+
     }
 }

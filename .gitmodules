@@ -1,0 +1,8 @@
+[submodule "core"]
+	path = core
+	url = https://github.com/german-national-wallet/eudi-lib-android-wallet-core
+	branch = develop-0.30.2
+[submodule "openid4vci"]
+	path = openid4vci
+	url = https://github.com/german-national-wallet/eudi-lib-jvm-openid4vci-kt
+	branch = develop-0.13.1

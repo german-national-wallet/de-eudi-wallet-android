@@ -1,0 +1,362 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<issues format="6" by="lint 9.0.0" type="baseline" client="gradle" dependencies="false" name="AGP (9.0.0)" variant="all" version="9.0.0">
+
+    <issue
+        id="InvalidPackage"
+        message="Invalid package reference in library; not included in Android: `javax.naming.directory`. Referenced from `org.bouncycastle.cert.dane.fetcher.JndiDANEFetcherFactory`.">
+        <location
+            file="$GRADLE_USER_HOME/caches/modules-2/files-2.1/org.bouncycastle/bcpkix-jdk18on/1.83/3f4300d0441459bfa64a481c80062b002ff0cf65/bcpkix-jdk18on-1.83.jar"/>
+    </issue>
+
+    <issue
+        id="InvalidPackage"
+        message="Invalid package reference in library; not included in Android: `javax.naming`. Referenced from `org.bouncycastle.cert.dane.fetcher.JndiDANEFetcherFactory.1`.">
+        <location
+            file="$GRADLE_USER_HOME/caches/modules-2/files-2.1/org.bouncycastle/bcpkix-jdk18on/1.83/3f4300d0441459bfa64a481c80062b002ff0cf65/bcpkix-jdk18on-1.83.jar"/>
+    </issue>
+
+    <issue
+        id="InvalidPackage"
+        message="Invalid package reference in io.ktor:ktor-utils-jvm; not included in Android: `java.lang.management`. Referenced from `io.ktor.util.debug.IntellijIdeaDebugDetector`.">
+        <location
+            file="$GRADLE_USER_HOME/caches/modules-2/files-2.1/io.ktor/ktor-utils-jvm/3.4.0/ce54b074feee2cc3cdac2ba93420f18adc71061d/ktor-utils-jvm-3.4.0.jar"/>
+    </issue>
+
+    <issue
+        id="InvalidPackage"
+        message="Invalid package reference in com.nimbusds:oauth2-oidc-sdk; not included in Android: `javax.servlet.http`. Referenced from `com.nimbusds.oauth2.sdk.http.ServletUtils`.">
+        <location
+            file="$GRADLE_USER_HOME/caches/modules-2/files-2.1/com.nimbusds/oauth2-oidc-sdk/11.20.1/8d1ecd62d31945534a7cd63062c3c48ff0df9c43/oauth2-oidc-sdk-11.20.1.jar"/>
+    </issue>
+
+    <issue
+        id="InvalidPackage"
+        message="Invalid package reference in com.nimbusds:oauth2-oidc-sdk; not included in Android: `javax.servlet`. Referenced from `com.nimbusds.oauth2.sdk.http.ServletUtils`.">
+        <location
+            file="$GRADLE_USER_HOME/caches/modules-2/files-2.1/com.nimbusds/oauth2-oidc-sdk/11.20.1/8d1ecd62d31945534a7cd63062c3c48ff0df9c43/oauth2-oidc-sdk-11.20.1.jar"/>
+    </issue>
+
+    <issue
+        id="SimilarGradleDependency"
+        message="There are multiple dependencies androidx.biometric:biometric-ktx but with different version"
+        errorLine1="androidx-biometric = { group = &quot;androidx.biometric&quot;, name = &quot;biometric-ktx&quot;, version.ref = &quot;androidxBiometric&quot; }"
+        errorLine2="                      ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="$HOME/work/sprind/wallet-repo/worktrees/android-WD-4067-disable-linting-generated-sources/gradle/libs.versions.toml"
+            line="149"
+            column="23"/>
+    </issue>
+
+    <issue
+        id="SimilarGradleDependency"
+        message="There are multiple dependencies androidx.test:core but with different version"
+        errorLine1="androidx-test-core = { group = &quot;androidx.test&quot;, name = &quot;core&quot;, version.ref = &quot;androidxTestCore&quot; }"
+        errorLine2="                      ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="$HOME/work/sprind/wallet-repo/worktrees/android-WD-4067-disable-linting-generated-sources/gradle/libs.versions.toml"
+            line="155"
+            column="23"/>
+    </issue>
+
+    <issue
+        id="SimilarGradleDependency"
+        message="There are multiple dependencies androidx.test.espresso:espresso-core but with different version"
+        errorLine1="androidx-test-espresso-core = { group = &quot;androidx.test.espresso&quot;, name = &quot;espresso-core&quot;, version.ref = &quot;androidxEspresso&quot; }"
+        errorLine2="                               ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="$HOME/work/sprind/wallet-repo/worktrees/android-WD-4067-disable-linting-generated-sources/gradle/libs.versions.toml"
+            line="156"
+            column="32"/>
+    </issue>
+
+    <issue
+        id="SimilarGradleDependency"
+        message="There are multiple dependencies androidx.test:rules but with different version"
+        errorLine1="androidx-test-rules = { group = &quot;androidx.test&quot;, name = &quot;rules&quot;, version.ref = &quot;androidxTestRules&quot; }"
+        errorLine2="                       ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="$HOME/work/sprind/wallet-repo/worktrees/android-WD-4067-disable-linting-generated-sources/gradle/libs.versions.toml"
+            line="158"
+            column="24"/>
+    </issue>
+
+    <issue
+        id="SimilarGradleDependency"
+        message="There are multiple dependencies androidx.test:runner but with different version"
+        errorLine1="androidx-test-runner = { group = &quot;androidx.test&quot;, name = &quot;runner&quot;, version.ref = &quot;androidxTestRunner&quot; }"
+        errorLine2="                        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="$HOME/work/sprind/wallet-repo/worktrees/android-WD-4067-disable-linting-generated-sources/gradle/libs.versions.toml"
+            line="159"
+            column="25"/>
+    </issue>
+
+    <issue
+        id="SimilarGradleDependency"
+        message="There are multiple dependencies org.jetbrains.kotlinx:kotlinx-coroutines-test but with different version"
+        errorLine1="kotlinx-coroutines-test = { group = &quot;org.jetbrains.kotlinx&quot;, name = &quot;kotlinx-coroutines-test&quot;, version.ref = &quot;kotlinxCoroutines&quot; }"
+        errorLine2="                           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="$HOME/work/sprind/wallet-repo/worktrees/android-WD-4067-disable-linting-generated-sources/gradle/libs.versions.toml"
+            line="180"
+            column="28"/>
+    </issue>
+
+    <issue
+        id="SimilarGradleDependency"
+        message="There are multiple dependencies io.ktor:ktor-client-android but with different version"
+        errorLine1="ktor-client-android = { group = &quot;io.ktor&quot;, name = &quot;ktor-client-android&quot;, version.ref = &quot;ktor&quot; }"
+        errorLine2="                       ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="$HOME/work/sprind/wallet-repo/worktrees/android-WD-4067-disable-linting-generated-sources/gradle/libs.versions.toml"
+            line="183"
+            column="24"/>
+    </issue>
+
+    <issue
+        id="SimilarGradleDependency"
+        message="There are multiple dependencies io.ktor:ktor-client-logging but with different version"
+        errorLine1="ktor-client-logging = { group = &quot;io.ktor&quot;, name = &quot;ktor-client-logging&quot;, version.ref = &quot;ktor&quot; }"
+        errorLine2="                       ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="$HOME/work/sprind/wallet-repo/worktrees/android-WD-4067-disable-linting-generated-sources/gradle/libs.versions.toml"
+            line="185"
+            column="24"/>
+    </issue>
+
+    <issue
+        id="SimilarGradleDependency"
+        message="There are multiple dependencies com.squareup.okhttp3:mockwebserver3 but with different version"
+        errorLine1="okhttp-mockwebserver = { group = &quot;com.squareup.okhttp3&quot;, name = &quot;mockwebserver3&quot;, version.ref = &quot;okhttp&quot; }"
+        errorLine2="                        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="$HOME/work/sprind/wallet-repo/worktrees/android-WD-4067-disable-linting-generated-sources/gradle/libs.versions.toml"
+            line="196"
+            column="25"/>
+    </issue>
+
+    <issue
+        id="SimilarGradleDependency"
+        message="There are multiple dependencies com.squareup.okhttp3:mockwebserver3 but with different version"
+        errorLine1="okhttp-mockwebserver3 = { group = &quot;com.squareup.okhttp3&quot;, name = &quot;mockwebserver3&quot;, version = &quot;5.3.2&quot; }"
+        errorLine2="                         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="$HOME/work/sprind/wallet-repo/worktrees/android-WD-4067-disable-linting-generated-sources/gradle/libs.versions.toml"
+            line="205"
+            column="26"/>
+    </issue>
+
+    <issue
+        id="SimilarGradleDependency"
+        message="There are multiple dependencies io.insert-koin:koin-ksp-compiler but with different version"
+        errorLine1="koin-ksp = { group = &quot;io.insert-koin&quot;, name = &quot;koin-ksp-compiler&quot;, version.ref = &quot;koinAnnotations&quot; }"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="$HOME/work/sprind/wallet-repo/worktrees/android-WD-4067-disable-linting-generated-sources/gradle/libs.versions.toml"
+            line="219"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="SimilarGradleDependency"
+        message="There are multiple dependencies io.insert-koin:koin-ksp-compiler but with different version"
+        errorLine1="koin-ksp-compiler = { group = &quot;io.insert-koin&quot;, name = &quot;koin-ksp-compiler&quot;, version.ref = &quot;koinAnnotations&quot; }"
+        errorLine2="                     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="$HOME/work/sprind/wallet-repo/worktrees/android-WD-4067-disable-linting-generated-sources/gradle/libs.versions.toml"
+            line="220"
+            column="22"/>
+    </issue>
+
+    <issue
+        id="SimilarGradleDependency"
+        message="There are multiple dependencies io.ktor:ktor-client-android but with different version"
+        errorLine1="ktor-android = { group = &quot;io.ktor&quot;, name = &quot;ktor-client-android&quot;, version.ref = &quot;ktor&quot; }"
+        errorLine2="                ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="$HOME/work/sprind/wallet-repo/worktrees/android-WD-4067-disable-linting-generated-sources/gradle/libs.versions.toml"
+            line="223"
+            column="17"/>
+    </issue>
+
+    <issue
+        id="SimilarGradleDependency"
+        message="There are multiple dependencies io.ktor:ktor-client-logging but with different version"
+        errorLine1="ktor-logging = { group = &quot;io.ktor&quot;, name = &quot;ktor-client-logging&quot;, version.ref = &quot;ktor&quot; }"
+        errorLine2="                ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="$HOME/work/sprind/wallet-repo/worktrees/android-WD-4067-disable-linting-generated-sources/gradle/libs.versions.toml"
+            line="224"
+            column="17"/>
+    </issue>
+
+    <issue
+        id="SimilarGradleDependency"
+        message="There are multiple dependencies androidx.test:core but with different version"
+        errorLine1="test-core = { module = &quot;androidx.test:core&quot;, version.ref = &quot;test-core&quot; }"
+        errorLine2="             ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="$HOME/work/sprind/wallet-repo/worktrees/android-WD-4067-disable-linting-generated-sources/gradle/libs.versions.toml"
+            line="242"
+            column="14"/>
+    </issue>
+
+    <issue
+        id="SimilarGradleDependency"
+        message="There are multiple dependencies androidx.test:rules but with different version"
+        errorLine1="test-rules = { module = &quot;androidx.test:rules&quot;, version.ref = &quot;test-rules&quot; }"
+        errorLine2="              ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="$HOME/work/sprind/wallet-repo/worktrees/android-WD-4067-disable-linting-generated-sources/gradle/libs.versions.toml"
+            line="244"
+            column="15"/>
+    </issue>
+
+    <issue
+        id="SimilarGradleDependency"
+        message="There are multiple dependencies androidx.test:runner but with different version"
+        errorLine1="test-runner = { module = &quot;androidx.test:runner&quot;, version.ref = &quot;test-runner&quot; }"
+        errorLine2="               ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="$HOME/work/sprind/wallet-repo/worktrees/android-WD-4067-disable-linting-generated-sources/gradle/libs.versions.toml"
+            line="245"
+            column="16"/>
+    </issue>
+
+    <issue
+        id="SimilarGradleDependency"
+        message="There are multiple dependencies org.jetbrains.kotlinx:kotlinx-coroutines-test but with different version"
+        errorLine1="kotlin-coroutines-test = { module = &quot;org.jetbrains.kotlinx:kotlinx-coroutines-test&quot;, version.ref = &quot;kotlin-coroutines-test&quot; }"
+        errorLine2="                          ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="$HOME/work/sprind/wallet-repo/worktrees/android-WD-4067-disable-linting-generated-sources/gradle/libs.versions.toml"
+            line="247"
+            column="27"/>
+    </issue>
+
+    <issue
+        id="SimilarGradleDependency"
+        message="There are multiple dependencies androidx.test.espresso:espresso-core but with different version"
+        errorLine1="espresso-core = { module = &quot;androidx.test.espresso:espresso-core&quot;, version.ref = &quot;espresso-core&quot; }"
+        errorLine2="                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="$HOME/work/sprind/wallet-repo/worktrees/android-WD-4067-disable-linting-generated-sources/gradle/libs.versions.toml"
+            line="248"
+            column="18"/>
+    </issue>
+
+    <issue
+        id="SimilarGradleDependency"
+        message="There are multiple dependencies androidx.biometric:biometric-ktx but with different version"
+        errorLine1="biometric-ktx = { group = &quot;androidx.biometric&quot;, name = &quot;biometric-ktx&quot;, version.ref = &quot;biometricKtx&quot; }"
+        errorLine2="                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="$HOME/work/sprind/wallet-repo/worktrees/android-WD-4067-disable-linting-generated-sources/gradle/libs.versions.toml"
+            line="268"
+            column="18"/>
+    </issue>
+
+    <issue
+        id="SimilarGradleDependency"
+        message="There are multiple dependencies org.jetbrains.kotlin.jvm but with different version"
+        errorLine1="kotlin-jvm = { id = &quot;org.jetbrains.kotlin.jvm&quot;, version.ref = &quot;kotlin&quot; }"
+        errorLine2="              ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="$HOME/work/sprind/wallet-repo/worktrees/android-WD-4067-disable-linting-generated-sources/gradle/libs.versions.toml"
+            line="301"
+            column="15"/>
+    </issue>
+
+    <issue
+        id="SimilarGradleDependency"
+        message="There are multiple dependencies org.owasp.dependencycheck but with different version"
+        errorLine1="owasp-dependencycheck = { id = &quot;org.owasp.dependencycheck&quot;, version.ref = &quot;owaspDependencyCheck&quot; }"
+        errorLine2="                         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="$HOME/work/sprind/wallet-repo/worktrees/android-WD-4067-disable-linting-generated-sources/gradle/libs.versions.toml"
+            line="306"
+            column="26"/>
+    </issue>
+
+    <issue
+        id="SimilarGradleDependency"
+        message="There are multiple dependencies org.owasp.dependencycheck but with different version"
+        errorLine1="dependencycheck = { id = &quot;org.owasp.dependencycheck&quot;, version.ref = &quot;owaspDependencyCheck&quot; }"
+        errorLine2="                   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="$HOME/work/sprind/wallet-repo/worktrees/android-WD-4067-disable-linting-generated-sources/gradle/libs.versions.toml"
+            line="307"
+            column="20"/>
+    </issue>
+
+    <issue
+        id="SimilarGradleDependency"
+        message="There are multiple dependencies org.jetbrains.kotlinx.kover but with different version"
+        errorLine1="kotlinx-kover = { id = &quot;org.jetbrains.kotlinx.kover&quot;, version.ref = &quot;kover&quot; }"
+        errorLine2="                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="$HOME/work/sprind/wallet-repo/worktrees/android-WD-4067-disable-linting-generated-sources/gradle/libs.versions.toml"
+            line="308"
+            column="18"/>
+    </issue>
+
+    <issue
+        id="SimilarGradleDependency"
+        message="There are multiple dependencies org.jetbrains.kotlinx.kover but with different version"
+        errorLine1="kover = { id = &quot;org.jetbrains.kotlinx.kover&quot;, version.ref = &quot;kover&quot; }"
+        errorLine2="         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="$HOME/work/sprind/wallet-repo/worktrees/android-WD-4067-disable-linting-generated-sources/gradle/libs.versions.toml"
+            line="309"
+            column="10"/>
+    </issue>
+
+    <issue
+        id="SimilarGradleDependency"
+        message="There are multiple dependencies org.sonarqube but with different version"
+        errorLine1="sonar = { id = &quot;org.sonarqube&quot;, version.ref = &quot;sonar&quot; }"
+        errorLine2="         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="$HOME/work/sprind/wallet-repo/worktrees/android-WD-4067-disable-linting-generated-sources/gradle/libs.versions.toml"
+            line="310"
+            column="10"/>
+    </issue>
+
+    <issue
+        id="SimilarGradleDependency"
+        message="There are multiple dependencies org.sonarqube but with different version"
+        errorLine1="sonarqube = { id = &quot;org.sonarqube&quot;, version.ref = &quot;sonarqube&quot; }"
+        errorLine2="             ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="$HOME/work/sprind/wallet-repo/worktrees/android-WD-4067-disable-linting-generated-sources/gradle/libs.versions.toml"
+            line="317"
+            column="14"/>
+    </issue>
+
+    <issue
+        id="SimilarGradleDependency"
+        message="There are multiple dependencies org.jetbrains.kotlin.jvm but with different version"
+        errorLine1="jetbrains-kotlin-jvm = { id = &quot;org.jetbrains.kotlin.jvm&quot;, version.ref = &quot;kotlin&quot; }"
+        errorLine2="                        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="$HOME/work/sprind/wallet-repo/worktrees/android-WD-4067-disable-linting-generated-sources/gradle/libs.versions.toml"
+            line="318"
+            column="25"/>
+    </issue>
+
+    <issue
+        id="TrustAllX509TrustManager"
+        message="`checkServerTrusted` is empty, which could cause insecure network traffic due to trusting arbitrary TLS/SSL certificates presented by peers">
+        <location
+            file="$GRADLE_USER_HOME/caches/modules-2/files-2.1/org.bouncycastle/bcpkix-jdk18on/1.83/3f4300d0441459bfa64a481c80062b002ff0cf65/bcpkix-jdk18on-1.83.jar"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource R.string.project_id appears to be unused">
+        <location
+            file="build/generated/res/processDevDebugGoogleServices/values/values.xml"
+            line="8"/>
+    </issue>
+
+</issues>

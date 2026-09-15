@@ -1,0 +1,1214 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<issues format="6" by="lint 9.0.0" type="baseline" client="gradle" dependencies="false" name="AGP (9.0.0)" variant="all" version="9.0.0">
+
+    <issue
+        id="VectorRaster"
+        message="Limit vector icons sizes to 200×200 to keep icon drawing fast; see https://developer.android.com/studio/write/vector-asset-studio#when for more"
+        errorLine1="    android:height=&quot;205dp&quot;"
+        errorLine2="                    ~~~~~">
+        <location
+            file="src/main/res/drawable/ic_eagle_right.xml"
+            line="3"
+            column="21"/>
+    </issue>
+
+    <issue
+        id="VectorRaster"
+        message="Limit vector icons sizes to 200×200 to keep icon drawing fast; see https://developer.android.com/studio/write/vector-asset-studio#when for more"
+        errorLine1="    android:width=&quot;1024dp&quot;"
+        errorLine2="                   ~~~~~~">
+        <location
+            file="src/dev/res/drawable/ic_launcher.xml"
+            line="2"
+            column="20"/>
+    </issue>
+
+    <issue
+        id="VectorRaster"
+        message="Limit vector icons sizes to 200×200 to keep icon drawing fast; see https://developer.android.com/studio/write/vector-asset-studio#when for more"
+        errorLine1="    android:width=&quot;228dp&quot;"
+        errorLine2="                   ~~~~~">
+        <location
+            file="src/main/res/drawable/ic_nfc_guide.xml"
+            line="2"
+            column="20"/>
+    </issue>
+
+    <issue
+        id="VectorRaster"
+        message="Limit vector icons sizes to 200×200 to keep icon drawing fast; see https://developer.android.com/studio/write/vector-asset-studio#when for more"
+        errorLine1="    android:width=&quot;213dp&quot;"
+        errorLine2="                   ~~~~~">
+        <location
+            file="src/main/res/drawable/ic_phone_vector.xml"
+            line="2"
+            column="20"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;generic_ok&quot; is not translated in &quot;de&quot; (German)"
+        errorLine1="    &lt;string name=&quot;generic_ok&quot;>OK&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="30"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;generic_deferred_success_text&quot; is not translated in &quot;de&quot; (German)"
+        errorLine1="    &lt;string name=&quot;generic_deferred_success_text&quot;>In progress!&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="34"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;address_formatted&quot; is not translated in &quot;de&quot; (German)"
+        errorLine1="    &lt;string name=&quot;address_formatted&quot;>Residence&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="125"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;birth_place_country&quot; is not translated in &quot;de&quot; (German)"
+        errorLine1="    &lt;string name=&quot;birth_place_country&quot;>Country of place of birth&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="126"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;birth_place_locality&quot; is not translated in &quot;de&quot; (German)"
+        errorLine1="    &lt;string name=&quot;birth_place_locality&quot;>Locality of place of birth&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="127"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;birth_place_region&quot; is not translated in &quot;de&quot; (German)"
+        errorLine1="    &lt;string name=&quot;birth_place_region&quot;>Region of place of birth&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="128"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;location_status&quot; is not translated in &quot;de&quot; (German)"
+        errorLine1="    &lt;string name=&quot;location_status&quot;>Location status&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="129"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;mobile_phone_number&quot; is not translated in &quot;de&quot; (German)"
+        errorLine1="    &lt;string name=&quot;mobile_phone_number&quot;>Mobile phone number&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="130"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;resident_house_number&quot; is not translated in &quot;de&quot; (German)"
+        errorLine1="    &lt;string name=&quot;resident_house_number&quot;>Resident house number&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="131"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;resident_locality&quot; is not translated in &quot;de&quot; (German)"
+        errorLine1="    &lt;string name=&quot;resident_locality&quot;>Locality of residence&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="132"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;resident_region&quot; is not translated in &quot;de&quot; (German)"
+        errorLine1="    &lt;string name=&quot;resident_region&quot;>Region of residence&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="133"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;administrative_number&quot; is not translated in &quot;de&quot; (German)"
+        errorLine1="    &lt;string name=&quot;administrative_number&quot;>Administrative number&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="139"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;document_number&quot; is not translated in &quot;de&quot; (German)"
+        errorLine1="    &lt;string name=&quot;document_number&quot;>Document number&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="140"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;portrait&quot; is not translated in &quot;de&quot; (German)"
+        errorLine1="    &lt;string name=&quot;portrait&quot;>Portrait&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="141"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;sex&quot; is not translated in &quot;de&quot; (German)"
+        errorLine1="    &lt;string name=&quot;sex&quot;>Sex&lt;/string>"
+        errorLine2="            ~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="143"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;request_gender_not_known&quot; is not translated in &quot;de&quot; (German)"
+        errorLine1="    &lt;string name=&quot;request_gender_not_known&quot;>Not known&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="162"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;request_gender_not_applicable&quot; is not translated in &quot;de&quot; (German)"
+        errorLine1="    &lt;string name=&quot;request_gender_not_applicable&quot;>Not applicable&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="163"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;eid_scan_explanation_customer_service_number&quot; is not translated in &quot;de&quot; (German)"
+        errorLine1="    &lt;string name=&quot;eid_scan_explanation_customer_service_number&quot;>0800 123456&lt;/string> &lt;!-- TODO update this number -->"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="194"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;document_details_boolean_item_true_readable_value&quot; is not translated in &quot;de&quot; (German)"
+        errorLine1="    &lt;string name=&quot;document_details_boolean_item_true_readable_value&quot;>yes&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="197"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;document_details_boolean_item_false_readable_value&quot; is not translated in &quot;de&quot; (German)"
+        errorLine1="    &lt;string name=&quot;document_details_boolean_item_false_readable_value&quot;>no&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="198"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;document_category_government&quot; is not translated in &quot;de&quot; (German)"
+        errorLine1="    &lt;string name=&quot;document_category_government&quot;>GOVERNMENT&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="209"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;document_category_travel&quot; is not translated in &quot;de&quot; (German)"
+        errorLine1="    &lt;string name=&quot;document_category_travel&quot;>TRAVEL&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="210"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;document_category_finance&quot; is not translated in &quot;de&quot; (German)"
+        errorLine1="    &lt;string name=&quot;document_category_finance&quot;>FINANCE&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="211"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;document_category_education&quot; is not translated in &quot;de&quot; (German)"
+        errorLine1="    &lt;string name=&quot;document_category_education&quot;>EDUCATION&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="212"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;document_category_health&quot; is not translated in &quot;de&quot; (German)"
+        errorLine1="    &lt;string name=&quot;document_category_health&quot;>HEALTH&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="213"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;document_category_social_security&quot; is not translated in &quot;de&quot; (German)"
+        errorLine1="    &lt;string name=&quot;document_category_social_security&quot;>SOCIAL SECURITY&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="214"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;document_category_retail&quot; is not translated in &quot;de&quot; (German)"
+        errorLine1="    &lt;string name=&quot;document_category_retail&quot;>RETAIL&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="215"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;document_category_other&quot; is not translated in &quot;de&quot; (German)"
+        errorLine1="    &lt;string name=&quot;document_category_other&quot;>OTHER&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="216"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;issuance_document_offer_primary_button_text_add&quot; is not translated in &quot;de&quot; (German)"
+        errorLine1="    &lt;string name=&quot;issuance_document_offer_primary_button_text_add&quot;>Add&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="244"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;issuance_document_offer_default_issuer_name&quot; is not translated in &quot;de&quot; (German)"
+        errorLine1="    &lt;string name=&quot;issuance_document_offer_default_issuer_name&quot;>Issuer&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="245"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;issuance_document_offer_title&quot; is not translated in &quot;de&quot; (German)"
+        errorLine1="    &lt;string name=&quot;issuance_document_offer_title&quot;>%1$s wants to issue the following in your wallet&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="246"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;issuance_document_offer_subtitle&quot; is not translated in &quot;de&quot; (German)"
+        errorLine1="    &lt;string name=&quot;issuance_document_offer_subtitle&quot;>Please confirm the issuance of the following&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="247"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;issuance_document_offer_primary_button_text&quot; is not translated in &quot;de&quot; (German)"
+        errorLine1="    &lt;string name=&quot;issuance_document_offer_primary_button_text&quot;>ISSUE&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="248"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;issuance_document_offer_secondary_button_text&quot; is not translated in &quot;de&quot; (German)"
+        errorLine1="    &lt;string name=&quot;issuance_document_offer_secondary_button_text&quot;>@string/generic_cancel_capitalized&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="249"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;issuance_document_offer_success_subtitle&quot; is not translated in &quot;de&quot; (German)"
+        errorLine1="    &lt;string name=&quot;issuance_document_offer_success_subtitle&quot;>Your documents from %1$s have been successfully issued.&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="250"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;issuance_document_offer_partial_success_subtitle&quot; is not translated in &quot;de&quot; (German)"
+        errorLine1="    &lt;string name=&quot;issuance_document_offer_partial_success_subtitle&quot;>Your documents from %1$s have been successfully issued except %2$s&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="251"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;issuance_document_offer_error_missing_pid_text&quot; is not translated in &quot;de&quot; (German)"
+        errorLine1="    &lt;string name=&quot;issuance_document_offer_error_missing_pid_text&quot;>Wallet needs to be activated first with a National ID&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="252"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;issuance_document_offer_error_invalid_txcode_format&quot; is not translated in &quot;de&quot; (German)"
+        errorLine1="    &lt;string name=&quot;issuance_document_offer_error_invalid_txcode_format&quot;>Invalid transaction code format. Length should be between %1$d to %2$d digits and only numeric characters are allowed.&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="253"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;issuance_document_offer_error_no_document&quot; is not translated in &quot;de&quot; (German)"
+        errorLine1="    &lt;string name=&quot;issuance_document_offer_error_no_document&quot;>Unable to fetch and process the credential offer&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="254"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;issuance_document_offer_deferred_success_text&quot; is not translated in &quot;de&quot; (German)"
+        errorLine1="    &lt;string name=&quot;issuance_document_offer_deferred_success_text&quot;>@string/generic_deferred_success_text&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="255"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;issuance_document_offer_deferred_success_description&quot; is not translated in &quot;de&quot; (German)"
+        errorLine1="    &lt;string name=&quot;issuance_document_offer_deferred_success_description&quot;>Your documents from %1$s have been requested. You will be notified when they have been issued to your wallet.&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="256"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;issuance_document_offer_deferred_success_primary_button_text&quot; is not translated in &quot;de&quot; (German)"
+        errorLine1="    &lt;string name=&quot;issuance_document_offer_deferred_success_primary_button_text&quot;>@string/generic_ok&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="257"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;issuance_document_offer_description&quot; is not translated in &quot;de&quot; (German)"
+        errorLine1="    &lt;string name=&quot;issuance_document_offer_description&quot;>The following transaction requires your permission and authentication.&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="258"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;issuance_document_offer_header_main_text&quot; is not translated in &quot;de&quot; (German)"
+        errorLine1="    &lt;string name=&quot;issuance_document_offer_header_main_text&quot;>ISSUANCE REQUEST&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="259"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;issuance_document_offer_relying_party_default_name&quot; is not translated in &quot;de&quot; (German)"
+        errorLine1="    &lt;string name=&quot;issuance_document_offer_relying_party_default_name&quot;>@string/generic_default_issuer_name&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="260"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;issuance_document_offer_relying_party_description&quot; is not translated in &quot;de&quot; (German)"
+        errorLine1="    &lt;string name=&quot;issuance_document_offer_relying_party_description&quot;>wants to add the following&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="261"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;biometric_unknown_error&quot; is not translated in &quot;de&quot; (German)"
+        errorLine1="    &lt;string name=&quot;biometric_unknown_error&quot;>Something went wrong initializing biometric authentication. Please try again&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="271"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;biometric_no_hardware&quot; is not translated in &quot;de&quot; (German)"
+        errorLine1="    &lt;string name=&quot;biometric_no_hardware&quot;>Your device does not support biometric authentication&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="272"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;biometric_or_screen_lock_prompt_message&quot; is not translated in &quot;de&quot; (German)"
+        errorLine1="    &lt;string name=&quot;biometric_or_screen_lock_prompt_message&quot;>Use your biometric or screen lock to continue&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="273"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;biometric_prompt_message&quot; is not translated in &quot;de&quot; (German)"
+        errorLine1="    &lt;string name=&quot;biometric_prompt_message&quot;>Use your biometric to continue&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="274"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;biometric_prompt_subtitle&quot; is not translated in &quot;de&quot; (German)"
+        errorLine1="    &lt;string name=&quot;biometric_prompt_subtitle&quot;>Authenticate using your biometrics&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="275"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;biometric_prompt_title&quot; is not translated in &quot;de&quot; (German)"
+        errorLine1="    &lt;string name=&quot;biometric_prompt_title&quot;>Biometric authentication&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="276"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;loading_header_description&quot; is not translated in &quot;de&quot; (German)"
+        errorLine1="    &lt;string name=&quot;loading_header_description&quot;>Please wait…&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="279"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;loading_biometry_biometrics_enabled_description&quot; is not translated in &quot;de&quot; (German)"
+        errorLine1="    &lt;string name=&quot;loading_biometry_biometrics_enabled_description&quot;>Use your biometrics to approve the transaction.&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="280"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;loading_biometry_biometrics_not_enabled_description&quot; is not translated in &quot;de&quot; (German)"
+        errorLine1="    &lt;string name=&quot;loading_biometry_biometrics_not_enabled_description&quot;>To approve the transaction you need to verify your identity.&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="281"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;issuance_code_title&quot; is not translated in &quot;de&quot; (German)"
+        errorLine1="    &lt;string name=&quot;issuance_code_title&quot;>%1$s requires verification&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="288"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="MissingTranslation"
+        message="&quot;issuance_code_caption&quot; is not translated in &quot;de&quot; (German)"
+        errorLine1="    &lt;string name=&quot;issuance_code_caption&quot;>Type the %1$d-digit transaction code you received&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="289"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="Typos"
+        message="&quot;Letzer&quot; is a common misspelling; did you mean &quot;Letzter&quot;?"
+        errorLine1="    &lt;string name=&quot;eaa_inspection_eaa_overall_activity_label_last_month&quot;>Letzer Monat&lt;/string>"
+        errorLine2="                                                                        ~~~~~~">
+        <location
+            file="src/main/res/values-de/string_figma.xml"
+            line="287"
+            column="73"/>
+    </issue>
+
+    <issue
+        id="Typos"
+        message="&quot;Religous&quot; is a common misspelling; did you mean &quot;Religious&quot;?"
+        errorLine1="    &lt;string name=&quot;eaa_issuance_eaa_info_label_artist_name&quot;>Religous/artistic name&lt;/string>"
+        errorLine2="                                                           ~~~~~~~~">
+        <location
+            file="src/main/res/values/string_figma.xml"
+            line="320"
+            column="60"/>
+    </issue>
+
+    <issue
+        id="Typos"
+        message="Repeated word &quot;was&quot; in message: possible typo"
+        errorLine1="    &lt;string name=&quot;eid_setup_puk_entry_error_wrong_puk&quot;>Your previous PUK entry was was incorrect. Try again.&lt;/string>"
+        errorLine2="                                                                               ~~~~~~~">
+        <location
+            file="src/main/res/values/string_figma.xml"
+            line="530"
+            column="80"/>
+    </issue>
+
+    <issue
+        id="Typos"
+        message="Repeated word &quot;was&quot; in message: possible typo"
+        errorLine1="    &lt;string name=&quot;eid_setup_transport_pin_entry_error&quot;>Your previous PIN entry was was incorrect. Try again.&lt;/string>"
+        errorLine2="                                                                               ~~~~~~~">
+        <location
+            file="src/main/res/values/string_figma.xml"
+            line="555"
+            column="80"/>
+    </issue>
+
+    <issue
+        id="Typos"
+        message="&quot;Letzer&quot; is a common misspelling; did you mean &quot;Letzter&quot;?"
+        errorLine1="    &lt;string name=&quot;pid_inspection_pid_overall_activity_label_last_month&quot;>Letzer Monat&lt;/string>"
+        errorLine2="                                                                        ~~~~~~">
+        <location
+            file="src/main/res/values-de/string_figma.xml"
+            line="715"
+            column="73"/>
+    </issue>
+
+    <issue
+        id="Typos"
+        message="Repeated word &quot;was&quot; in message: possible typo"
+        errorLine1="    &lt;string name=&quot;pid_issuance_card_pin_entry_error_1&quot;>Your previous PIN entry was was incorrect. Try again.&lt;/string>"
+        errorLine2="                                                                               ~~~~~~~">
+        <location
+            file="src/main/res/values/string_figma.xml"
+            line="744"
+            column="80"/>
+    </issue>
+
+    <issue
+        id="Typos"
+        message="&quot;Religous&quot; is a common misspelling; did you mean &quot;Religious&quot;?"
+        errorLine1="    &lt;string name=&quot;pid_issuance_data_consent_label_artist_name&quot;>Religous/artistic name&lt;/string>"
+        errorLine2="                                                               ~~~~~~~~">
+        <location
+            file="src/main/res/values/string_figma.xml"
+            line="756"
+            column="64"/>
+    </issue>
+
+    <issue
+        id="Typos"
+        message="Repeated word &quot;was&quot; in message: possible typo"
+        errorLine1="    &lt;string name=&quot;pid_issuance_puk_entry_error_wrong_puk&quot;>Your previous PUK entry was was incorrect. Try again.&lt;/string>"
+        errorLine2="                                                                                  ~~~~~~~">
+        <location
+            file="src/main/res/values/string_figma.xml"
+            line="818"
+            column="83"/>
+    </issue>
+
+    <issue
+        id="PluralsCandidate"
+        message="Formatting %d followed by words (&quot;out&quot;): This should probably be a plural rather than a string"
+        errorLine1="    &lt;string name=&quot;eaa_presentation_data_consent_headline_credential_dev&quot;>%1$d out of %2$d from %3$s&lt;/string>"
+        errorLine2="    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/string_figma.xml"
+            line="392"
+            column="5"/>
+    </issue>
+
+    <issue
+        id="PluralsCandidate"
+        message="Formatting %d followed by words (&quot;out&quot;): This should probably be a plural rather than a string"
+        errorLine1="    &lt;string name=&quot;pid_presentation_data_consent_headline_credential_dev&quot;>%1$d out of %2$d from %3$s&lt;/string>"
+        errorLine2="    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/string_figma.xml"
+            line="877"
+            column="5"/>
+    </issue>
+
+    <issue
+        id="PluralsCandidate"
+        message="Formatting %d followed by words (&quot;digits&quot;): This should probably be a plural rather than a string"
+        errorLine1="    &lt;string name=&quot;issuance_document_offer_error_invalid_txcode_format&quot;>Invalid transaction code format. Length should be between %1$d to %2$d digits and only numeric characters are allowed.&lt;/string>"
+        errorLine2="    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="253"
+            column="5"/>
+    </issue>
+
+    <issue
+        id="TypographyEllipsis"
+        message="Replace &quot;...&quot; with ellipsis character (…, &amp;#8230;) ?"
+        errorLine1="    &lt;string name=&quot;app_onboarding_launch_title_a11y&quot;>EUDI Wallet DE wird gestartet...&lt;/string>"
+        errorLine2="                                                    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-de/string_figma.xml"
+            line="132"
+            column="53"/>
+    </issue>
+
+    <issue
+        id="TypographyEllipsis"
+        message="Replace &quot;...&quot; with ellipsis character (…, &amp;#8230;) ?"
+        errorLine1="    &lt;string name=&quot;app_onboarding_launch_title_a11y&quot;>Starting EUDI Wallet DE...&lt;/string>"
+        errorLine2="                                                    ~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/string_figma.xml"
+            line="132"
+            column="53"/>
+    </issue>
+
+    <issue
+        id="TypographyEllipsis"
+        message="Replace &quot;...&quot; with ellipsis character (…, &amp;#8230;) ?"
+        errorLine1="    &lt;string name=&quot;app_onboarding_pa_set_intro_title_loading&quot;>Prüfen, ob Displaysperre vorhanden ist ...&lt;/string>"
+        errorLine2="                                                             ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-de/string_figma.xml"
+            line="167"
+            column="62"/>
+    </issue>
+
+    <issue
+        id="TypographyEllipsis"
+        message="Replace &quot;...&quot; with ellipsis character (…, &amp;#8230;) ?"
+        errorLine1="    &lt;string name=&quot;app_onboarding_pa_set_success_sheet_paragraph&quot;>Lorem ipsum dolor sit amet...&lt;/string>"
+        errorLine2="                                                                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/string_figma.xml"
+            line="171"
+            column="66"/>
+    </issue>
+
+    <issue
+        id="TypographyEllipsis"
+        message="Replace &quot;...&quot; with ellipsis character (…, &amp;#8230;) ?"
+        errorLine1="    &lt;string name=&quot;eaa_issuance_launch_title&quot;>EUDI Wallet DE wird gestartet ...&lt;/string>"
+        errorLine2="                                             ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-de/string_figma.xml"
+            line="358"
+            column="46"/>
+    </issue>
+
+    <issue
+        id="TypographyEllipsis"
+        message="Replace &quot;...&quot; with ellipsis character (…, &amp;#8230;) ?"
+        errorLine1="    &lt;string name=&quot;eaa_issuance_loading_title&quot;>Adding attestation ...&lt;/string>"
+        errorLine2="                                              ~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/string_figma.xml"
+            line="359"
+            column="47"/>
+    </issue>
+
+    <issue
+        id="TypographyEllipsis"
+        message="Replace &quot;...&quot; with ellipsis character (…, &amp;#8230;) ?"
+        errorLine1="    &lt;string name=&quot;eaa_issuance_transaction_code_entry_sheet_paragraph&quot;>Lorem ipsum dolor sit amet...&lt;/string>"
+        errorLine2="                                                                       ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-de/string_figma.xml"
+            line="368"
+            column="72"/>
+    </issue>
+
+    <issue
+        id="TypographyEllipsis"
+        message="Replace &quot;...&quot; with ellipsis character (…, &amp;#8230;) ?"
+        errorLine1="    &lt;string name=&quot;eaa_issuance_transaction_code_entry_sheet_paragraph&quot;>Lorem ipsum dolor sit amet...&lt;/string>"
+        errorLine2="                                                                       ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/string_figma.xml"
+            line="368"
+            column="72"/>
+    </issue>
+
+    <issue
+        id="TypographyEllipsis"
+        message="Replace &quot;...&quot; with ellipsis character (…, &amp;#8230;) ?"
+        errorLine1="    &lt;string name=&quot;eaa_presentation_loading_credential_title&quot;>Nachweis wird vorbereitet...&lt;/string>"
+        errorLine2="                                                             ~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-de/string_figma.xml"
+            line="444"
+            column="62"/>
+    </issue>
+
+    <issue
+        id="TypographyEllipsis"
+        message="Replace &quot;...&quot; with ellipsis character (…, &amp;#8230;) ?"
+        errorLine1="    &lt;string name=&quot;global_redirect_info_title&quot;>Wir leiten dich nun weiter...&lt;/string>"
+        errorLine2="                                              ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-de/string_figma.xml"
+            line="597"
+            column="47"/>
+    </issue>
+
+    <issue
+        id="TypographyEllipsis"
+        message="Replace &quot;...&quot; with ellipsis character (…, &amp;#8230;) ?"
+        errorLine1="    &lt;string name=&quot;pid_presentation_loading_credential_title&quot;>Nachweis wird vorbereitet...&lt;/string>"
+        errorLine2="                                                             ~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-de/string_figma.xml"
+            line="927"
+            column="62"/>
+    </issue>
+
+    <issue
+        id="TypographyQuotes"
+        message="Replace apostrophe (&apos;) with typographic apostrophe (’, &amp;#8217;) ?"
+        errorLine1="    &lt;string name=&quot;app_onboarding_onboarding_4_prim_button&quot;>Los geht\&apos;s&lt;/string>"
+        errorLine2="                                                                    ~">
+        <location
+            file="src/main/res/values-de/string_figma.xml"
+            line="146"
+            column="69"/>
+    </issue>
+
+    <issue
+        id="TypographyQuotes"
+        message="Replace apostrophe (&apos;) with typographic apostrophe (’, &amp;#8217;) ?"
+        errorLine1="    &lt;string name=&quot;app_onboarding_pa_set_intro_title&quot;>To protect your data, the app uses your device\&apos;s screen lock.&lt;/string>"
+        errorLine2="                                                                                                    ~">
+        <location
+            file="src/main/res/values/string_figma.xml"
+            line="166"
+            column="101"/>
+    </issue>
+
+    <issue
+        id="TypographyQuotes"
+        message="Replace apostrophe (&apos;) with typographic apostrophe (’, &amp;#8217;) ?"
+        errorLine1="    &lt;string name=&quot;app_onboarding_pa_set_success_title&quot;>To protect your data, the app uses your device\&apos;s screen lock.&lt;/string>"
+        errorLine2="                                                                                                      ~">
+        <location
+            file="src/main/res/values/string_figma.xml"
+            line="170"
+            column="103"/>
+    </issue>
+
+    <issue
+        id="TypographyQuotes"
+        message="Replace apostrophe (&apos;) with typographic apostrophe (’, &amp;#8217;) ?"
+        errorLine1="    &lt;string name=&quot;app_onboarding_policy_intro_title&quot;>To protect your data, the app uses your device\&apos;s screen lock.&lt;/string>"
+        errorLine2="                                                                                                    ~">
+        <location
+            file="src/main/res/values/string_figma.xml"
+            line="181"
+            column="101"/>
+    </issue>
+
+    <issue
+        id="TypographyQuotes"
+        message="Replace apostrophe (&apos;) with typographic apostrophe (’, &amp;#8217;) ?"
+        errorLine1="    &lt;string name=&quot;app_onboarding_push_intro_title&quot;>To protect your data, the app uses your device\&apos;s screen lock.&lt;/string>"
+        errorLine2="                                                                                                  ~">
+        <location
+            file="src/main/res/values/string_figma.xml"
+            line="187"
+            column="99"/>
+    </issue>
+
+    <issue
+        id="TypographyQuotes"
+        message="Replace apostrophe (&apos;) with typographic apostrophe (’, &amp;#8217;) ?"
+        errorLine1="    &lt;string name=&quot;app_onboarding_wallet_revocation_intro_title&quot;>To protect your data, the app uses your device\&apos;s screen lock.&lt;/string>"
+        errorLine2="                                                                                                               ~">
+        <location
+            file="src/main/res/values/string_figma.xml"
+            line="195"
+            column="112"/>
+    </issue>
+
+    <issue
+        id="TypographyQuotes"
+        message="Replace apostrophe (&apos;) with typographic apostrophe (’, &amp;#8217;) ?"
+        errorLine1="    &lt;string name=&quot;app_onboarding_wallet_revocation_save_key_title&quot;>To protect your data, the app uses your device\&apos;s screen lock.&lt;/string>"
+        errorLine2="                                                                                                                  ~">
+        <location
+            file="src/main/res/values/string_figma.xml"
+            line="205"
+            column="115"/>
+    </issue>
+
+    <issue
+        id="TypographyQuotes"
+        message="Replace apostrophe (&apos;) with typographic apostrophe (’, &amp;#8217;) ?"
+        errorLine1="    &lt;string name=&quot;eaa_inspection_initial_dashboard_prim_button&quot;>Los geht\&apos;s&lt;/string>"
+        errorLine2="                                                                         ~">
+        <location
+            file="src/main/res/values-de/string_figma.xml"
+            line="295"
+            column="74"/>
+    </issue>
+
+    <issue
+        id="TypographyQuotes"
+        message="Replace apostrophe (&apos;) with typographic apostrophe (’, &amp;#8217;) ?"
+        errorLine1="    &lt;string name=&quot;eaa_presentation_rwscd_account_unknown_title&quot;>Your account wasn\&apos;t found&lt;/string>"
+        errorLine2="                                                                                  ~">
+        <location
+            file="src/main/res/values/string_figma.xml"
+            line="482"
+            column="83"/>
+    </issue>
+
+    <issue
+        id="TypographyQuotes"
+        message="Replace apostrophe (&apos;) with typographic apostrophe (’, &amp;#8217;) ?"
+        errorLine1="    &lt;string name=&quot;eid_setup_sheet_pin_not_work_paragraph_1&quot;>Looks like your card PIN was already set up — maybe at a registration office, through another app, or in your Wallet. Because of that, the one-time PIN from your PIN letter won\&apos;t work anymore.&lt;/string>"
+        errorLine2="                                                                                                                                                                                                                                             ~">
+        <location
+            file="src/main/res/values/string_figma.xml"
+            line="547"
+            column="238"/>
+    </issue>
+
+    <issue
+        id="TypographyQuotes"
+        message="Replace apostrophe (&apos;) with typographic apostrophe (’, &amp;#8217;) ?"
+        errorLine1="    &lt;string name=&quot;eid_setup_sheet_pin_not_work_paragraph_2&quot;>Forgot your PIN? No worries. Just visit your local Bürgeramt and they\&apos;ll set up a new card PIN for you on the spot.&lt;/string>"
+        errorLine2="                                                                                                                                  ~">
+        <location
+            file="src/main/res/values/string_figma.xml"
+            line="548"
+            column="131"/>
+    </issue>
+
+    <issue
+        id="TypographyQuotes"
+        message="Replace apostrophe (&apos;) with typographic apostrophe (’, &amp;#8217;) ?"
+        errorLine1="    &lt;string name=&quot;eid_setup_sheet_puk_entry_paragraph_1&quot;>The 10-digit PUK (unlock code) can be found in the PIN letter you received from the Bürgeramt (citizens\&apos; office). This letter also contains your transport PIN.&lt;/string>"
+        errorLine2="                                                                                                                                                                 ~">
+        <location
+            file="src/main/res/values/string_figma.xml"
+            line="551"
+            column="162"/>
+    </issue>
+
+    <issue
+        id="TypographyQuotes"
+        message="Replace apostrophe (&apos;) with typographic apostrophe (’, &amp;#8217;) ?"
+        errorLine1="    &lt;string name=&quot;eid_setup_sheet_puk_entry_sec_button&quot;>Find a citizens\&apos; office near you&lt;/string>"
+        errorLine2="                                                                        ~">
+        <location
+            file="src/main/res/values/string_figma.xml"
+            line="553"
+            column="73"/>
+    </issue>
+
+    <issue
+        id="TypographyQuotes"
+        message="Replace apostrophe (&apos;) with typographic apostrophe (’, &amp;#8217;) ?"
+        errorLine1="    &lt;string name=&quot;eid_setup_transport_pin_entry_tert_button&quot;>One-time PIN doesn\&apos;t work&lt;/string>"
+        errorLine2="                                                                                ~">
+        <location
+            file="src/main/res/values/string_figma.xml"
+            line="558"
+            column="81"/>
+    </issue>
+
+    <issue
+        id="TypographyQuotes"
+        message="Replace apostrophe (&apos;) with typographic apostrophe (’, &amp;#8217;) ?"
+        errorLine1="    &lt;string name=&quot;global_search_office_button&quot;>Search Citizen\&apos;s office&lt;/string>"
+        errorLine2="                                                              ~">
+        <location
+            file="src/main/res/values/string_figma.xml"
+            line="599"
+            column="63"/>
+    </issue>
+
+    <issue
+        id="TypographyQuotes"
+        message="Replace apostrophe (&apos;) with typographic apostrophe (’, &amp;#8217;) ?"
+        errorLine1="    &lt;string name=&quot;pid_inspection_initial_dashboard_prim_button&quot;>Los geht\&apos;s&lt;/string>"
+        errorLine2="                                                                         ~">
+        <location
+            file="src/main/res/values-de/string_figma.xml"
+            line="683"
+            column="74"/>
+    </issue>
+
+    <issue
+        id="TypographyQuotes"
+        message="Replace apostrophe (&apos;) with typographic apostrophe (’, &amp;#8217;) ?"
+        errorLine1="    &lt;string name=&quot;pid_inspection_wallet_pa_deactivated_error_paragraph&quot;>For security reasons, you\&apos;ll need to provide your device\&apos;s biometric data, PIN, or password to confirm this step.&lt;/string>"
+        errorLine2="                                                                        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/string_figma.xml"
+            line="727"
+            column="73"/>
+    </issue>
+
+    <issue
+        id="TypographyQuotes"
+        message="Replace apostrophe (&apos;) with typographic apostrophe (’, &amp;#8217;) ?"
+        errorLine1="    &lt;string name=&quot;pid_issuance_can_success_paragraph_1&quot;>Important: You can now enter your card PIN one last time. If it is incorrect again, the card PIN will be blocked. If you have not yet set your 6-digit card PIN, you can do so using the 5-digit transport PIN from the PIN letter or on site at the citizens\&apos; office.&lt;/string>"
+        errorLine2="                                                                                                                                                                                                                                                                                                                      ~">
+        <location
+            file="src/main/res/values/string_figma.xml"
+            line="740"
+            column="311"/>
+    </issue>
+
+    <issue
+        id="TypographyQuotes"
+        message="Replace apostrophe (&apos;) with typographic apostrophe (’, &amp;#8217;) ?"
+        errorLine1="    &lt;string name=&quot;pid_issuance_no_card_available_paragraph&quot;>A Digital ID can only be created using a national identity card or a residence permit.  Travel documents such as passports cannot be used.  Apply for a suitable ID at your citizen\&apos;s office.&lt;/string>"
+        errorLine2="                                                                                                                                                                                                                                                ~">
+        <location
+            file="src/main/res/values/string_figma.xml"
+            line="795"
+            column="241"/>
+    </issue>
+
+    <issue
+        id="TypographyQuotes"
+        message="Replace apostrophe (&apos;) with typographic apostrophe (’, &amp;#8217;) ?"
+        errorLine1="    &lt;string name=&quot;pid_issuance_no_letter_forgot_pin_paragraph&quot;>If you can no longer find your PIN letter, or if you have forgotten your card PIN, you will need to visit your citizen\&apos;s office to set a new 6-digit card PIN.&lt;/string>"
+        errorLine2="                                                                                                                                                                                      ~">
+        <location
+            file="src/main/res/values/string_figma.xml"
+            line="797"
+            column="183"/>
+    </issue>
+
+    <issue
+        id="TypographyQuotes"
+        message="Replace apostrophe (&apos;) with typographic apostrophe (’, &amp;#8217;) ?"
+        errorLine1="    &lt;string name=&quot;pid_issuance_process_overview_prim_button&quot;>Let\&apos;s go&lt;/string>"
+        errorLine2="                                                                 ~">
+        <location
+            file="src/main/res/values/string_figma.xml"
+            line="816"
+            column="66"/>
+    </issue>
+
+    <issue
+        id="TypographyQuotes"
+        message="Replace apostrophe (&apos;) with typographic apostrophe (’, &amp;#8217;) ?"
+        errorLine1="    &lt;string name=&quot;pid_issuance_process_overview_title&quot;>Here\&apos;s how you create your Digital ID&lt;/string>"
+        errorLine2="                                                            ~">
+        <location
+            file="src/main/res/values/string_figma.xml"
+            line="817"
+            column="61"/>
+    </issue>
+
+    <issue
+        id="TypographyQuotes"
+        message="Replace apostrophe (&apos;) with typographic apostrophe (’, &amp;#8217;) ?"
+        errorLine1="    &lt;string name=&quot;pid_issuance_sheet_puk_entry_paragraph_1&quot;>The 10-digit PUK (unlock code) can be found in the PIN letter you received from the Bürgeramt (citizens\&apos; office). This letter also contains your transport PIN.&lt;/string>"
+        errorLine2="                                                                                                                                                                    ~">
+        <location
+            file="src/main/res/values/string_figma.xml"
+            line="851"
+            column="165"/>
+    </issue>
+
+    <issue
+        id="TypographyQuotes"
+        message="Replace apostrophe (&apos;) with typographic apostrophe (’, &amp;#8217;) ?"
+        errorLine1="    &lt;string name=&quot;pid_issuance_sheet_puk_entry_sec_button&quot;>Find a citizens\&apos; office near you&lt;/string>"
+        errorLine2="                                                                           ~">
+        <location
+            file="src/main/res/values/string_figma.xml"
+            line="853"
+            column="76"/>
+    </issue>
+
+    <issue
+        id="TypographyQuotes"
+        message="Replace apostrophe (&apos;) with typographic apostrophe (’, &amp;#8217;) ?"
+        errorLine1="    &lt;string name=&quot;pid_presentation_rwscd_account_unknown_title&quot;>Your account wasn\&apos;t found&lt;/string>"
+        errorLine2="                                                                                  ~">
+        <location
+            file="src/main/res/values/string_figma.xml"
+            line="966"
+            column="83"/>
+    </issue>
+
+    <issue
+        id="TypographyQuotes"
+        message="Replace apostrophe (&apos;) with typographic apostrophe (’, &amp;#8217;) ?"
+        errorLine1="    &lt;string name=&quot;pid_presentation_wallet_pin_last_entry_info_paragraph_1&quot;>You have one last attempt to enter the correct code before your ID is locked. After that, you\&apos;ll need to add your ID again to create a new Wallet code.&lt;/string>"
+        errorLine2="                                                                                                                                                                         ~">
+        <location
+            file="src/main/res/values/string_figma.xml"
+            line="987"
+            column="170"/>
+    </issue>
+
+    <issue
+        id="TypographyQuotes"
+        message="Replace apostrophe (&apos;) with typographic apostrophe (’, &amp;#8217;) ?"
+        errorLine1="    &lt;string name=&quot;new_pin_set_bottom_sheet_content_one&quot;>The card PIN is the PIN of your physical ID card that you can use to access the online ID function. Memorise this card PIN well. If you no longer know it, you will need to make an appointment at the Citizens\&apos; Registration Office and have the PIN set there.&lt;/string>"
+        errorLine2="                                                                                                                                                                                                                                                                        ~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="265"
+            column="265"/>
+    </issue>
+
+</issues>

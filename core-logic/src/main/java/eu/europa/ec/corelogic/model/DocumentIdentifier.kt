@@ -33,7 +33,8 @@ sealed interface DocumentIdentifier {
 
     /**
      * The batch is refreshed once the remaining credential count is at or below this threshold
-     * (i.e. `credentialsCount() <= minAvailableCredentials`).
+     * (i.e. `credentialsCount() <= minAvailableCredentials`), so the current rule — refresh once a
+     * format is down to its last credential — is expressed as `1`.
      * TBD CredentialPolicy once the policy is available
      */
     val minAvailableCredentials: Int
@@ -42,20 +43,20 @@ sealed interface DocumentIdentifier {
         override val formatType: FormatType
             get() = "eu.europa.ec.eudi.pid.1"
         override val eligibleForReissue: Boolean = true
-        override val minAvailableCredentials: Int = 2
+        override val minAvailableCredentials: Int = 1
     }
 
     data object SdJwtPid : DocumentIdentifier {
         override val formatType: FormatType
             get() = "urn:eudi:pid:de:1"
         override val eligibleForReissue: Boolean = true
-        override val minAvailableCredentials: Int = 2
+        override val minAvailableCredentials: Int = 1
     }
 
     data class OTHER(
         override val formatType: FormatType,
         override val eligibleForReissue: Boolean = true,
-        override val minAvailableCredentials: Int = 2,
+        override val minAvailableCredentials: Int = 1,
     ) : DocumentIdentifier
 }
 

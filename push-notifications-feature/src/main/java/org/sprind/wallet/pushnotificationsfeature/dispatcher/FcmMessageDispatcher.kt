@@ -48,7 +48,15 @@ class FcmMessageDispatcher(
         when (action) {
             ACTION_RENEW_MDVM_TOKEN -> {
                 logController.d(TAG) { "Handling $ACTION_RENEW_MDVM_TOKEN action" }
-                scope.launch { interactor.handleRevocationPush() }
+                scope.launch {
+                    // The renewal stack (network, keystore) throws on e.g. an offline device, and
+                    // an uncaught throw in a bare launch on the service scope kills the process.
+                    try {
+                        interactor.handleRevocationPush()
+                    } catch (e: Exception) {
+                        logController.e(TAG, e)
+                    }
+                }
             }
 
             else -> {

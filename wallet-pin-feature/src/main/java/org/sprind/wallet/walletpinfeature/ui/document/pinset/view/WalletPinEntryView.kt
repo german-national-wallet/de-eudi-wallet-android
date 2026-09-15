@@ -18,24 +18,19 @@ package org.sprind.wallet.walletpinfeature.ui.document.pinset.view
 
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import eu.europa.ec.resourceslogic.R
-import eu.europa.ec.uilogic.component.AppIcons
 import eu.europa.ec.uilogic.component.content.ContentScreen
 import eu.europa.ec.uilogic.component.content.ScreenNavigateAction
-import eu.europa.ec.uilogic.component.content.ToolbarAction
-import eu.europa.ec.uilogic.component.content.ToolbarConfig
 import eu.europa.ec.uilogic.component.dialog.GenericErrorDialogConfig
 import eu.europa.ec.uilogic.component.preview.PreviewTheme
 import eu.europa.ec.uilogic.component.preview.ThemeModeWithGermanAndEnglishPreviews
 import eu.europa.ec.uilogic.component.wrap.WrapStickyPrimaryButton
 import org.sprind.wallet.uilogic.component.CodeEntryBody
+import org.sprind.wallet.walletpinfeature.ui.document.pinset.WalletPinStep
 import org.sprind.wallet.uilogic.component.CodeEntryState
 import org.sprind.wallet.uilogic.component.CodeLength
 import org.sprind.wallet.uilogic.component.codeEntryStateForPreview
@@ -47,6 +42,7 @@ import org.sprind.wallet.uilogic.component.codeEntryStateForPreview
  *
  * @property title the screen headline.
  * @property primaryButtonText label of the confirming button.
+ * @property step which wallet code step this is, so the header can count off the journey.
  * @property isLoading whether the screen is busy; the toolbar loses its back and close actions
  *   while it is, so the user cannot abandon a half-finished registration.
  * @property errorDialog an error to surface over the screen, or `null`.
@@ -55,6 +51,7 @@ import org.sprind.wallet.uilogic.component.codeEntryStateForPreview
 data class WalletPinEntryConfig(
     val title: String,
     val primaryButtonText: String,
+    val step: WalletPinStep,
     val isLoading: Boolean = false,
     val errorDialog: GenericErrorDialogConfig? = null,
 )
@@ -80,24 +77,18 @@ fun WalletPinEntryView(
     onBack: () -> Unit,
     onClose: () -> Unit = {},
 ) {
-    val loadingToolbar: (@Composable () -> Unit)? = if (config.isLoading) {
-        {
-            // An empty bar while busy, so there is no back or close affordance to interrupt
-            // registration with.
-            TopAppBar(
-                title = {},
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.background,
-                ),
-            )
-        }
-    } else {
-        null
+    val header: @Composable () -> Unit = {
+        WalletCodeJourneyHeader(
+            step = config.step,
+            onCloseClick = onClose,
+            onBackClick = onBack,
+            isBusy = config.isLoading,
+        )
     }
 
     ContentScreen(
         isLoading = config.isLoading,
-        topBar = loadingToolbar,
+        topBar = header,
         navigatableAction = if (config.isLoading) {
             ScreenNavigateAction.NONE
         } else {
@@ -105,10 +96,6 @@ fun WalletPinEntryView(
         },
         onBack = onBack,
         genericErrorDialogConfig = config.errorDialog,
-        toolBarConfig = ToolbarConfig(
-            title = "",
-            actions = listOf(ToolbarAction(icon = AppIcons.Close, onClick = onClose)),
-        ),
         stickyBottom = { paddingValues ->
             WrapStickyPrimaryButton(
                 text = config.primaryButtonText,
@@ -135,6 +122,7 @@ private fun WalletPinEntrySetPreview() {
             config = WalletPinEntryConfig(
                 title = stringResource(R.string.pid_issuance_wallet_pin_setup_title),
                 primaryButtonText = stringResource(R.string.pid_issuance_wallet_pin_setup_prim_button),
+                step = WalletPinStep.Set,
             ),
             state = codeEntryStateForPreview(capacity = CodeLength.WALLET_PIN, code = "123"),
             onCodeChange = {},
@@ -152,6 +140,7 @@ private fun WalletPinEntryConfirmPreview() {
             config = WalletPinEntryConfig(
                 title = stringResource(R.string.pid_issuance_wallet_pin_reenter_title),
                 primaryButtonText = stringResource(R.string.pid_issuance_wallet_pin_reenter_prim_button),
+                step = WalletPinStep.Confirm,
             ),
             state = codeEntryStateForPreview(capacity = CodeLength.WALLET_PIN, code = "123456"),
             onCodeChange = {},

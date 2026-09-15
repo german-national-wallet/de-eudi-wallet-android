@@ -17,9 +17,6 @@
 package eu.europa.ec.commonfeature.util
 
 import androidx.annotation.VisibleForTesting
-import eu.europa.ec.eudi.iso18013.transfer.response.ReaderAuth
-import eu.europa.ec.eudi.iso18013.transfer.response.RequestedDocument
-import eu.europa.ec.eudi.iso18013.transfer.response.device.MsoMdocItem
 import eu.europa.ec.eudi.openid4vci.TxCode
 import eu.europa.ec.eudi.openid4vci.TxCodeInputMode
 import eu.europa.ec.commonfeature.model.DocumentOptionItemUi
@@ -75,92 +72,6 @@ object TestsData {
 
     const val mockedUriPath1 = "eudi-wallet://example.com/path1"
     const val mockedUriPath2 = "eudi-wallet://example.com/path2"
-
-    val mockedValidReaderAuth = ReaderAuth(
-        readerAuth = byteArrayOf(),
-        readerSignIsValid = true,
-        readerCertificateChain = listOf(),
-        readerCertificatedIsTrusted = true,
-        readerCommonName = mockedVerifierName
-    )
-
-    val mockedPidWithBasicFieldsDocRequest = RequestedDocument(
-        documentId = mockedPidId,
-        requestedItems = mapOf(
-            MsoMdocItem(
-                namespace = mockedPidNameSpace,
-                elementIdentifier = "family_name"
-            ) to false,
-            MsoMdocItem(
-                namespace = mockedPidNameSpace,
-                elementIdentifier = "given_name"
-            ) to false,
-            MsoMdocItem(
-                namespace = mockedPidNameSpace,
-                elementIdentifier = "age_over_18"
-            ) to false,
-            MsoMdocItem(
-                namespace = mockedPidNameSpace,
-                elementIdentifier = "age_over_65"
-            ) to false,
-            MsoMdocItem(
-                namespace = mockedPidNameSpace,
-                elementIdentifier = "age_birth_year"
-            ) to false,
-            MsoMdocItem(
-                namespace = mockedPidNameSpace,
-                elementIdentifier = "birth_city"
-            ) to false,
-            MsoMdocItem(
-                namespace = mockedPidNameSpace,
-                elementIdentifier = "gender"
-            ) to false,
-            MsoMdocItem(
-                namespace = mockedPidNameSpace,
-                elementIdentifier = "expiry_date"
-            ) to false,
-        ),
-        readerAuth = mockedValidReaderAuth
-    )
-
-    val mockedMdlWithBasicFieldsDocRequest = RequestedDocument(
-        documentId = mockedMdlId,
-        requestedItems = mapOf(
-            MsoMdocItem(
-                namespace = mockedMdlNameSpace,
-                elementIdentifier = "family_name"
-            ) to false,
-            MsoMdocItem(
-                namespace = mockedMdlNameSpace,
-                elementIdentifier = "given_name"
-            ) to false,
-            MsoMdocItem(
-                namespace = mockedMdlNameSpace,
-                elementIdentifier = "birth_place"
-            ) to false,
-            MsoMdocItem(
-                namespace = mockedMdlNameSpace,
-                elementIdentifier = "expiry_date"
-            ) to false,
-            MsoMdocItem(
-                namespace = mockedMdlNameSpace,
-                elementIdentifier = "portrait"
-            ) to false,
-            MsoMdocItem(
-                namespace = mockedMdlNameSpace,
-                elementIdentifier = "signature_usual_mark"
-            ) to false,
-            MsoMdocItem(
-                namespace = mockedMdlNameSpace,
-                elementIdentifier = "sex"
-            ) to false,
-        ),
-        readerAuth = mockedValidReaderAuth
-    )
-
-    val mockedValidPidWithBasicFieldsRequestDocument = mockedPidWithBasicFieldsDocRequest
-
-    val mockedValidMdlWithBasicFieldsRequestDocument = mockedMdlWithBasicFieldsDocRequest
 
     val mockedFullPidUi = DocumentUi(
         documentId = mockedPidId,

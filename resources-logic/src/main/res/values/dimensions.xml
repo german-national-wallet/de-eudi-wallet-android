@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <dimen name="document_card_height">204dp</dimen>
+    <dimen name="eaa_card_height">120dp</dimen>
+    <dimen name="eaa_colored_panel_width">104dp</dimen>
+    <dimen name="eaa_logo_width">34dp</dimen>
+    <dimen name="eaa_logo_height">35dp</dimen>
+</resources>

@@ -16,47 +16,30 @@
 
 package org.sprind.wallet.walletpinfeature.ui.document.pinset.view
 
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.AnnotatedString
-import androidx.compose.ui.text.fromHtml
-import androidx.compose.ui.unit.dp
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import eu.europa.ec.resourceslogic.R
+import org.sprind.wallet.walletpinfeature.ui.document.pinset.WalletPinStep
 import eu.europa.ec.uilogic.component.AppIcons
-import eu.europa.ec.uilogic.component.content.ContentHeader
-import eu.europa.ec.uilogic.component.content.ContentHeaderConfig
 import eu.europa.ec.uilogic.component.content.ContentScreen
 import eu.europa.ec.uilogic.component.content.ScreenNavigateAction
-import eu.europa.ec.uilogic.component.content.ToolbarAction
-import eu.europa.ec.uilogic.component.content.ToolbarConfig
 import eu.europa.ec.uilogic.component.preview.PreviewTheme
 import eu.europa.ec.uilogic.component.preview.ThemeModeWithGermanAndEnglishPreviews
-import eu.europa.ec.uilogic.component.utils.SPACING_EXTRA_MEDIUM
-import eu.europa.ec.uilogic.component.utils.SPACING_LARGE
-import eu.europa.ec.uilogic.component.utils.SPACING_MEDIUM
-import eu.europa.ec.uilogic.component.utils.SPACING_SMALL
-import eu.europa.ec.uilogic.component.wrap.Banner
-import eu.europa.ec.uilogic.component.wrap.ButtonConfig
-import eu.europa.ec.uilogic.component.wrap.ButtonType
-import eu.europa.ec.uilogic.component.wrap.TextConfig
-import eu.europa.ec.uilogic.component.wrap.WrapButton
 import eu.europa.ec.uilogic.component.wrap.WrapImage
+import eu.europa.ec.uilogic.component.wrap.WrapStickyPrimaryButton
+import org.sprind.wallet.uilogic.component.ContentIllustrationPlacement
+import org.sprind.wallet.uilogic.component.ContentNotice
+import org.sprind.wallet.uilogic.component.ContentTemplateBody
+import org.sprind.wallet.uilogic.component.ContentTemplateConfig
 
-
+/**
+ * Announces the wallet code before it is set: why it matters, and that it cannot be traded for a
+ * fingerprint.
+ */
 @Composable
 fun WalletPinSetInfoView(
     onCloseClick: () -> Unit,
@@ -64,69 +47,44 @@ fun WalletPinSetInfoView(
 ) {
     ContentScreen(
         navigatableAction = ScreenNavigateAction.NONE,
-        toolBarConfig = ToolbarConfig(
-            "",
-            listOf(
-                ToolbarAction(
-                    icon = AppIcons.Close,
-                    onClick = {
-                        onCloseClick()
-                    })
+        topBar = {
+            WalletCodeJourneyHeader(
+                step = WalletPinStep.Info,
+                onCloseClick = onCloseClick,
             )
-        ),
+        },
         stickyBottom = { padding ->
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(
-                        PaddingValues(
-                            bottom = padding.calculateBottomPadding(),
-                        )
-                    ),
-                verticalArrangement = Arrangement.spacedBy(SPACING_MEDIUM.dp)
-            ) {
-
-                WrapButton(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = SPACING_MEDIUM.dp),
-                    buttonConfig = ButtonConfig(
-                        type = ButtonType.PRIMARY,
-                        onClick = {
-                            onContinueClick()
-                        }
-                    )
-                ) {
-                    Text(
-                        text = stringResource(id = R.string.pid_issuance_wallet_pin_intro_prim_button)
-                    )
+            WrapStickyPrimaryButton(
+                text = stringResource(R.string.pid_issuance_wallet_pin_intro_prim_button),
+                enabled = true,
+                paddingValues = padding,
+                trailingIcon = AppIcons.ArrowRightLong,
+                onClick = onContinueClick,
+            )
+        },
+    ) { paddingValues ->
+        ContentTemplateBody(
+            modifier = Modifier.padding(paddingValues),
+            templateConfig = ContentTemplateConfig(
+                illustrationPlacement = ContentIllustrationPlacement.BELOW_TEXT,
+            ),
+            title = { Text(text = stringResource(R.string.pid_issuance_wallet_pin_intro_title)) },
+            body = {
+                Text(text = stringResource(R.string.pid_issuance_wallet_pin_intro_paragraph))
+            },
+            illustration = {
+                // Decoration: the title and the paragraph above it already say what the code is for.
+                WrapImage(
+                    iconData = AppIcons.CardPin,
+                    modifier = Modifier.clearAndSetSemantics { },
+                )
+            },
+            extraContent = {
+                ContentNotice {
+                    Text(text = stringResource(R.string.pid_issuance_wallet_pin_intro_banner))
                 }
-            }
-        }) { paddingValues ->
-
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues)
-                .verticalScroll(rememberScrollState()),
-            verticalArrangement = Arrangement.SpaceBetween,
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            ContentHeader(
-                modifier = Modifier.fillMaxWidth(),
-                config = ContentHeaderConfig(
-                    title = stringResource(R.string.pid_issuance_wallet_pin_intro_title),
-                    titleTextConfig = TextConfig(MaterialTheme.typography.titleLarge),
-                ),
-            )
-
-            WrapImage(
-                modifier = Modifier,
-                iconData = AppIcons.PhoneSecurity,
-            )
-
-            Banner(body = stringResource(R.string.pid_issuance_wallet_pin_intro_paragraph))
-        }
+            },
+        )
     }
 }
 

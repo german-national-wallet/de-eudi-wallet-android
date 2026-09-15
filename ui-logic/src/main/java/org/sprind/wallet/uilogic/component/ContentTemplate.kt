@@ -108,11 +108,15 @@ enum class ContentIllustrationPlacement { ABOVE_TITLE, BELOW_TEXT }
  * @property verticalSpacing gap between the major body sections (illustration, text, extra content).
  * @property illustrationPlacement where the `illustration` slot is positioned; see
  *   [ContentIllustrationPlacement].
+ * @property centerContent centres the body in the space it has instead of stacking it from the top,
+ *   for the screens that are one short statement rather than something to read down — a success
+ *   screen. Content taller than the screen still scrolls from the top.
  */
 @Immutable
 data class ContentTemplateConfig(
     val verticalSpacing: Dp = SPACING_LARGE_32.dp,
     val illustrationPlacement: ContentIllustrationPlacement = ContentIllustrationPlacement.ABOVE_TITLE,
+    val centerContent: Boolean = false,
 )
 
 /**
@@ -233,7 +237,14 @@ fun ContentTemplateBody(
                     .weight(1f)
                     .fillMaxWidth()
                     .verticalScroll(rememberScrollState()),
-                verticalArrangement = Arrangement.spacedBy(templateConfig.verticalSpacing),
+                verticalArrangement = if (templateConfig.centerContent) {
+                    Arrangement.spacedBy(
+                        space = templateConfig.verticalSpacing,
+                        alignment = Alignment.CenterVertically,
+                    )
+                } else {
+                    Arrangement.spacedBy(templateConfig.verticalSpacing)
+                },
             ) {
                 if (illustration != null && templateConfig.illustrationPlacement == ContentIllustrationPlacement.ABOVE_TITLE) {
                     CenteredIllustration(illustration)

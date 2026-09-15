@@ -1,0 +1,36 @@
+<!--
+  ~ Copyright (C) 2026 The Android Open Source Project
+  ~
+  ~ Licensed under the Apache License, Version 2.0 (the "License");
+  ~ you may not use this file except in compliance with the License.
+  ~ You may obtain a copy of the License at
+  ~
+  ~      http://www.apache.org/licenses/LICENSE-2.0
+  ~
+  ~ Unless required by applicable law or agreed to in writing, software
+  ~ distributed under the License is distributed on an "AS IS" BASIS,
+  ~ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  ~ See the License for the specific language governing permissions and
+  ~ limitations under the License.
+  -->
+<!--
+  ~ The export draws the mark across a third of its canvas, which renders it tiny in an icon slot,
+  ~ so the group scales it to the fill the other icons here use and the intrinsic size is the
+  ~ standard 24dp. The circular clip the export carried is gone with it: it only ever enclosed the
+  ~ unscaled mark.
+  -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="48"
+    android:viewportHeight="48">
+  <group
+      android:pivotX="24"
+      android:pivotY="24"
+      android:scaleX="2.242"
+      android:scaleY="2.242">
+    <path
+        android:pathData="M24,15.25C26.321,15.25 28.547,16.172 30.188,17.813C31.829,19.453 32.75,21.679 32.75,24C32.75,25.731 32.237,27.422 31.275,28.861C30.314,30.3 28.948,31.422 27.349,32.084C25.75,32.746 23.99,32.92 22.293,32.582C20.596,32.244 19.036,31.411 17.813,30.188C16.589,28.964 15.756,27.404 15.418,25.707C15.08,24.01 15.254,22.25 15.916,20.651C16.578,19.053 17.7,17.686 19.139,16.725C20.578,15.763 22.27,15.25 24,15.25ZM26.87,17.071C25.5,16.504 23.992,16.355 22.537,16.645C21.082,16.934 19.745,17.647 18.696,18.696C17.647,19.745 16.934,21.082 16.645,22.537C16.355,23.992 16.504,25.5 17.071,26.87C17.639,28.24 18.6,29.412 19.833,30.236C21.066,31.06 22.517,31.5 24,31.5C25.989,31.5 27.897,30.71 29.304,29.304C30.71,27.897 31.5,25.989 31.5,24C31.5,22.517 31.061,21.066 30.236,19.833C29.412,18.6 28.241,17.639 26.87,17.071ZM24,27.75C24.518,27.75 24.938,28.17 24.938,28.688C24.938,29.205 24.518,29.625 24,29.625C23.482,29.625 23.063,29.205 23.063,28.688C23.063,28.17 23.482,27.75 24,27.75ZM24.625,19C25.371,19 26.087,19.297 26.614,19.824C27.142,20.352 27.438,21.067 27.438,21.813C27.438,22.558 27.142,23.273 26.614,23.801C26.087,24.328 25.371,24.625 24.625,24.625V26.188H23.375V23.375H24.625C25.039,23.375 25.437,23.21 25.73,22.917C26.023,22.624 26.188,22.227 26.188,21.813C26.188,21.398 26.023,21.001 25.73,20.708C25.437,20.415 25.039,20.25 24.625,20.25H23.688C23.273,20.25 22.876,20.415 22.583,20.708C22.29,21.001 22.125,21.398 22.125,21.813V22.125H20.875V21.813C20.874,21.443 20.947,21.077 21.088,20.735C21.229,20.394 21.436,20.084 21.697,19.822C21.959,19.561 22.269,19.354 22.611,19.213C22.952,19.072 23.318,18.999 23.688,19H24.625Z"
+        android:fillColor="#1D1D1E"/>
+  </group>
+</vector>

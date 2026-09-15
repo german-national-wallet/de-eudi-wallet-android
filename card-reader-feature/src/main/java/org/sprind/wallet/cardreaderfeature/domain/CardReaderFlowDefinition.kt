@@ -121,6 +121,12 @@ data class CardReaderFlowDefinition(
                 ),
             ),
             CardReaderFlowStep(
+                route = CardReaderRoute.ISSUANCE_CONSENT,
+                navigationPolicy = CardReaderNavigationPolicy(
+                    backBehavior = CardReaderBackBehavior.DISABLED,
+                ),
+            ),
+            CardReaderFlowStep(
                 route = CardReaderRoute.COMPLETED,
                 navigationPolicy = CardReaderNavigationPolicy(
                     backBehavior = CardReaderBackBehavior.DISABLED,

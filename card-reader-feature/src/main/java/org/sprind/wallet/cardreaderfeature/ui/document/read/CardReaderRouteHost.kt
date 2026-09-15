@@ -39,6 +39,8 @@ import eu.europa.ec.uilogic.component.content.ScreenNavigateAction
 import eu.europa.ec.uilogic.component.utils.SPACING_SMALL
 import org.sprind.wallet.uilogic.component.dialog.ConfirmationDialog
 import org.sprind.wallet.uilogic.component.dialog.ConfirmationDialogConfig
+import eu.europa.ec.uilogic.component.AppIcons
+import eu.europa.ec.uilogic.component.DeclineConfirmationDialog
 import org.sprind.wallet.cardreaderfeature.domain.CardReaderRoute
 import org.sprind.wallet.cardreaderfeature.domain.isNfcPrompt
 import java.util.Locale
@@ -109,6 +111,10 @@ internal fun CardReaderRouteHost(
             CancelFlowDialog(onEventSend = onEventSend)
         }
 
+        if (state.isRejectIssuanceDialogVisible) {
+            RejectIssuanceDialog(onEventSend = onEventSend)
+        }
+
         NavHost(
             navController = routeNavController,
             startDestination = state.currentRoute.navRoute(),
@@ -147,6 +153,25 @@ private fun CancelFlowDialog(onEventSend: (Event) -> Unit) {
             onConfirm = { onEventSend(Event.Close) },
             onDismiss = { onEventSend(Event.DismissCancelFlowDialog) },
         )
+    )
+}
+
+/**
+ * Asks whether the user really wants to turn the credential down, and only then ends the flow.
+ *
+ * Rejecting is the destructive answer of the two, so it takes the warning styling; the card read
+ * behind it cannot be repeated without starting the journey over.
+ */
+@Composable
+private fun RejectIssuanceDialog(onEventSend: (Event) -> Unit) {
+    DeclineConfirmationDialog(
+        headLineText = stringResource(R.string.pid_issuance_add_credential_reject_title),
+        contentText = stringResource(R.string.pid_issuance_add_credential_reject_paragraph),
+        confirmText = stringResource(R.string.pid_issuance_add_credential_reject_prim_button),
+        cancellationText = stringResource(R.string.pid_issuance_add_credential_reject_sec_button),
+        iconData = AppIcons.Info,
+        onConfirm = { onEventSend(Event.Close) },
+        onDismiss = { onEventSend(Event.DismissRejectIssuanceDialog) },
     )
 }
 

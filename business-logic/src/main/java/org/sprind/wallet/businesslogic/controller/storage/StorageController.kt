@@ -48,7 +48,9 @@ interface StorageController {
      * filesDir, cacheDir and codeCacheDir, and closes the app so the user must
      * restart it. Used when the Platform Authentication invariant is violated
      * (wallet data exists but the device has no secure lock screen) and on
-     * incompatible app-data-version bumps.
+     * incompatible app-data-version bumps. NOT used by the wallet revocation
+     * self-lock, which must keep the process alive and its lock flag persisted;
+     * that path is `WalletRevocationHandler` in core-logic.
      *
      * Safe to call from any thread: only performs the synchronous binder IPC
      * [ActivityManager.clearApplicationUserData]. UI feedback (e.g. Toast) is the

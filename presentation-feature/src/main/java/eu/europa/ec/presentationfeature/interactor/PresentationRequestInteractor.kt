@@ -30,13 +30,13 @@ import eu.europa.ec.corelogic.controller.WalletCorePartialState
 import eu.europa.ec.corelogic.controller.WalletCorePresentationController
 import eu.europa.ec.corelogic.model.AuthenticationData
 import eu.europa.ec.corelogic.securearea.exception.RwscaServerException
-import eu.europa.ec.eudi.iso18013.transfer.response.ReaderAuth
 import eu.europa.ec.resourceslogic.provider.ResourceProvider
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.mapNotNull
+import kotlinx.coroutines.withTimeoutOrNull
 import org.sprind.wallet.commonfeature.interactor.DocumentDeletionPartialState
 import org.sprind.wallet.commonfeature.interactor.RwscaInteractor
 import org.sprind.wallet.commonfeature.interactor.deletePidDocumentsWithRwscaCleanup
@@ -47,7 +47,6 @@ sealed class PresentationRequestInteractorPartialState {
         val verifierName: String?,
         val verifierIsTrusted: Boolean,
         val requestDocuments: List<RequestDocumentItemUi>,
-        val readerAuth: ReaderAuth?,
     ) : PresentationRequestInteractorPartialState()
 
     data class NoData(
@@ -113,7 +112,7 @@ interface PresentationRequestInteractor {
     fun updateRequestedDocuments(items: List<RequestDocumentItemUi>)
     fun setConfig(config: RequestUriConfig)
     fun processRequest(): Flow<PresentationRequestProcessPartialState>
-    fun sendRequestedDocuments(): PresentationDocumentSubmissionPartialState
+    suspend fun sendRequestedDocuments(): PresentationDocumentSubmissionPartialState
     fun deletePidDocuments(): Flow<PresentationRequestDeleteDocumentPartialState>
     fun getWalletPinBlockTime(): String
     fun isLastPinTry(): Boolean
@@ -154,7 +153,12 @@ class PresentationRequestInteractorImpl(
             when (response) {
                 is TransferEventPartialState.RequestReceived -> {
                     when {
-                        response.requestData.all { it.requestedItems.isEmpty() } -> {
+                        // Nothing in the wallet can satisfy the request. Note this is not the
+                        // same as "the verifier named no claims": per OpenID4VP §6.4.1 a
+                        // Credential Query without `claims` asks for a presentation that
+                        // discloses nothing beyond holding the credential, which is a request
+                        // the user still has to consent to.
+                        response.requestData.isEmpty() -> {
                             PresentationRequestInteractorPartialState.NoData(
                                 verifierName = response.verifierName,
                                 verifierIsTrusted = response.verifierIsTrusted,
@@ -166,7 +170,7 @@ class PresentationRequestInteractorImpl(
                             val transformer = RequestTransformer()
                             val requestDataUi = transformer.transformToDomainItems(
                                 storageDocuments = walletCoreDocumentsController.getAllIssuedDocuments(),
-                                requestDocuments = response.requestData,
+                                requestMatches = response.requestData,
                                 resourceProvider = resourceProvider,
                                 logController = logController,
                             )
@@ -177,7 +181,6 @@ class PresentationRequestInteractorImpl(
                                 PresentationRequestInteractorPartialState.Success(
                                     verifierName = response.verifierName,
                                     verifierIsTrusted = response.verifierIsTrusted,
-                                    readerAuth = response.requestData.first().readerAuth,
                                     requestDocuments = transformer.transformToUiItems(
                                         documentsDomain = documentsDomain,
                                         resourceProvider = resourceProvider,
@@ -244,7 +247,7 @@ class PresentationRequestInteractorImpl(
         }
 
 
-    override fun sendRequestedDocuments(): PresentationDocumentSubmissionPartialState {
+    override suspend fun sendRequestedDocuments(): PresentationDocumentSubmissionPartialState {
         return when (val result = walletCorePresentationController.sendRequestedDocuments()) {
             is SendRequestedDocumentsPartialState.RequestSent -> {
                 PresentationDocumentSubmissionPartialState.Success
@@ -304,29 +307,38 @@ class PresentationRequestInteractorImpl(
     override suspend fun reissueLowBatchDocumentsIfNeeded(): String? {
         return try {
             var failureMessage: String? = null
-            reissueLowBatchDocumentsFlow(
-                walletCorePresentationController = walletCorePresentationController,
-                walletCoreDocumentsController = walletCoreDocumentsController,
-                logController = logController,
-            ).collect { state ->
-                when (state) {
-                    is PresentationLoadingReissuePartialState.Failure -> {
-                        failureMessage = state.error
-                    }
+            val completed = withTimeoutOrNull(REISSUE_TIMEOUT) {
+                reissueLowBatchDocumentsFlow(
+                    walletCorePresentationController = walletCorePresentationController,
+                    walletCoreDocumentsController = walletCoreDocumentsController,
+                    logController = logController,
+                ).collect { state ->
+                    when (state) {
+                        is PresentationLoadingReissuePartialState.Failure -> {
+                            failureMessage = state.error
+                        }
 
-                    is PresentationLoadingReissuePartialState.UserAuthenticationRequired -> {
-                        // PID reissue is authorized by the still-open rWSCA PIN session, so this
-                        // device-biometric branch is not expected on the request path. Cancel it
-                        // rather than hang waiting for a prompt that will never be shown.
-                        logController.d(logTag) { "Unexpected device auth during reissue; cancelling" }
-                        state.resultHandler.onAuthenticationError()
-                    }
+                        is PresentationLoadingReissuePartialState.UserAuthenticationRequired -> {
+                            // PID reissue is authorized by the still-open rWSCA PIN session, so this
+                            // device-biometric branch is not expected on the request path. Cancel it
+                            // rather than hang waiting for a prompt that will never be shown.
+                            logController.d(logTag) { "Unexpected device auth during reissue; cancelling" }
+                            state.resultHandler.onAuthenticationError()
+                        }
 
-                    PresentationLoadingReissuePartialState.NotNeeded,
-                    PresentationLoadingReissuePartialState.Success -> Unit
+                        PresentationLoadingReissuePartialState.NotNeeded,
+                        PresentationLoadingReissuePartialState.Success -> Unit
+                    }
                 }
             }
-            failureMessage?.also { logController.d(logTag) { "Batch reissue failed: $it" } }
+
+            if (completed == null) {
+                "Batch reissue timed out after $REISSUE_TIMEOUT".also {
+                    logController.d(logTag) { it }
+                }
+            } else {
+                failureMessage?.also { logController.d(logTag) { "Batch reissue failed: $it" } }
+            }
         } catch (e: CancellationException) {
             // Preserve structured concurrency: never swallow cancellation of the caller's scope.
             throw e

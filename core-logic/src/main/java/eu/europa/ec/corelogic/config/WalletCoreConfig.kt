@@ -42,9 +42,12 @@ interface WalletCoreConfig {
     val storageToBeUsed: Storage
 
     /**
-     * List of Configurations for Verifiable Credentials Issuance (VCI).
+     * Configurations for Verifiable Credentials Issuance (VCI), keyed by issuer URL.
+     *
+     * The issuer URL is no longer part of [OpenId4VciManager.Config] - it is passed per call to
+     * the issuance methods, so it is carried as the map key here.
      */
-    val vciConfig: List<OpenId4VciManager.Config>
+    val vciConfig: Map<String, OpenId4VciManager.Config>
 
     /**
      * DPoP configuration for issuers that do not use the key-attested PID flow, backed by the
@@ -182,31 +185,28 @@ interface WalletCoreConfig {
      *
      * It consists of:
      * - `defaultRule`: A [DocumentIssuanceRule] that applies to all document types unless overridden.
-     *   By default, it uses [CredentialPolicy.RotateUse] and issues 1 credential.
+     *   By default, it uses [CredentialPolicy.RotatingBatch] and issues 1 credential.
      * - `documentSpecificRules`: A map allowing overrides for specific document types.
      *   - Keys are [DocumentIdentifier] objects representing specific document types.
      *   - Values are [DocumentIssuanceRule] objects defining the policy and number of credentials for that document.
      *
      * For example:
-     * - [DocumentIdentifier.MdocPid] is configured for [CredentialPolicy.OneTimeUse] with 10 credentials.
-     * - [DocumentIdentifier.SdJwtPid] is configured for [CredentialPolicy.OneTimeUse] with 10 credentials.
+     * - [DocumentIdentifier.MdocPid] is configured for [CredentialPolicy.OnceOnly] with 10 credentials.
+     * - [DocumentIdentifier.SdJwtPid] is configured for [CredentialPolicy.OnceOnly] with 10 credentials.
      *
      * Any document type not listed in `documentSpecificRules` will use the `defaultRule`.
      */
     val documentIssuanceConfig: DocumentIssuanceConfig
         get() = DocumentIssuanceConfig(
             defaultRule = DocumentIssuanceRule(
-                policy = CredentialPolicy.RotateUse,
-                numberOfCredentials = 1
+                policy = CredentialPolicy.RotatingBatch(numberOfCredentials = 1)
             ),
             documentSpecificRules = mapOf(
                 DocumentIdentifier.MdocPid to DocumentIssuanceRule(
-                    policy = CredentialPolicy.OneTimeUse,
-                    numberOfCredentials = 10
+                    policy = CredentialPolicy.OnceOnly(numberOfCredentials = 10)
                 ),
                 DocumentIdentifier.SdJwtPid to DocumentIssuanceRule(
-                    policy = CredentialPolicy.OneTimeUse,
-                    numberOfCredentials = 10
+                    policy = CredentialPolicy.OnceOnly(numberOfCredentials = 10)
                 ),
             )
         )

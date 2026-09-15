@@ -16,26 +16,7 @@
 
 package org.sprind.wallet.cardreaderfeature.domain
 
-/**
- * The steps the flow announces on its overview screen, which the header then counts off.
- *
- * These are the steps as the user was promised them, not the routes it takes to walk them: several
- * routes share a step, and the routes off the journey have none.
- */
-enum class CardReaderJourneyStep {
-    DATA_RELEASE,
-    CARD_PIN,
-    CARD_SCAN,
-    CREDENTIAL,
-    ;
-
-    /** Position in the announced journey, counting from 1. */
-    val number: Int get() = ordinal + 1
-
-    companion object {
-        val TOTAL: Int = entries.size
-    }
-}
+import org.sprind.wallet.uilogic.component.IssuanceJourneyStep
 
 /**
  * The announced step this route belongs to, or `null` for the routes that are not part of the
@@ -43,25 +24,26 @@ enum class CardReaderJourneyStep {
  *
  * Adding a route to the header is adding it here.
  */
-val CardReaderRoute.journeyStep: CardReaderJourneyStep?
+val CardReaderRoute.journeyStep: IssuanceJourneyStep?
     get() = when (this) {
-        CardReaderRoute.CONSENT -> CardReaderJourneyStep.DATA_RELEASE
+        CardReaderRoute.CONSENT -> IssuanceJourneyStep.DATA_RELEASE
 
         CardReaderRoute.ENTER_PIN,
         CardReaderRoute.PIN_BLOCKED_ERROR,
         CardReaderRoute.ENTER_CAN,
         CardReaderRoute.ENTER_CAN_SUCCESS,
         CardReaderRoute.ENTER_PUK,
-        -> CardReaderJourneyStep.CARD_PIN
+        -> IssuanceJourneyStep.CARD_PIN
 
         CardReaderRoute.NFC_SCAN_EID_PIN,
         CardReaderRoute.NFC_SCAN_CAN,
         CardReaderRoute.NFC_SCAN_PUK,
         // Reached from a scan that could not start, so it counts as part of it.
         CardReaderRoute.NFC_ACTIVATION,
-        -> CardReaderJourneyStep.CARD_SCAN
-
-        CardReaderRoute.COMPLETED -> CardReaderJourneyStep.CREDENTIAL
+        -> IssuanceJourneyStep.CARD_SCAN
+        CardReaderRoute.ISSUANCE_CONSENT,
+        CardReaderRoute.COMPLETED,
+        -> IssuanceJourneyStep.CREDENTIAL
 
         // Before the journey: the two onboarding questions and the overview that announces it.
         // Off the journey: the citizen office dead end, and the change PIN detour, which walks its

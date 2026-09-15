@@ -26,6 +26,7 @@ import eu.europa.ec.startupfeature.interactor.splash.SplashInteractorImpl
 import org.koin.core.annotation.ComponentScan
 import org.koin.core.annotation.Factory
 import org.koin.core.annotation.Module
+import org.sprind.wallet.businesslogic.controller.revocation.WalletRevocationStore
 import org.sprind.wallet.commonfeature.interactor.MdvmInteractor
 import kotlin.time.Clock
 
@@ -45,11 +46,13 @@ fun provideWalletRegistrationInteractor(
     appAttestationController: AppAttestationController,
     walletRegistrationStorageController: WalletRegistrationStorageController,
     mdvmInteractor: MdvmInteractor,
+    walletRevocationStore: WalletRevocationStore,
 ): WalletRegistrationInteractor =
     WalletRegistrationInteractorImpl(
         appAttestationController,
         walletRegistrationStorageController,
         mdvmInteractor,
+        walletRevocationStore,
     )
 
 @Factory

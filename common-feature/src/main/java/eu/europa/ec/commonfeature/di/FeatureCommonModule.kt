@@ -34,9 +34,9 @@ import org.sprind.wallet.authenticationlogic.crypto.PinKeyFactory
 import org.sprind.wallet.authenticationlogic.provider.MdvmAuthContextProvider
 import org.sprind.wallet.authenticationlogic.provider.RwscaRegistrationsProvider
 import org.sprind.wallet.authenticationlogic.provider.RwscaStorageController
-import org.sprind.wallet.businesslogic.controller.storage.StorageController
 import org.sprind.wallet.commonfeature.interactor.LoggingMdvmInteractor
 import org.sprind.wallet.commonfeature.interactor.LoggingRwscaInteractor
+import org.sprind.wallet.businesslogic.controller.revocation.WalletRevocationStore
 import org.sprind.wallet.commonfeature.interactor.MdvmInteractor
 import org.sprind.wallet.commonfeature.interactor.MdvmInteractorImpl
 import org.sprind.wallet.commonfeature.interactor.RevocationHandlingMdvmInteractor
@@ -54,7 +54,7 @@ class FeatureCommonModule {
     @Single
     fun provideMdvmInteractor(
         logController: LogController,
-        storageController: StorageController,
+        walletRevocationStore: WalletRevocationStore,
         mdvmController: MdvmController,
         mdvmRegistrationStorageController: MdvmRegistrationStorageController,
         clock: Clock,
@@ -66,7 +66,8 @@ class FeatureCommonModule {
         return LoggingMdvmInteractor(
             logController = logController,
             delegate = RevocationHandlingMdvmInteractor(
-                storageController = storageController,
+                revocationStore = walletRevocationStore,
+                revocationHandler = { org.koin.mp.KoinPlatform.getKoin().get() },
                 delegate = MdvmInteractorImpl(
                     mdvmController,
                     mdvmRegistrationStorageController,

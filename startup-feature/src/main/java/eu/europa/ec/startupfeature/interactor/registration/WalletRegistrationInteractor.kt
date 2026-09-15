@@ -5,11 +5,18 @@ import eu.europa.ec.authenticationlogic.controller.appattestation.WalletRegistra
 import eu.europa.ec.authenticationlogic.controller.storage.WalletRegistrationStorageController
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
+import org.sprind.wallet.businesslogic.controller.revocation.WalletRevocationStore
 import org.sprind.wallet.commonfeature.interactor.MdvmInteractor
 import org.sprind.wallet.networklogic.common.model.ApiResult
 
 sealed class WalletInitialRegistrationPartialState {
     data object AlreadyRegistered : WalletInitialRegistrationPartialState()
+
+    /**
+     * The wallet is self-locked after a confirmed revocation: registration must not run.
+     * The wallet-revoked blocking overlay is the user-facing surface; the splash stays put.
+     */
+    data object Revoked : WalletInitialRegistrationPartialState()
     data object Success : WalletInitialRegistrationPartialState()
     /**
      * @property errorCode The recognised code, used to pick the message shown to the user.
@@ -42,8 +49,14 @@ class WalletRegistrationInteractorImpl(
     private val appAttestationController: AppAttestationController,
     private val walletRegistrationStorageController: WalletRegistrationStorageController,
     private val mdvmInteractor: MdvmInteractor,
+    private val walletRevocationStore: WalletRevocationStore,
 ) : WalletRegistrationInteractor {
     override suspend fun registerWallet(): Flow<WalletInitialRegistrationPartialState> = flow {
+        if (walletRevocationStore.isRevoked()) {
+            emit(WalletInitialRegistrationPartialState.Revoked)
+            return@flow
+        }
+
         if (walletRegistrationStorageController.getWalletRegistration() != null) {
             emit(WalletInitialRegistrationPartialState.AlreadyRegistered)
             return@flow

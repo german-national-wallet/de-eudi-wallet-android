@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Strings for tasks under development without a UI/UX decision made yet -->
+
+    <!--
+     Dashboard Drawer Menu
+     Title of an option menu on Dashboard Screen for technical users during development
+     for different debugging actions. [MAX_LENGTH=18]
+    -->
+    <string name="dashboard_drawer_title">Debug Menu</string>
+    <!--
+     Label of an option menu item which allows technical or test users to export a log file
+     with technical details and share it using another app (e.g. Gmail, Drive).
+     This is intended for debugging use during development of the app. [MAX_LENGTH=32]
+    -->
+    <string name="dashboard_drawer_log_export">Export logs</string>
+    <!--
+     Label of an option menu item which allows technical or test users to restart the document
+     issuance process without the need to delete app data first.
+     This is intended for debugging use during development of the app. [MAX_LENGTH=32]
+    -->
+    <string name="dashboard_drawer_open_issuance">Issue document</string>
+
+    <!--
+     AddDocument Drawer Menu
+     Title of an option menu on AddDocument Screen for technical users during development
+     for different debugging actions. [MAX_LENGTH=18]
+    -->
+    <string name="add_document_drawer_title">Debug Menu</string>
+    <!--
+     Label of an option menu item which allows technical or test users to export a log file
+     with technical details and share it using another app (e.g. Gmail, Drive).
+     This is intended for debugging use during development of the app. [MAX_LENGTH=32]
+    -->
+    <string name="add_document_drawer_log_export">Export logs</string>
+
+    <!--
+    A warning message shown to the user to let them know that the app had to clear
+    its data and needs to shut down. The user will have to restart the app manually.
+    [MAX_LENGTH=40]
+    -->
+    <string name="clear_app_data_success">Clearing app data; please restart.</string>
+
+    <!--
+     A warning message shown to the user to let them know that the app needs to
+     clear its data in order to work correctly, but failed to do so. We're asking
+     the user should clear app data manually. [MAX_LENGTH=40]
+    -->
+    <string name="clear_app_data_failure">Error, please clear app data manually.</string>
+
+    <!--
+     An error message shown to the user to let them know that there was no document found
+     that matches the request. [MAX_LENGTH=40]
+    -->
+    <string name="error_no_matching_document">No document found matching the request.</string>
+
+    <!--
+     An error message shown to the user to let them know that there are some claims not found
+     on the document that matches the request. [MAX_LENGTH=40]
+    -->
+    <string name="error_no_matching_claim">A document matching the request misses claims.</string>
+
+    <!--
+     Error shown when a credential issuance is interrupted by process death.
+     Title for the GenericErrorDialog on the dashboard. [MAX_LENGTH=32]
+    -->
+    <string name="issuance_interrupted_error_title">Issuance interrupted</string>
+    <!--
+     Error shown when a credential issuance is interrupted by process death.
+     Body text for the GenericErrorDialog on the dashboard. [MAX_LENGTH=120]
+    -->
+    <string name="issuance_interrupted_error_paragraph">The credential issuance was interrupted. Please scan the QR code or follow the issuance link again to restart.</string>
+    <!--
+     Error shown when a credential issuance is interrupted by process death.
+     Short form for ContentErrorConfig subtitles. [MAX_LENGTH=80]
+    -->
+    <string name="issuance_interrupted_error">The credential issuance was interrupted. Please try again.</string>
+
+    <!--
+     Fallback title shown in the document offer list when a document has no
+     localized name/overline text yet. Used only while issuance metadata is
+     incomplete. [MAX_LENGTH=20]
+    -->
+    <string name="generic_default_document_name">Document</string>
+</resources>

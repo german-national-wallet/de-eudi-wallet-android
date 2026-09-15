@@ -16,6 +16,7 @@
 
 package eu.europa.ec.issuancefeature.interactor.document
 
+import eu.europa.ec.corelogic.extension.identifier
 import eu.europa.ec.eudi.wallet.document.DocumentId
 import eu.europa.ec.eudi.wallet.document.IssuedDocument
 import eu.europa.ec.businesslogic.extension.compareLocaleLanguage

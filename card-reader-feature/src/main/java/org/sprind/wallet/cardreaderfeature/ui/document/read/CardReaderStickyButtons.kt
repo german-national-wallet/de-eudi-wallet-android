@@ -222,6 +222,17 @@ internal fun CardReaderStickyButtons(
             )
         }
 
+        CardReaderRoute.ISSUANCE_CONSENT -> {
+            WrapStickyTwoButtons(
+                secondaryText = stringResource(R.string.pid_issuance_add_credential_sec_button),
+                primaryText = stringResource(R.string.pid_issuance_add_credential_prim_button),
+                paddingValues = padding,
+                primaryTrailingIcon = AppIcons.ArrowRightLong,
+                onSecondaryClick = { onEventSend(Event.OnRejectIssuanceClick) },
+                onPrimaryClick = { onEventSend(Event.OnAcceptIssuanceClick) }
+            )
+        }
+
         CardReaderRoute.CONSENT -> {
             WrapStickyTwoButtons(
                 secondaryText = stringResource(R.string.pid_issuance_data_consent_sec_button),

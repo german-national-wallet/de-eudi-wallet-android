@@ -51,13 +51,12 @@ import androidx.compose.ui.unit.min
 import eu.europa.ec.uilogic.component.CancellableTopAppBar
 import eu.europa.ec.uilogic.component.utils.SPACING_MEDIUM
 import eu.europa.ec.uilogic.component.utils.SPACING_SMALL
-import org.sprind.wallet.cardreaderfeature.domain.CardReaderJourneyStep
 import org.sprind.wallet.cardreaderfeature.domain.CardReaderRoute
 import org.sprind.wallet.cardreaderfeature.domain.hasHelpSheet
 import org.sprind.wallet.cardreaderfeature.domain.journeyStep
 import org.sprind.wallet.cardreaderfeature.domain.journeyStepCompleted
 import org.sprind.wallet.cardreaderfeature.domain.showsCloseAction
-import org.sprind.wallet.uilogic.component.ContentStepProgressIndicator
+import org.sprind.wallet.uilogic.component.IssuanceJourneyProgress
 
 @Composable
 internal fun CardReaderToolbar(
@@ -116,16 +115,10 @@ private fun JourneyProgress(
 ) {
     val step = route.journeyStep ?: return
 
-    ContentStepProgressIndicator(
-        modifier = modifier.padding(horizontal = SPACING_MEDIUM.dp),
-        currentStep = step.number,
-        totalSteps = CardReaderJourneyStep.TOTAL,
-        currentStepCompleted = route.journeyStepCompleted,
-        contentDescription = stringResource(
-            R.string.content_description_step_progress,
-            step.number,
-            CardReaderJourneyStep.TOTAL,
-        ),
+    IssuanceJourneyProgress(
+        modifier = modifier,
+        step = step,
+        stepCompleted = route.journeyStepCompleted,
     )
 }
 

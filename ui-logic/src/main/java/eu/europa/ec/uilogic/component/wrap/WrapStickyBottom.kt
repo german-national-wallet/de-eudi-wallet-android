@@ -386,6 +386,8 @@ fun WrapStickyTextButton(
  * @param onSecondaryClick called when the declining answer is pressed.
  * @param onPrimaryClick called when the accepting answer is pressed.
  * @param modifier applied to the sticky bottom container.
+ * @param primaryTrailingIcon shown after the accepting label, e.g. the "continue" arrow. Decorative:
+ *   the label beside it already says what the answer does.
  */
 @Composable
 fun WrapStickyTwoButtons(
@@ -395,6 +397,7 @@ fun WrapStickyTwoButtons(
     onSecondaryClick: () -> Unit,
     onPrimaryClick: () -> Unit,
     modifier: Modifier = Modifier,
+    primaryTrailingIcon: IconData? = null,
 ) {
     WrapStickyBottomColumn(paddingValues = paddingValues, modifier = modifier) {
         Row(
@@ -409,7 +412,11 @@ fun WrapStickyTwoButtons(
                 modifier = Modifier.weight(WEIGHT_1),
             )
             WrapStickyButton(
-                action = StickyButtonAction(text = primaryText, onClick = onPrimaryClick),
+                action = StickyButtonAction(
+                    text = primaryText,
+                    onClick = onPrimaryClick,
+                    trailingIcon = primaryTrailingIcon,
+                ),
                 type = ButtonType.PRIMARY,
                 modifier = Modifier.weight(WEIGHT_1),
             )

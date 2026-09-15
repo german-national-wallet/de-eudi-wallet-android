@@ -25,7 +25,10 @@ import androidx.navigation.navArgument
 import androidx.navigation.navDeepLink
 import eu.europa.ec.dashboardfeature.BuildConfig
 import eu.europa.ec.dashboardfeature.ui.dashboard.DashboardScreen
+import org.sprind.wallet.dashboardfeature.ui.activities.ActivitiesScreen
 import org.sprind.wallet.dashboardfeature.ui.documentdetail.DashboardDocumentDetailScreen
+import org.sprind.wallet.dashboardfeature.ui.settings.SettingsScreen
+import org.sprind.wallet.uilogic.component.bottomNavigationTabDestination
 import eu.europa.ec.uilogic.navigation.DashboardScreens
 import eu.europa.ec.uilogic.navigation.ModuleRoute
 import org.koin.androidx.compose.koinViewModel
@@ -36,17 +39,28 @@ fun NavGraphBuilder.featureDashboardGraph(navController: NavController) {
         startDestination = DashboardScreens.Dashboard.screenRoute,
         route = ModuleRoute.DashboardModule.route
     ) {
-        composable(
+        bottomNavigationTabDestination(
             route = DashboardScreens.Dashboard.screenRoute,
             deepLinks = listOf(
                 navDeepLink {
                     uriPattern =
                         BuildConfig.DEEPLINK + DashboardScreens.Dashboard.screenRoute
                 }
-            )
+            ),
         ) {
 
             DashboardScreen(
+                navHostController = navController,
+                viewModel = koinViewModel()
+            )
+        }
+
+        bottomNavigationTabDestination(route = DashboardScreens.Activities.screenRoute) {
+            ActivitiesScreen(navHostController = navController)
+        }
+
+        bottomNavigationTabDestination(route = DashboardScreens.Settings.screenRoute) {
+            SettingsScreen(
                 navHostController = navController,
                 viewModel = koinViewModel()
             )

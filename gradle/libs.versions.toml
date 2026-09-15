@@ -36,6 +36,7 @@ biometricKtx = "1.2.0-alpha05"
 bytebuddy = "1.18.5"
 bouncy-castle = "1.81"
 dokka = "1.9.20"
+cyclonedx = "3.4.1"
 dependency-graph-plugin = "0.13.0"
 dependency-license-report = "2.8"
 eudi-lib-kmp-statium = "0.5.1"
@@ -94,6 +95,11 @@ sqlcipher = "4.6.1"
 androidxSqlite = "2.4.0"
 nimbus-sdk = "11.20.1"
 cbor = "0.9"
+# Transitive requirement of the :openid4vci submodule since upstream v0.11.0
+uri-kmp = "0.0.21"
+# Required by the :core:wallet-core submodule since upstream v0.29.0
+androidx-credentials = "1.6.0"
+eudi-lib-kmp-etsi1196x2 = "0.4.0-alpha.1"
 mockk = "1.13.5"
 json = "20210307"
 junit-android = "1.1.5"
@@ -106,10 +112,8 @@ espresso-core = "3.6.1"
 mockito-android = "5.20.0"
 upokecenter-cbor = "4.5.6"
 kotlin-coroutines-test = "1.3.1"
-eudi-document-manager = "0.17.0"
-eudi-iso18013-data-transfer = "0.14.0"
 eudi-lib-jvm-sdjwt-kt = "0.20.0"
-eudi-lib-jvm-openid4vp-kt = "0.12.2"
+eudi-lib-jvm-openid4vp-kt = "0.15.1"
 ausweissSdk = "2.4.1"
 firebaseBom = "34.2.0"
 nimbusJoseJwt = "9.41"
@@ -241,6 +245,18 @@ androidx-room = { group = "androidx.room", name = "room-runtime", version.ref = 
 androidx-room-ksp = { group = "androidx.room", name = "room-compiler", version.ref = "androidxRoom" }
 compose-cloudy = { module = "com.github.skydoves:cloudy", version.ref = "cloudy" }
 nimbus-oauth2-oidc-sdk = { module = "com.nimbusds:oauth2-oidc-sdk", version.ref = "nimbus-sdk" }
+uri-kmp = { module = "com.eygraber:uri-kmp", version.ref = "uri-kmp" }
+androidx-credentials = { module = "androidx.credentials:credentials", version.ref = "androidx-credentials" }
+eudi-lib-kmp-etsi1196x2-consultation = { module = "eu.europa.ec.eudi:etsi-1196x2-consultation", version.ref = "eudi-lib-kmp-etsi1196x2" }
+eudi-lib-kmp-etsi119602-consultation = { module = "eu.europa.ec.eudi:etsi-119602-consultation", version.ref = "eudi-lib-kmp-etsi1196x2" }
+multipaz = { module = "org.multipaz:multipaz", version.ref = "multipaz" }
+multipaz-android-legacy = { module = "org.multipaz:multipaz-android-legacy", version.ref = "multipaz" }
+kotlinx-coroutines-core = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-core", version.ref = "kotlinxCoroutines" }
+kotlin-test-junit = { module = "org.jetbrains.kotlin:kotlin-test-junit", version.ref = "kotlin" }
+ktor-client-cio = { module = "io.ktor:ktor-client-cio", version.ref = "ktor" }
+# Aliases of androidx-appcompat / zxing under the names the submodules use
+appcompat = { group = "androidx.appcompat", name = "appcompat", version.ref = "androidxAppCompat" }
+zxing-core = { group = "com.google.zxing", name = "core", version.ref = "zxing" }
 play-services-identity-credentials = { module = "com.google.android.gms:play-services-identity-credentials", version.ref = "play-services-identity-credentials" }
 test-core = { module = "androidx.test:core", version.ref = "test-core" }
 test-coreKtx = { module = "androidx.test:core-ktx", version.ref = "test-core" }
@@ -272,8 +288,6 @@ biometric-ktx = { group = "androidx.biometric", name = "biometric-ktx", version.
 bouncy-castle-pkix = { module = "org.bouncycastle:bcpkix-jdk18on", version.ref = "bouncy-castle" }
 bouncy-castle-prov = { module = "org.bouncycastle:bcprov-jdk18on", version.ref = "bouncy-castle" }
 #  Core deps
-eudi-document-manager = { module = "eu.europa.ec.eudi:eudi-lib-android-wallet-document-manager", version.ref = "eudi-document-manager" }
-eudi-iso18013-data-transfer = { module = "eu.europa.ec.eudi:eudi-lib-android-iso18013-data-transfer", version.ref = "eudi-iso18013-data-transfer" }
 eudi-lib-jvm-sdjwt-kt = { module = "eu.europa.ec.eudi:eudi-lib-jvm-sdjwt-kt", version.ref = "eudi-lib-jvm-sdjwt-kt" }
 eudi-lib-jvm-siop-openid4vp-kt = { module = "eu.europa.ec.eudi:eudi-lib-jvm-openid4vp-kt", version.ref = "eudi-lib-jvm-openid4vp-kt" }
 eudi-lib-kmp-statium = { module = "eu.europa.ec.eudi:eudi-lib-kmp-statium-android", version.ref = "eudi-lib-kmp-statium" }
@@ -317,6 +331,7 @@ sonar = { id = "org.sonarqube", version.ref = "sonar" }
 baselineprofile = { id = "androidx.baselineprofile", version.ref = "baselineprofile" }
 androidx-room = { id = "androidx.room", version.ref = "androidxRoom" }
 dependency-license-report = { id = "com.github.jk1.dependency-license-report", version.ref = "dependency-license-report" }
+cyclonedx = { id = "org.cyclonedx.bom", version.ref = "cyclonedx" }
 dokka = { id = "org.jetbrains.dokka", version.ref = "dokka" }
 kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
 maven-publish = { id = "com.vanniktech.maven.publish", version.ref = "mavenPublish" }

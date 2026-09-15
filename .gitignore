@@ -1,0 +1,83 @@
+# built application files
+*.apk
+*.ap_
+
+# files for the dex VM
+*.dex
+
+# Java class files
+*.class
+
+# generated files
+bin/
+gen/
+out/
+build/
+
+# Local configuration file (sdk path, etc)
+local.properties
+./version.properties
+
+# Secrets
+dev.properties
+staging.properties
+sandbox.properties
+production.properties
+
+# Eclipse project files
+.classpath
+.project
+# Log/OS Files
+*.log
+
+# Mac thumbnail db
+.DS_Store
+# Android Studio generated files and folders
+captures/
+.externalNativeBuild/
+.cxx/
+*.apk
+output.json
+
+# IDEA/Android Studio project files, because
+# the project can be imported from settings.gradle.kts
+*.iml
+.idea/*
+misc.xml
+!.idea/copyright
+deploymentTargetDropDown.xml
+render.experimental.xml
+# Keep the code styles.
+!/.idea/codeStyles
+/.idea/codeStyles/*
+!/.idea/codeStyles/Project.xml
+!/.idea/codeStyles/codeStyleConfig.xml
+
+# Gradle cache
+.gradle
+# Keystore files
+*.jks
+*.keystore
+
+# Android Studio captures folder
+captures/
+
+# Android Profiling
+*.hprof
+
+#fastlane
+.env.demo
+.env.dev
+fastlane/report.xml
+
+# Kotlin
+.kotlin/*
+
+#external modules
+internal-openid4vci
+/bundletool-all-1.18.1.jar
+app.apks
+
+# CI/CD
+tmp/
+ci_scripts/

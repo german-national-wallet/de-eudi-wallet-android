@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Strings for tasks under development without a design decision made yet -->
+
+    <!--
+     Dashboard Drawer Menu
+     Title of an option menu on Dashboard Screen for technical users during development
+     for different debugging actions. [MAX_LENGTH=18]
+    -->
+    <string name="dashboard_drawer_title">Debug Menü</string>
+    <!--
+     Label of an option menu item which allows technical or test users to export a log file
+     with technical details and share it using another app (e.g. Gmail, Drive).
+     This is intended for debugging use during development of the app. [MAX_LENGTH=32]
+    -->
+    <string name="dashboard_drawer_log_export">Logs exportieren</string>
+    <!--
+     Label of an option menu item which allows technical or test users to restart the document
+     issuance process without the need to delete app data first.
+     This is intended for debugging use during development of the app. [MAX_LENGTH=32]
+    -->
+    <string name="dashboard_drawer_open_issuance">Dokument ausstellen</string>
+
+    <!--
+     AddDocument Drawer Menu
+     Title of an option menu on AddDocument Screen for technical users during development
+     for different debugging actions. [MAX_LENGTH=18]
+    -->
+    <string name="add_document_drawer_title">Debug Menü</string>
+    <!--
+     Label of an option menu item which allows technical or test users to export a log file
+     with technical details and share it using another app (e.g. Gmail, Drive).
+     This is intended for debugging use during development of the app. [MAX_LENGTH=32]
+    -->
+    <string name="add_document_drawer_log_export">Logs exportieren</string>
+
+    <string name="clear_app_data_success">Nutzerdaten gelöscht, bitte App neu starten.</string>
+    <string name="clear_app_data_failure">Fehler, bitte App-Nutzerdaten löschen.</string>
+    <string name="error_no_matching_document">Es wurde kein auf die Anfrage passendes Dokument gefunden.</string>
+    <string name="error_no_matching_claim">Einem Dokument das auf die Anfrage passt fehlen Attribute.</string>
+
+    <string name="issuance_interrupted_error_title">Ausstellung abgebrochen</string>
+    <string name="issuance_interrupted_error_paragraph">Die Ausstellung des Dokuments wurde abgebrochen. Bitte scannen Sie den QR-Code erneut oder folgen Sie dem Ausstellungs-Link, um neu zu starten.</string>
+    <string name="issuance_interrupted_error">Die Ausstellung des Dokuments wurde abgebrochen. Bitte versuchen Sie es erneut.</string>
+
+    <string name="generic_default_document_name">Dokument</string>
+</resources>

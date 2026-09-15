@@ -16,6 +16,8 @@
 
 package org.sprind.wallet.pushnotificationsfeature.service
 
+import android.content.Intent
+import android.os.Bundle
 import com.google.firebase.messaging.FirebaseMessagingService
 import com.google.firebase.messaging.RemoteMessage
 import eu.europa.ec.businesslogic.controller.log.LogController
@@ -44,18 +46,36 @@ class WalletFirebaseMessagingService : FirebaseMessagingService() {
 
     private val serviceScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
 
+    override fun handleIntent(intent: Intent) {
+        val extras = intent.extras ?: Bundle()
+        val intercept = FcmNotificationIntercept.shouldIntercept(
+            action = intent.action,
+            messageType = extras.getString(FcmNotificationIntercept.KEY_MESSAGE_TYPE),
+            extraKeys = extras.keySet(),
+        )
+        if (intercept) {
+            logController.d(TAG) { "Intercepting FCM notification message for in-app handling" }
+            onMessageReceived(RemoteMessage(extras))
+        } else {
+            super.handleIntent(intent)
+        }
+    }
+
     override fun onNewToken(token: String) {
-        logController.d(TAG) { "FCM registration token refreshed: $token" }
+        logController.d(TAG) { "FCM registration token refreshed" }
         prefsController.setString(FCM_REGISTRATION_ID_KEY, token)
         prefsController.setBool(FCM_TOKEN_REGISTERED_KEY, false)
-        serviceScope.launch { attemptRegistration(token) }
+        serviceScope.launch {
+            try {
+                attemptRegistration(token)
+            } catch (e: Exception) {
+                logController.e(TAG, e)
+            }
+        }
     }
 
     override fun onMessageReceived(remoteMessage: RemoteMessage) {
         logController.d(TAG) { "FCM message received from: ${remoteMessage.from}" }
-        remoteMessage.data.forEach { (key, value) ->
-            logController.d(TAG) { "FCM data — $key: $value" }
-        }
 
         fcmMessageDispatcher.dispatch(
             action = remoteMessage.data[KEY_ACTION],
@@ -86,6 +106,6 @@ class WalletFirebaseMessagingService : FirebaseMessagingService() {
         /** Preference key tracking whether the FCM token has been successfully registered with the backend. */
         const val FCM_TOKEN_REGISTERED_KEY = "FCM_TOKEN_REGISTERED"
 
-        private const val KEY_ACTION = "action"
+        const val KEY_ACTION = "action"
     }
 }

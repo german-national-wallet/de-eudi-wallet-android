@@ -18,6 +18,7 @@ package eu.europa.ec.commonfeature.util
 
 import android.util.Base64
 import eu.europa.ec.businesslogic.provider.UuidProvider
+import eu.europa.ec.corelogic.extension.identifier
 import eu.europa.ec.corelogic.util.safeLet
 import eu.europa.ec.corelogic.util.toDateFormatted
 import eu.europa.ec.corelogic.extension.removeEmptyGroups

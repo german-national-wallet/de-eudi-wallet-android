@@ -38,6 +38,7 @@ import org.sprind.wallet.cardreaderfeature.domain.CardReaderFlowDefinition
 import org.sprind.wallet.cardreaderfeature.domain.CardReaderFlowType
 import org.sprind.wallet.cardreaderfeature.domain.CardReaderProgress
 import org.sprind.wallet.cardreaderfeature.domain.CardReaderRoute
+import org.sprind.wallet.uilogic.component.CredentialAttribute
 import org.sprind.wallet.cardreaderfeature.domain.CardScanStatus
 import org.sprind.wallet.cardreaderfeature.domain.NfcAntennaPosition
 import java.util.Locale
@@ -73,9 +74,9 @@ data class State(
     val isInitialised: Boolean = false,
     val isPinError: Boolean = false,
     val isBottomSheetOpen: Boolean = false,
-    // Closing the flow throws away everything the user has entered so far, so the toolbar's X asks
-    // before it happens and this says whether that question is on screen.
     val isCancelFlowDialogVisible: Boolean = false,
+    val isRejectIssuanceDialogVisible: Boolean = false,
+    val issuedCredentialAttributes: List<CredentialAttribute> = emptyList(),
     val bottomSheetTitle: String? = null,
     val pinState: CodeEntryState = CodeEntryState(CodeEntryBuffer(CodeLength.EID_PIN)),
     val canContinue: Boolean = false,
@@ -190,6 +191,18 @@ sealed class Event : ViewEvent {
 
     /** Keeps the flow where it is and takes the cancel question off screen. */
     data object DismissCancelFlowDialog : Event()
+
+    /** The credential card on the consent screen was tapped: show what it holds. */
+    data object OnCredentialDetailsClick : Event()
+
+    /** "Reject" was pressed. Like the toolbar's X it only raises the question; [Close] answers it. */
+    data object OnRejectIssuanceClick : Event()
+
+    /** Keeps the credential on offer and takes the reject question off screen. */
+    data object DismissRejectIssuanceDialog : Event()
+
+    /** The issuance consent was accepted; the credential is issued from here. */
+    data object OnAcceptIssuanceClick : Event()
 
     data object Close : Event()
     data object OnIssuerInformationClick : Event()

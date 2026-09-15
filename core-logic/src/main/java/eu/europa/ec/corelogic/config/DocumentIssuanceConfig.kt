@@ -54,13 +54,11 @@ data class DocumentIssuanceConfig(
 /**
  * Represents a rule for issuing a document.
  *
- * This class encapsulates the policy and the number of credentials associated with a document
- * issuance.
+ * This class encapsulates the policy to be applied during document issuance. The number of
+ * credentials to issue is part of the policy itself ([CredentialPolicy.numberOfCredentials]).
  *
  * @property policy The [CredentialPolicy] to be applied during document issuance.
- * @property numberOfCredentials The number of credentials to be issued for the document.
  */
 data class DocumentIssuanceRule(
     val policy: CredentialPolicy,
-    val numberOfCredentials: Int,
 )

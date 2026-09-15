@@ -184,7 +184,9 @@ class PresentationRequestViewModel(
     }
 
     private fun sortByPriority(requestDocuments: List<RequestDocumentItemUi>): List<RequestDocumentClaim> {
-        val docs = requestDocuments.first().expandedUiItems.first().domainPayload.docClaimsDomain
+        // Read the payload off the document row rather than its first claim row: a Credential
+        // Query without `claims` (OpenID4VP §6.4.1) produces a document with no rows at all.
+        val docs = requestDocuments.firstOrNull()?.domainPayload?.docClaimsDomain.orEmpty()
         //TODO to confirm this
         val priority = listOf(
             "family_name",
@@ -212,7 +214,6 @@ class PresentationRequestViewModel(
      */
     private fun shouldEnterWalletPin(): Boolean =
         viewState.value.items
-            .flatMap { it.expandedUiItems }
             .any { it.domainPayload.documentType == DocumentType.PID }
 
     override fun updateData(
@@ -307,11 +308,12 @@ class PresentationRequestViewModel(
                     if (isNavigatingToPresentationContinuation) return@collect
                     isNavigatingToPresentationContinuation = true
                     telemetry.endSpan(TelemetryConstants.PRESENTATION)
-                    reissueInBackground()
 
                     val initiator = presentationRequestInteractor.initiatorRoute
                     val isDynamicIssuance = initiator == IssuanceScreens.DocumentOffer.screenRoute
                         || initiator == IssuanceScreens.AddDocument.screenRoute
+
+                    refreshBatchBeforeLeaving(isDynamicIssuance)
 
                     doNavigation(
                         NavigationType.Deeplink(
@@ -336,14 +338,15 @@ class PresentationRequestViewModel(
                 }
 
                 PresentationRequestProcessPartialState.RequestReadyToBeSent -> {
-                    sendRequestedDocuments { setEvent(Event.ConfirmPin) }
+                    sendRequestedDocuments()
                 }
 
                 PresentationRequestProcessPartialState.Success -> {
                     if (isNavigatingToPresentationContinuation) return@collect
                     isNavigatingToPresentationContinuation = true
                     telemetry.endSpan(TelemetryConstants.PRESENTATION)
-                    // See the Redirect branch: refresh the batch while the PIN session is open.
+                    // See refreshBatchBeforeLeaving(). No teardown here: the success screen's
+                    // ViewModel closes the presentation scope when it goes away.
                     presentationRequestInteractor.reissueLowBatchDocumentsIfNeeded()
                     //Navigate to Presentation Success
                     doNavigation(NavigationType.PushRoute(getNextScreen()))
@@ -417,7 +420,7 @@ class PresentationRequestViewModel(
         }
     }
 
-    private fun sendRequestedDocuments(onRetryIfFailedAction: () -> Unit) {
+    private suspend fun sendRequestedDocuments() {
         setState {
             copy(error = null)
         }
@@ -653,35 +656,26 @@ class PresentationRequestViewModel(
     }
 
     /**
-     * Fires the post-presentation batch refresh (spec step 043) without blocking the redirect.
+     * Runs the post-presentation batch refresh (spec step 043), then tears the presentation down,
+     * both before the verifier's redirect is opened.
      *
-     * Launched on [appCoroutineScope] rather than [viewModelScope], because navigating away cancels
-     * this ViewModel's scope. This is safe because the refresh relies on the RWSCA PIN session and
-     * the presentation scope — both of which survive the redirect (cleanUp() short-circuits while
-     * isNavigatingToPresentationContinuation is true) — plus process-wide singletons (documents
-     * controller, openid4vci managers), so it does not need this ViewModel alive.
+     * Awaited rather than backgrounded because the redirect puts the wallet in the background, and
+     * Android 15+ then revokes its network access (`blocked=APP_BACKGROUND`) and destroys its
+     * sockets, killing the refresh part-way through. It cannot move to WorkManager either:
+     * re-issuing a PID creates rWSCA keys, which needs the in-memory PIN session that exists only
+     * inside this presentation transaction. The screen already shows its progress state from PIN
+     * submission, and REISSUE_TIMEOUT bounds the wait.
      *
-     * Caveats intentionally left simple for now — revisit if they ever bite in practice:
-     *  - If a NEW presentation reaches PIN entry within the (~1-2s) refresh window it could overwrite
-     *    the shared RWSCA PIN session. In practice the user interaction to get there (consent + PIN)
-     *    takes longer than the refresh, so this rarely races. If it becomes a problem, gate
-     *    processRequest()'s startPinSession() on refresh completion (e.g. a shared Mutex).
-     *  - The success path clears the PIN session on PresentationSuccessViewModel.onCleared(), so the
-     *    Success branch above keeps the refresh blocking; only the redirect path is backgrounded.
-     *  - A background failure is logged only; the batch is simply refreshed after the next presentation.
+     * A dynamic issuance keeps the presentation scope, because the issuance it interrupted still
+     * needs it.
      */
-    private fun reissueInBackground() {
-        appCoroutineScope.launch {
-            try {
-                presentationRequestInteractor.reissueLowBatchDocumentsIfNeeded()
-            } finally {
-                presentationRequestInteractor.stopPresentation()
-                val initiator = presentationRequestInteractor.initiatorRoute
-                val isDynamicIssuance = initiator == IssuanceScreens.DocumentOffer.screenRoute
-                    || initiator == IssuanceScreens.AddDocument.screenRoute
-                if (!isDynamicIssuance) {
-                    closePresentationScope()
-                }
+    private suspend fun refreshBatchBeforeLeaving(isDynamicIssuance: Boolean) {
+        try {
+            presentationRequestInteractor.reissueLowBatchDocumentsIfNeeded()
+        } finally {
+            presentationRequestInteractor.stopPresentation()
+            if (!isDynamicIssuance) {
+                closePresentationScope()
             }
         }
     }

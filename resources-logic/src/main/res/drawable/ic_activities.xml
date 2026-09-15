@@ -1,0 +1,30 @@
+<!--
+  ~ Copyright (c) 2026 European Commission
+  ~
+  ~ Licensed under the Apache License, Version 2.0 (the "License");
+  ~ you may not use this file except in compliance with the License.
+  ~ You may obtain a copy of the License at
+  ~
+  ~     http://www.apache.org/licenses/LICENSE-2.0
+  ~
+  ~ Unless required by applicable law or agreed to in writing, software
+  ~ distributed under the License is distributed on an "AS IS" BASIS,
+  ~ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  ~ See the License for the specific language governing permissions and
+  ~ limitations under the License.
+  -->
+
+<!-- The 20x20 glyph exported from Figma, centered in the 24x24 box the other icons use. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <group
+        android:translateX="2"
+        android:translateY="2">
+        <path
+            android:fillColor="#1D1D1E"
+            android:pathData="M2.7334,0V2.89062C3.62114,1.97619 4.68367,1.24949 5.85742,0.75293C7.03134,0.256363 8.29374,0.000180581 9.56836,0C11.4606,7.61145E-5 13.3105,0.561033 14.8838,1.6123C16.4571,2.66358 17.683,4.15807 18.4072,5.90625C19.1314,7.65456 19.3213,9.57857 18.9521,11.4346C18.583,13.2906 17.6721,14.9959 16.334,16.334C14.9959,17.6721 13.2906,18.583 11.4346,18.9521C9.57857,19.3213 7.65456,19.1314 5.90625,18.4072C4.15807,17.683 2.66358,16.4571 1.6123,14.8838C0.561033,13.3105 7.61143E-5,11.4606 0,9.56836H1.36719C1.36295,11.4848 2.0294,13.3425 3.25195,14.8184C4.47471,16.2944 6.17651,17.2951 8.06055,17.6475C9.94444,17.9998 11.892,17.6813 13.5654,16.7471C15.239,15.8127 16.533,14.3219 17.2217,12.5332C17.9103,10.7445 17.9508,8.77047 17.3359,6.95508C16.721,5.13986 15.4892,3.5977 13.8555,2.5957C12.2216,1.59368 10.2884,1.19482 8.3916,1.46973C6.49472,1.74469 4.75381,2.67584 3.47168,4.10059H6.83398V5.46777H1.36719V0H2.7334ZM10.251,9.28125L13.6689,12.7051L12.7051,13.6689L8.88477,9.84863V3.41699H10.251V9.28125Z" />
+    </group>
+</vector>

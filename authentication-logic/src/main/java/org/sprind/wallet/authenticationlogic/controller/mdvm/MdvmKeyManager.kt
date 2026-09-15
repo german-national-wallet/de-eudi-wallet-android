@@ -66,6 +66,8 @@ interface MdvmKeyManager {
      * @return whether the key pair existed (and was deleted).
      */
     fun deleteReattestKeys(): Boolean
+
+    fun deleteAuthKeys(): Boolean
 }
 
 /**
@@ -119,6 +121,9 @@ internal class AndroidMdvmKeyManager(
 
     override fun deleteReattestKeys(): Boolean =
         keyStore.removeEntryIfPresent(WI_MDVM_REATTEST_KEYS_ALIAS)
+
+    override fun deleteAuthKeys(): Boolean =
+        keyStore.removeEntryIfPresent(WI_MDVM_AUTH_KEYS_ALIAS)
 
     private fun KeyStore.removeEntryIfPresent(alias: String): Boolean {
         val existed = containsAlias(alias)

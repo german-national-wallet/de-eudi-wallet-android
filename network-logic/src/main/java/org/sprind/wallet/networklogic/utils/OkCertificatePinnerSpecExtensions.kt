@@ -20,9 +20,12 @@ import okhttp3.CertificatePinner
 import org.sprind.wallet.businesslogic.config.OkCertificatePinnerSpec
 
 fun OkCertificatePinnerSpec.toCertificatePinner(): CertificatePinner =
-    CertificatePinner.Builder()
-        .add(
-            pattern = pattern,
-            pins = pins.toTypedArray()
+    listOf(this).toCertificatePinner()
+
+fun Iterable<OkCertificatePinnerSpec>.toCertificatePinner(): CertificatePinner =
+    fold(CertificatePinner.Builder()) { builder, spec ->
+        builder.add(
+            pattern = spec.pattern,
+            pins = spec.pins.toTypedArray()
         )
-        .build()
+    }.build()

@@ -21,4 +21,5 @@ import org.sprind.wallet.authenticationlogic.model.MdvmRegistration
 interface MdvmRegistrationStorageProvider {
     fun getMdvmRegistration(): MdvmRegistration?
     fun saveMdvmRegistration(mdvmRegistration: MdvmRegistration)
+    fun removeMdvmRegistration()
 }

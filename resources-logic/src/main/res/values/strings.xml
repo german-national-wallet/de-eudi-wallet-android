@@ -1,0 +1,312 @@
+<!--
+  ~ Copyright (c) 2025 European Commission
+  ~
+  ~ Licensed under the EUPL, Version 1.2 or - as soon they will be approved by the European
+  ~ Commission - subsequent versions of the EUPL (the "Licence"); You may not use this work
+  ~ except in compliance with the Licence.
+  ~
+  ~ You may obtain a copy of the Licence at:
+  ~ https://joinup.ec.europa.eu/software/page/eupl
+  ~
+  ~ Unless required by applicable law or agreed to in writing, software distributed under
+  ~ the Licence is distributed on an "AS IS" basis, WITHOUT WARRANTIES OR CONDITIONS OF
+  ~ ANY KIND, either express or implied. See the Licence for the specific language
+  ~ governing permissions and limitations under the Licence.
+  -->
+
+<resources xmlns:tools="http://schemas.android.com/tools">
+
+    <!-- Generic -->
+    <string name="generic_error_message">Oups! Something went wrong</string>
+    <string name="generic_error_description">If the issue persists, please contact customer support</string>
+    <string name="generic_error_button_retry">TRY AGAIN</string>
+    <string name="generic_network_error_message">You are not connected to the internet</string>
+    <string name="generic_error_retry">Please try again</string>
+    <string name="generic_cancel">Reject</string>
+    <string name="generic_cancel_capitalized" tools:ignore="ButtonCase">CANCEL</string>
+    <string name="generic_next_capitalized" tools:ignore="ButtonCase">NEXT</string>
+    <string name="generic_confirm_capitalized" tools:ignore="ButtonCase">CONFIRM</string>
+    <string name="generic_enable_capitalized" tools:ignore="ButtonCase">ENABLE</string>
+    <string name="generic_ok">OK</string>
+    <string name="generic_default_relying_party_name">Relying Party</string>
+    <string name="generic_default_issuer_name">Issuer</string>
+    <string name="generic_view_details">View details</string>
+    <string name="generic_deferred_success_text">In progress!</string>
+    <string name="generic_bottom_sheet_delete_title">Delete document?</string>
+    <string name="generic_bottom_sheet_delete_subtitle">This document will be permanently deleted from your wallet and may affect access to services.</string>
+    <string name="generic_bottom_sheet_delete_primary_button_text">Delete</string>
+    <string name="generic_bottom_sheet_delete_secondary_button_text">Cancel</string>
+
+    <!-- Content Description -->
+    <string name="content_description_image_or_placeholder_icon">Image or placeholder icon</string>
+    <string name="content_description_user_signature_icon">User signature</string>
+    <string name="content_description_qr_code_icon">QR Code</string>
+    <string name="content_description_more_vert_icon">More Items</string>
+    <string name="content_description_arrow_back_icon">Go Back</string>
+    <string name="content_description_close_icon">Close</string>
+    <string name="content_description_warning_icon">Warning</string>
+    <string name="content_description_error_icon">Error</string>
+    <string name="content_description_error_filled_icon">Error</string>
+    <string name="content_description_delete_icon">Delete</string>
+    <string name="content_description_touch_id_icon">Touch id</string>
+    <string name="content_description_qr_icon">QR</string>
+    <string name="content_description_qr_scanner_icon">QR Scanner</string>
+    <string name="content_description_nfc_icon">NFC</string>
+    <string name="content_description_user_icon">User</string>
+    <string name="content_description_id_icon">Id</string>
+    <string name="content_description_id_stroke_icon">Id stroke</string>
+    <string name="content_description_logo_full_icon">Full Logo icon</string>
+    <string name="content_description_logo_plain_icon">Plain Logo icon</string>
+    <string name="content_description_logo_text_icon">Text Logo icon</string>
+    <string name="content_description_arrow_up_icon">Arrow up</string>
+    <string name="content_description_arrow_down_icon">Arrow down</string>
+    <string name="content_description_visibility_icon">Show</string>
+    <string name="content_description_visibility_off_icon">Hide</string>
+    <string name="content_description_add_icon">Add</string>
+    <string name="content_description_edit_icon">Edit</string>
+    <string name="content_description_verified_icon">Verified</string>
+    <string name="content_description_message_icon">Message</string>
+    <string name="content_description_success_icon">Success</string>
+    <string name="content_description_clock_timer_icon">Clock timer</string>
+    <string name="content_description_arrow_right_icon">Arrow right</string>
+    <string name="content_description_arrow_forward_icon">Arrow forward</string>
+    <string name="content_description_share_icon">Share</string>
+    <string name="content_description_key_icon">Key</string>
+    <string name="content_description_lock_icon">Lock</string>
+    <string name="content_description_open_new_icon">Open new</string>
+    <string name="content_description_go_to_icon">Go to</string>
+    <string name="content_description_handle_bar_icon">Handle bar</string>
+    <string name="content_description_search_icon">Search</string>
+    <string name="content_description_play_arrow_icon">Play arrow</string>
+    <string name="content_description_apartment_icon">Apartment</string>
+    <string name="content_description_card_icon">Card</string>
+    <string name="content_description_event_icon">Event</string>
+    <string name="content_description_history_icon">History</string>
+    <string name="content_description_user_bw_icon">User bw</string>
+    <string name="content_description_info_filled">Info</string>
+    <string name="content_description_phone_vector">Phone Vector</string>
+
+    <string name="content_description_present_document_same_device_icon">Present document in person</string>
+    <string name="content_description_present_document_cross_device_icon">Present document online</string>
+    <string name="content_description_add_document_from_list_icon">Add document from list</string>
+    <string name="content_description_add_document_from_qr_icon">Add document from QR</string>
+    <string name="content_description_authenticate_in_person_icon">Authenticate in person</string>
+    <string name="content_description_authenticate_online_icon">Authenticate online</string>
+    <string name="content_description_sign_document_from_device_icon">Sign document from device</string>
+    <string name="content_description_sign_document_from_qr_icon">Sign document from QR</string>
+
+    <string name="content_description_bookmark_icon">Bookmark</string>
+    <string name="content_description_bookmark_filled_icon">Bookmark filled</string>
+    <string name="content_description_certified_icon">Certified</string>
+    <string name="content_description_documents_icon">Documents</string>
+    <string name="content_description_download_icon">Download</string>
+    <string name="content_description_filters_icon">Filters</string>
+    <string name="content_description_home_icon">Home</string>
+    <string name="content_description_in_progress_icon">In progress</string>
+    <string name="content_description_notifications_icon">Notifications</string>
+    <string name="content_description_transactions_icon">Transactions</string>
+    <string name="content_description_wallet_activated_icon">Wallet activated</string>
+    <string name="content_description_wallet_secured_icon">Wallet secured</string>
+    <string name="content_description_info_icon">Info</string>
+    <string name="content_description_issuer_icon">Issuer</string>
+    <string name="content_description_issuer_logo_icon">Issuer logo</string>
+    <string name="content_description_menu_icon">Menu</string>
+    <string name="content_description_signature_icon">Signature</string>
+    <string name="content_description_authenticate_icon">Authentication ID cards</string>
+    <string name="content_description_check">Check</string>
+    <string name="content_description_building_icon">Firma</string>
+    <string name="content_description_available_until">Available until</string>
+    <string name="content_description_globe">Land</string>
+    <string name="content_description_copy">Copy</string>
+
+    <!-- Document Success -->
+    <string name="document_success_header_description_when_error">You successfully shared the information with</string>
+    <string name="document_success_relying_party_default_name">@string/generic_default_relying_party_name</string>
+    <string name="document_success_collapsed_supporting_text">@string/generic_view_details</string>
+    <string name="document_success_issuance_sticky_button_text">Go to d-you Dashboard</string>
+
+    <!-- EU PID -->
+    <string name="address_formatted">Residence</string>
+    <string name="birth_place_country">Country of place of birth</string>
+    <string name="birth_place_locality">Locality of place of birth</string>
+    <string name="birth_place_region">Region of place of birth</string>
+    <string name="location_status">Location status</string>
+    <string name="mobile_phone_number">Mobile phone number</string>
+    <string name="resident_house_number">Resident house number</string>
+    <string name="resident_locality">Locality of residence</string>
+    <string name="resident_region">Region of residence</string>
+
+    <!-- Labels Value for UI -->
+    <string name="nationality_value_label_german">GERMAN</string>
+
+    <!-- mDL strings -->
+    <string name="administrative_number">Administrative number</string>
+    <string name="document_number">Document number</string>
+    <string name="portrait">Portrait</string>
+    <string name="resident_state">Resident state</string>
+    <string name="sex">Sex</string>
+
+    <!-- Request Screen -->
+
+    <string name="request_relying_party_title">Relying Party fordert Daten von dir an.</string>
+    <string name="request_header_main_text">DATA SHARING REQUEST</string>
+    <string name="request_header_purpose_title">Purpose</string>
+    <string name="request_header_important_data_title">Important data</string>
+    <string name="request_relying_party_default_name">@string/generic_default_relying_party_name</string>
+    <string name="request_relying_party_description">requests the following</string>
+    <string name="request_collapsed_supporting_text">@string/generic_view_details</string>
+
+    <string name="request_gender_male">male</string>
+    <string name="request_gender_female">female</string>
+    <string name="request_element_identifier_not_available">Not available</string>
+    <plurals name="request_detail_data_title">
+        <item quantity="one">%1$d out of %2$d from %3$s</item>
+        <item quantity="other">%1$d out of %2$d from %3$s</item>
+    </plurals>
+    <string name="request_gender_not_known">Not known</string>
+    <string name="request_gender_not_applicable">Not applicable</string>
+
+    <!-- Dashboard -->
+
+    <string name="dashboard_document_has_not_expired">Valid until:\ %1$s</string>
+    <string name="dashboard_document_has_expired">Expired</string>
+
+    <!-- EAA Card -->
+    <string name="eaa_card_open">Open %1$s</string>
+    <string name="eaa_card_view_data">View data</string>
+
+    <!-- Document Details Data -->
+    <string name="document_details_data_age_over">%1$s years:</string>
+    <string name="document_details_data_nationality_german">GERMAN</string>
+
+    <string name="documents_screen_search_no_results">No documents match your search. Try changing your search query or filters.</string>
+
+    <string name="documents_screen_filters_title">Filter</string>
+    <string name="documents_screen_filters_sort_by">Sort by</string>
+    <string name="documents_screen_filters_ascending">Ascending</string>
+    <string name="documents_screen_filters_descending">Descending</string>
+    <string name="documents_screen_filters_sort_default">Default</string>
+    <string name="documents_screen_filters_sort_date_issued">Date Issued</string>
+    <string name="documents_screen_filters_sort_expiry_date">Expiry Date</string>
+    <string name="documents_screen_filters_filter_by_issuer">Filter by issuer</string>
+    <string name="documents_screen_filters_filter_by_issuer_all">All</string>
+    <string name="documents_screen_filters_filter_by_state">Filter by state</string>
+    <string name="documents_screen_filters_filter_by_state_valid">Valid</string>
+    <string name="documents_screen_filters_filter_by_state_expired">Expired</string>
+    <string name="documents_screen_filters_filter_by_expiry_period">Filter by expiry period</string>
+    <string name="documents_screen_filters_filter_by_expiry_period_1">Next 7 days</string>
+    <string name="documents_screen_filters_filter_by_expiry_period_2">Next 30 days</string>
+    <string name="documents_screen_filters_filter_by_expiry_period_3">Beyond 30 days</string>
+    <string name="documents_screen_filters_filter_by_expiry_period_4">Before today (expired)</string>
+
+    <string name="eid_scan_explanation_customer_service_number">0800 123456</string> <!-- TODO update this number -->
+
+    <!-- Document Details -->
+    <string name="document_details_boolean_item_true_readable_value">yes</string>
+    <string name="document_details_boolean_item_false_readable_value">no</string>
+
+    <!-- Issuance Success Screen -->
+    <string name="issuance_success_header_description">You have successfully added the following to your wallet</string>
+    <string name="issuance_success_header_description_when_error">You have successfully added the document(s) to your wallet</string>
+    <string name="issuance_success_header_issuer_default_name">@string/generic_default_issuer_name</string>
+
+    <!-- Issuance Document Errors -->
+    <string name="issuance_generic_error">Something went wrong issuing your document(s)</string>
+
+    <!-- Document Categories -->
+    <string name="document_category_government">GOVERNMENT</string>
+    <string name="document_category_travel">TRAVEL</string>
+    <string name="document_category_finance">FINANCE</string>
+    <string name="document_category_education">EDUCATION</string>
+    <string name="document_category_health">HEALTH</string>
+    <string name="document_category_social_security">SOCIAL SECURITY</string>
+    <string name="document_category_retail">RETAIL</string>
+    <string name="document_category_other">OTHER</string>
+
+    <string name="content_description_unlock_phone_icon">Unlock phone</string>
+    <string name="content_description_arrow_outward">Arrow outward</string>
+    <string name="content_description_error_pin">error pin</string>
+    <string name="content_description_nfc_not_activated">Smartphone with switched off contactless function</string>
+
+    <string name="content_description_atom_credential_icon">Credential Icon</string>
+    <string name="content_description_eid_logo">E-ID Logo</string>
+    <string name="content_description_id_german_national">Id German National</string>
+    <string name="content_description_id_migrant_in_germany">Id Migrant in Germany</string>
+    <string name="content_description_iphone">Iphone</string>
+    <string name="content_description_faded_phone">Faded Phone</string>
+    <string name="content_description_hidden_pin">Hidden Pin</string>
+    <string name="content_description_phone_security">Phone Security</string>
+    <string name="content_description_card_pin">Digital ID card with its code</string>
+    <string name="content_description_password_visibility">Password visibility</string>
+    <string name="content_description_blocked">Blocked</string>
+    <string name="content_description_warning">Warning</string>
+    <string name="content_description_location">Location</string>
+    <string name="content_description_institution">Institution</string>
+    <string name="content_description_email">E-mail</string>
+    <string name="content_description_verified_user">Verified User</string>
+    <string name="content_description_validity">Validity</string>
+    <string name="content_description_eid_pin_set">Eid Pin Set</string>
+    <string name="content_description_eid_can_show">Illustration of an ID card with the six-digit access number (CAN) highlighted at the bottom right of the front.</string>
+    <string name="content_description_letter_highlighting_transport_pin">Illustration of the PIN letter with the five-digit transport PIN highlighted.</string>
+    <string name="content_description_transport_pin_letter">Tranport Pin Letter</string>
+    <string name="content_description_help">Help</string>
+    <string name="content_description_national_id_card">Illustration of a German national ID card.</string>
+    <string name="content_description_residence_permit_card">Illustration of a German residence permit.</string>
+    <string name="content_description_stacked_id_cards_with_pin">Illustration of two ID cards behind a card PIN pad.</string>
+    <string name="content_description_citizen_office">Illustration of a citizen\'s office in a city.</string>
+    <string name="content_description_expanded">Expanded</string>
+    <string name="content_description_collapsed">Collapsed</string>
+    <string name="content_description_step_progress">Step %1$d of %2$d</string>
+    <string name="content_description_call_icon">Call</string>
+    <string name="content_description_pin_letter_stacked">Illustration of a pin letter.</string>
+
+    <!-- Issuance Document Offer -->
+    <string name="issuance_document_offer_primary_button_text_add">Add</string>
+    <string name="issuance_document_offer_default_issuer_name">Issuer</string>
+    <string name="issuance_document_offer_title">%1$s wants to issue the following in your wallet</string>
+    <string name="issuance_document_offer_subtitle">Please confirm the issuance of the following</string>
+    <string name="issuance_document_offer_primary_button_text">ISSUE</string>
+    <string name="issuance_document_offer_secondary_button_text">@string/generic_cancel_capitalized</string>
+    <string name="issuance_document_offer_success_subtitle">Your documents from %1$s have been successfully issued.</string>
+    <string name="issuance_document_offer_partial_success_subtitle">Your documents from %1$s have been successfully issued except %2$s</string>
+    <string name="issuance_document_offer_error_missing_pid_text">Wallet needs to be activated first with a National ID</string>
+    <string name="issuance_document_offer_error_invalid_txcode_format">Invalid transaction code format. Length should be between %1$d to %2$d digits and only numeric characters are allowed.</string>
+    <string name="issuance_document_offer_error_no_document">Unable to fetch and process the credential offer</string>
+    <string name="issuance_document_offer_deferred_success_text">@string/generic_deferred_success_text</string>
+    <string name="issuance_document_offer_deferred_success_description">Your documents from %1$s have been requested. You will be notified when they have been issued to your wallet.</string>
+    <string name="issuance_document_offer_deferred_success_primary_button_text">@string/generic_ok</string>
+    <string name="issuance_document_offer_description">The following transaction requires your permission and authentication.</string>
+    <string name="issuance_document_offer_header_main_text">ISSUANCE REQUEST</string>
+    <string name="issuance_document_offer_relying_party_default_name">@string/generic_default_issuer_name</string>
+    <string name="issuance_document_offer_relying_party_description">wants to add the following</string>
+
+    <string name="yes_eid_pin_set_and_known">Yes, eID PIN is set and known.</string>
+    <string name="new_pin_set_bottom_sheet_title">What is the card PIN?</string>
+    <string name="new_pin_set_bottom_sheet_content_one">The card PIN is the PIN of your physical ID card that you can use to access the online ID function. Memorise this card PIN well. If you no longer know it, you will need to make an appointment at the Citizens\' Registration Office and have the PIN set there.</string>
+    <string name="new_pin_set_bottom_sheet_content_two">Memorize this card PIN well. If you no longer know it, you must make an appointment at the Citizens’ Registration Office and have the PIN set there.</string>
+    <string name="success_transport_pin_title">Transport PIN correct</string>
+    <string name="card_onboarding_image_description">identification image</string>
+    <string name="onboarding_eid_pin_logo_description">Onboarding eid with pin image</string>
+
+    <string name="biometric_unknown_error">Something went wrong initializing biometric authentication. Please try again</string>
+    <string name="biometric_no_hardware">Your device does not support biometric authentication</string>
+    <string name="biometric_or_screen_lock_prompt_message">Use your biometric or screen lock to continue</string>
+    <string name="biometric_prompt_message">Use your biometric to continue</string>
+    <string name="biometric_prompt_subtitle">Authenticate using your biometrics</string>
+    <string name="biometric_prompt_title">Biometric authentication</string>
+
+    <!-- region Loading Screen -->
+    <string name="loading_header_description">Please wait…</string>
+    <string name="loading_biometry_biometrics_enabled_description">Use your biometrics to approve the transaction.</string>
+    <string name="loading_biometry_biometrics_not_enabled_description">To approve the transaction you need to verify your identity.</string>
+    <!--endregion-->
+
+    <!-- EU PID -->
+    <string name="eu_pid_doctype_name">EU PID</string>
+
+    <!-- Issuance Document Offer Code -->
+    <string name="issuance_code_title">%1$s requires verification</string>
+    <string name="issuance_code_caption">Type the %1$d-digit transaction code you received</string>
+
+    <string name="nfc_scanning_progress_percentage">%1$d %%</string>
+</resources>

@@ -29,6 +29,7 @@ import eu.europa.ec.corelogic.controller.WalletCorePresentationController
 import eu.europa.ec.corelogic.model.AuthenticationData
 import eu.europa.ec.corelogic.model.isPid
 import eu.europa.ec.corelogic.model.toDocumentIdentifier
+import eu.europa.ec.eudi.wallet.document.IssuedDocument
 import eu.europa.ec.uilogic.BuildConfig
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
@@ -37,6 +38,8 @@ import org.sprind.wallet.corelogic.controller.ReissueDocumentPartialState
 
 import kotlinx.coroutines.runBlocking
 import java.net.URI
+import kotlin.time.Duration
+import kotlin.time.Duration.Companion.seconds
 
 sealed class PresentationLoadingObserveResponsePartialState {
     data class UserAuthenticationRequired(
@@ -70,7 +73,7 @@ interface PresentationLoadingInteractor {
     val issuanceState: Flow<eu.europa.ec.corelogic.controller.IssueDocumentsPartialState>
     fun stopPresentation()
     fun observeResponse(): Flow<PresentationLoadingObserveResponsePartialState>
-    fun sendRequestedDocuments(): PresentationLoadingSendRequestedDocumentPartialState
+    suspend fun sendRequestedDocuments(): PresentationLoadingSendRequestedDocumentPartialState
     fun reissueLowBatchDocuments(): Flow<PresentationLoadingReissuePartialState>
     fun resumeOpenId4VciWithAuthorization(uri: String)
     fun handleUserAuthentication(
@@ -120,7 +123,7 @@ class PresentationLoadingInteractorImpl(
             }
         }
 
-    override fun sendRequestedDocuments(): PresentationLoadingSendRequestedDocumentPartialState {
+    override suspend fun sendRequestedDocuments(): PresentationLoadingSendRequestedDocumentPartialState {
         return when (val result = walletCorePresentationController.sendRequestedDocuments()) {
             is SendRequestedDocumentsPartialState.RequestSent -> PresentationLoadingSendRequestedDocumentPartialState.Success
             is SendRequestedDocumentsPartialState.Failure -> PresentationLoadingSendRequestedDocumentPartialState.Failure(
@@ -182,8 +185,22 @@ class PresentationLoadingInteractorImpl(
 }
 
 /**
+ * Upper bound on a post-presentation batch refresh. Both call sites await it with the user on a
+ * progress indicator, and neither wallet-core's reissue scope nor its HTTP client has a timeout of
+ * its own, so a stalled socket would hold the screen indefinitely.
+ *
+ * Abandoning a refresh is safe: the rotated tokens are persisted as soon as the token refresh
+ * succeeds, so the next attempt starts from valid credentials.
+ */
+internal val REISSUE_TIMEOUT: Duration = 30.seconds
+
+private const val REISSUE_FLOW_LOG_TAG = "reissueLowBatch: "
+
+/**
  * Evaluates the just-presented documents and reissues any whose one-time-use batch has fallen to
  * [eu.europa.ec.corelogic.model.DocumentIdentifier.minAvailableCredentials] or fewer.
+ *
+ * A PID is the exception: its two formats are refreshed as a unit, see below.
  *
  * Shared by both presentation interactors because the flow completes on different screens depending
  * on the credential's secure area: PID presentations (RWSCA/PIN, no device auth) finish on the
@@ -196,13 +213,8 @@ internal fun reissueLowBatchDocumentsFlow(
     logController: LogController,
 ): Flow<PresentationLoadingReissuePartialState> =
     flow {
-        val disclosedDocumentIds = walletCorePresentationController.disclosedDocuments
-            .orEmpty()
-            .map { it.documentId }
-            .distinct()
-
         // early return in case we haven't presented anything
-        if (disclosedDocumentIds.isEmpty()) {
+        if (walletCorePresentationController.disclosedDocuments.isNullOrEmpty()) {
             emit(PresentationLoadingReissuePartialState.NotNeeded)
             return@flow
         }
@@ -210,43 +222,45 @@ internal fun reissueLowBatchDocumentsFlow(
         val issuedDocumentsById = walletCoreDocumentsController.getAllIssuedDocuments()
             .associateBy { it.id }
 
-        val disclosedDocuments = disclosedDocumentIds
-            .mapNotNull { documentId -> issuedDocumentsById[documentId] }
+        val disclosedDocuments = walletCorePresentationController.disclosedDocuments
+            .orEmpty()
+            .mapNotNull { issuedDocumentsById[it.documentId] }
 
-        // A PID is stored as two separate documents (mdoc + SD-JWT VC) that form a single batch,
-        // but a presentation only discloses one of the two formats. Since the batch must be
-        // refreshed when EITHER format runs low, evaluate both PID formats whenever a PID was
-        // presented; otherwise a depleted sibling-format batch would be missed.
-        val documentsToEvaluate = if (disclosedDocuments.any { it.toDocumentIdentifier().isPid }) {
-            (disclosedDocuments + issuedDocumentsById.values.filter { it.toDocumentIdentifier().isPid })
-                .distinctBy { it.id }
-        } else {
-            disclosedDocuments
+        val reissuableDocuments = disclosedDocuments
+            .filter { it.hasLowBatch() && it.isEligibleForReissue() }
+            .toMutableSet()
+
+        // Special case: one disclosed document is a PID and any PID is low, we refresh all the PIDs.
+        // A PID is two documents (mdoc + SD-JWT VC) forming one batch, but a presentation discloses
+        // only one format. Rule: refresh as soon as EITHER runs low, and refresh both together —
+        // a format left behind is depleted by presentations that never disclose it.
+        if (disclosedDocuments.any { it.toDocumentIdentifier().isPid }) {
+            val pids = issuedDocumentsById.values.filter { it.toDocumentIdentifier().isPid }
+            if (pids.any { it.hasLowBatch() }) {
+                reissuableDocuments.addAll(pids)
+            }
         }
 
-        // This will cover the case of presenting multiple credentials and reissue them
-        val depletedDocumentIds = documentsToEvaluate
-            .filter { issuedDocument ->
-                val documentIdentifier = issuedDocument.toDocumentIdentifier()
-                documentIdentifier.eligibleForReissue && issuedDocument.credentialsCount() <= documentIdentifier.minAvailableCredentials
-            }
-            .map { it.id }
-            .distinct()
-
-        if (depletedDocumentIds.isEmpty()) {
+        // Nothing reissuable? Return
+        if (reissuableDocuments.isEmpty()) {
             emit(PresentationLoadingReissuePartialState.NotNeeded)
             return@flow
         }
 
-        depletedDocumentIds.forEach { documentId ->
-            var failureMessage: String? = null
+        // Every document is attempted even when an earlier one failed: bailing early would leave a
+        // PID's sibling format depleted until some later presentation happened to disclose it.
+        val failures = mutableListOf<String>()
+        reissuableDocuments.forEach { document ->
             walletCoreDocumentsController.reissueDocument(
-                documentId = documentId,
+                documentId = document.id,
             ).collect { reissueState ->
                 when (reissueState) {
-                    is ReissueDocumentPartialState.InProgress,
+                    is ReissueDocumentPartialState.InProgress -> {
+                        logController.d(REISSUE_FLOW_LOG_TAG) { "Re-issuing ${document.id}" }
+                    }
+
                     is ReissueDocumentPartialState.Success -> {
-                        logController.d("Document re-issued: ") { documentId }
+                        logController.d(REISSUE_FLOW_LOG_TAG) { "Re-issued ${document.id}" }
                     }
 
                     is ReissueDocumentPartialState.UserAuthRequired -> emit(
@@ -257,16 +271,21 @@ internal fun reissueLowBatchDocumentsFlow(
                     )
 
                     is ReissueDocumentPartialState.Failure -> {
-                        failureMessage = reissueState.errorMessage
+                        failures.add("${document.id}: ${reissueState.errorMessage}")
                     }
                 }
             }
-
-            if (failureMessage != null) {
-                emit(PresentationLoadingReissuePartialState.Failure(failureMessage))
-                return@flow
-            }
         }
 
-        emit(PresentationLoadingReissuePartialState.Success)
+        if (failures.isNotEmpty()) {
+            emit(PresentationLoadingReissuePartialState.Failure(failures.joinToString("; ")))
+        } else {
+            emit(PresentationLoadingReissuePartialState.Success)
+        }
     }
+
+private fun IssuedDocument.isEligibleForReissue(): Boolean =
+    toDocumentIdentifier().eligibleForReissue
+
+private suspend fun IssuedDocument.hasLowBatch(): Boolean =
+    credentialsCount() <= toDocumentIdentifier().minAvailableCredentials

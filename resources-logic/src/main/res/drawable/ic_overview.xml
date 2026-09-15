@@ -1,0 +1,42 @@
+<!--
+  ~ Copyright (c) 2026 European Commission
+  ~
+  ~ Licensed under the Apache License, Version 2.0 (the "License");
+  ~ you may not use this file except in compliance with the License.
+  ~ You may obtain a copy of the License at
+  ~
+  ~     http://www.apache.org/licenses/LICENSE-2.0
+  ~
+  ~ Unless required by applicable law or agreed to in writing, software
+  ~ distributed under the License is distributed on an "AS IS" BASIS,
+  ~ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  ~ See the License for the specific language governing permissions and
+  ~ limitations under the License.
+  -->
+
+<!--
+  ~ The 21x17 glyph exported from Figma, centered in the 24x24 box the other icons use.
+  ~
+  ~ All three cards are outlines. The front one is a single path holding its outer contour and the
+  ~ counter-contour that hollows it out, wound the opposite way, so the default non-zero fill rule
+  ~ leaves the middle empty.
+  -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <group
+        android:translateX="1.5"
+        android:translateY="3.5">
+        <path
+            android:fillColor="#1D1D1E"
+            android:pathData="M21,7.5H19.5V1.5H8.25V0H19.5C19.8977,0.00045655 20.2789,0.158638 20.5602,0.439844C20.8414,0.72105 20.9995,1.10232 21,1.5V7.5Z" />
+        <path
+            android:fillColor="#1D1D1E"
+            android:pathData="M17.25,11.25H15.75V5.25H4.5V3.75H15.75C16.1477,3.75046 16.5289,3.90864 16.8102,4.18984C17.0914,4.47105 17.2495,4.85232 17.25,5.25V11.25Z" />
+        <path
+            android:fillColor="#1D1D1E"
+            android:pathData="M12,16.5H1.5C1.10232,16.4995 0.72105,16.3414 0.439844,16.0602C0.158638,15.779 0.00045655,15.3977 0,15V9C0.00045655,8.60231 0.158638,8.22105 0.439844,7.93984C0.72105,7.65864 1.10232,7.50046 1.5,7.5H12C12.3977,7.50046 12.779,7.65864 13.0602,7.93984C13.3414,8.22105 13.4995,8.60231 13.5,9V15C13.4995,15.3977 13.3414,15.779 13.0602,16.0602C12.779,16.3414 12.3977,16.4995 12,16.5ZM1.5,9V15H12.0009L12,9H1.5Z" />
+    </group>
+</vector>

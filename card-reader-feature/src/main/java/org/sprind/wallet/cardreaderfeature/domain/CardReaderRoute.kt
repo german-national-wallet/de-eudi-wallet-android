@@ -52,6 +52,7 @@ enum class CardReaderRoute {
     ENTER_NEW_PIN,
     CONFIRM_NEW_PIN,
     NFC_SCAN_NEW_PIN,
+    ISSUANCE_CONSENT,
     COMPLETED,
 }
 

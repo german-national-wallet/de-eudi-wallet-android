@@ -30,15 +30,14 @@ import eu.europa.ec.commonfeature.util.generateUniqueFieldId
 import eu.europa.ec.commonfeature.util.keyIsPortrait
 import eu.europa.ec.commonfeature.util.keyIsSignature
 import eu.europa.ec.commonfeature.util.parseKeyValueUi2
+import eu.europa.ec.corelogic.extension.identifier
 import eu.europa.ec.corelogic.model.DocumentIdentifier
 import eu.europa.ec.corelogic.model.isPid
 import eu.europa.ec.corelogic.model.toDocumentIdentifier
 import eu.europa.ec.corelogic.extension.toClaimPaths
-import eu.europa.ec.eudi.iso18013.transfer.response.DisclosedDocument
-import eu.europa.ec.eudi.iso18013.transfer.response.DisclosedDocuments
-import eu.europa.ec.eudi.iso18013.transfer.response.DocItem
-import eu.europa.ec.eudi.iso18013.transfer.response.RequestedDocument
-import eu.europa.ec.eudi.iso18013.transfer.response.device.MsoMdocItem
+import eu.europa.ec.corelogic.extension.toNamespacedPath
+import eu.europa.ec.corelogic.model.DisclosedDocumentDomain
+import eu.europa.ec.eudi.sdjwt.vc.ClaimPathElement
 import eu.europa.ec.eudi.wallet.document.DocumentId
 import eu.europa.ec.eudi.wallet.document.IssuedDocument
 import eu.europa.ec.eudi.wallet.document.NameSpace
@@ -47,8 +46,9 @@ import eu.europa.ec.eudi.wallet.document.format.MsoMdocClaim
 import eu.europa.ec.eudi.wallet.document.format.MsoMdocFormat
 import eu.europa.ec.eudi.wallet.document.format.SdJwtVcClaim
 import eu.europa.ec.eudi.wallet.document.format.SdJwtVcFormat
-import eu.europa.ec.eudi.wallet.transfer.openId4vp.SdJwtVcItem
 import eu.europa.ec.resourceslogic.R
+import org.multipaz.presentment.CredentialPresentmentSetOptionMemberMatch
+import org.multipaz.request.RequestedClaim
 import eu.europa.ec.resourceslogic.provider.ResourceProvider
 import eu.europa.ec.uilogic.component.AppIcons
 import eu.europa.ec.uilogic.component.ListItemData
@@ -101,12 +101,14 @@ class RequestTransformer {
     suspend fun transformToDomainItems(
         storageDocuments: List<IssuedDocument> = emptyList(),
         resourceProvider: ResourceProvider,
-        requestDocuments: List<RequestedDocument>,
+        requestMatches: List<CredentialPresentmentSetOptionMemberMatch>,
         logController : LogController,
     ): Result<List<DocumentPayloadDomain>> = runCatching {
-        requestDocuments.map { requestDocument ->
+        // Since wallet-core v0.30.0 a request arrives as presentment matches (one per credential)
+        // rather than as one RequestedDocument per document, so group them back per document.
+        requestMatches.groupBy { it.credential.document.identifier }.map { (requestedDocumentId, matches) ->
             val storageDocument =
-                storageDocuments.firstOrNull { it.id == requestDocument.documentId }
+                storageDocuments.firstOrNull { it.id == requestedDocumentId }
                     ?: error(resourceProvider.getString(R.string.error_no_matching_document))
             val credentialCount = storageDocument.credentialsCount()
             logController.d(logTag) { "Credential count :${credentialCount}, storageDocument.id: ${storageDocument.id}, nameSpace: ${storageDocument.docNamespace}" }
@@ -116,18 +118,15 @@ class RequestTransformer {
             val documentType = if (documentIdentifier.isPid) DocumentType.PID else DocumentType.EAA
             val docNamespace: NameSpace? = storageDocument.docNamespace
 
-            val requestDocumentClaims = requestDocument.requestedItems.keys.map { docItem ->
-                val documentClaim = storageDocument.findClaimFromDocItem(docItem)
+            val requestedClaims = matches.flatMap { it.claims.keys }.distinct()
+            val requestDocumentClaims = requestedClaims.map { requestedClaim ->
+                val documentClaim = storageDocument.findClaimFromRequestedClaim(requestedClaim)
                     ?: error(resourceProvider.getString(R.string.error_no_matching_claim))
                 val identifier = documentClaim.identifier
 
                 val isRequired = getMandatoryFields(
                     documentIdentifier = storageDocument.toDocumentIdentifier()
                 ).contains(identifier)
-
-//                val documentClaim = storageDocument.data.claims.find {
-//                    it.identifier == docItem.elementIdentifier
-//                }
 
                 val readableName: String =
                     getReadableName(
@@ -154,11 +153,12 @@ class RequestTransformer {
                 }
                 RequestDocumentClaim(
                     elementIdentifier = identifier,
+                    requestedClaim = requestedClaim,
                     value = value,
                     readableName = readableName,
                     isRequired = isRequired,
                     isAvailable = value.isNotEmpty(),
-                    path = docItem.toPath(),
+                    path = requestedClaim.toNamespacedPath(),
                     withoutDetailLabel = getLabelNameWithoutDetail(
                         identifier,
                         resourceProvider
@@ -400,6 +400,7 @@ class RequestTransformer {
             }
 
             RequestDocumentItemUi(
+                domainPayload = docPayloadDomain,
                 collapsedUiItem = CollapsedUiItem(
                     uiItem = ListItemData(
                         itemId = collapsedItemId,
@@ -418,73 +419,61 @@ class RequestTransformer {
         }
     }
 
-    fun createDisclosedDocuments(items: List<RequestDocumentItemUi>): DisclosedDocuments {
-        // Collect all selected expanded items from the list
-        val selectedItems = items.flatMap { requestItem ->
-            requestItem.expandedUiItems.filter { uiPayload ->
-                // Filter only the items the user has selected
-                uiPayload.uiItem.trailingContentData is ListItemTrailingContentData.Checkbox &&
-                        (uiPayload.uiItem.trailingContentData as ListItemTrailingContentData.Checkbox)
-                            .checkboxData.isChecked
-            }
+    /**
+     * The claims the user has ticked, per document.
+     *
+     * `WalletCorePresentationControllerImpl.updateRequestedDocuments` narrows the presentment
+     * selection to exactly these before generating the response, so leaving a row unticked
+     * withholds that claim, and a document the user emptied out drops from the response.
+     *
+     * A document with no rows at all is a different case and is kept: per OpenID4VP §6.4.1 a
+     * Credential Query without `claims` asks for a presentation carrying no selectively
+     * disclosable claim - proof that the credential is held, nothing more. There is nothing for
+     * the user to tick, so treating it as "unticked" would drop the credential and leave the
+     * verifier's `credential_sets` unsatisfied.
+     */
+    fun createDisclosedDocuments(
+        items: List<RequestDocumentItemUi>,
+    ): MutableList<DisclosedDocumentDomain> = items.mapNotNullTo(mutableListOf()) { requestItem ->
+        val documentPayload = requestItem.domainPayload
+
+        // Only the items the user has selected.
+        val selectedItems = requestItem.expandedUiItems.filter { uiPayload ->
+            uiPayload.uiItem.trailingContentData is ListItemTrailingContentData.Checkbox &&
+                    (uiPayload.uiItem.trailingContentData as ListItemTrailingContentData.Checkbox)
+                        .checkboxData.isChecked
         }
 
-        // Group the selected items by their domain payload (document-level grouping)
-        val groupedByDocument = selectedItems.groupBy { it.domainPayload }
+        // Rows were offered and the user cleared them all - an opt-out of this document.
+        if (selectedItems.isEmpty() && requestItem.expandedUiItems.isNotEmpty()) {
+            return@mapNotNullTo null
+        }
 
-        // Convert to the format required by DisclosedDocuments
-        val disclosedDocuments =
-            groupedByDocument.map { (documentPayload, selectedItemsForDocument) ->
-
-                val disclosedItems = selectedItemsForDocument.map { selectedItem ->
-                    // Resolve the selected row back to its RequestDocumentClaim by identity, not by
-                    // display value. Multiple claims can share the same rendered value (e.g. for
-                    // the German PID, `address.country`, `issuing_country` and `nationalities` all
-                    // render as the country code "DE"), so a value-based lookup would route the
-                    // disclosure of the wrong claim to the verifier. The itemId is the stable,
-                    // unique key produced by generateUniqueFieldId(elementIdentifier, docId).
-                    val matchedClaim = documentPayload.docClaimsDomain.firstOrNull { claim ->
-                        generateUniqueFieldId(
-                            elementIdentifier = claim.elementIdentifier,
-                            documentId = documentPayload.docId,
-                        ) == selectedItem.uiItem.itemId
-                    }
-                    val elementIdentifier = matchedClaim?.elementIdentifier.orEmpty()
-                    val path: List<String> = matchedClaim?.path ?: listOf()
-
-                    when (documentPayload.docNamespace) {
-                        null -> SdJwtVcItem(
-                            path
-                        )
-
-                        else -> MsoMdocItem(
-                            namespace = documentPayload.docNamespace,
-                            elementIdentifier = elementIdentifier
-                        )
-                    }
-                }
-
-                DisclosedDocument(
+        val disclosedClaims = selectedItems.mapNotNullTo(mutableSetOf()) { selectedItem ->
+            // Resolve the selected row back to its RequestDocumentClaim by identity, not by
+            // display value. Multiple claims can share the same rendered value (e.g. for
+            // the German PID, `address.country`, `issuing_country` and `nationalities` all
+            // render as the country code "DE"), so a value-based lookup would route the
+            // disclosure of the wrong claim to the verifier. The itemId is the stable,
+            // unique key produced by generateUniqueFieldId(elementIdentifier, docId).
+            val matchedClaim = documentPayload.docClaimsDomain.firstOrNull { claim ->
+                generateUniqueFieldId(
+                    elementIdentifier = claim.elementIdentifier,
                     documentId = documentPayload.docId,
-                    disclosedItems = disclosedItems,
-                    keyUnlockData = null
-                )
+                ) == selectedItem.uiItem.itemId
             }
+            matchedClaim?.requestedClaim
+        }
 
-        return DisclosedDocuments(disclosedDocuments)
+        DisclosedDocumentDomain(
+            documentId = documentPayload.docId,
+            disclosedClaims = disclosedClaims,
+        )
     }
 }
 
-fun IssuedDocument.findClaimFromDocItem(docItem: DocItem) =
-    findClaimFromPath(docItem.toPath())
-
-fun DocItem.toPath(): List<String> {
-    return when (this) {
-        is MsoMdocItem -> return listOf(this.namespace, this.elementIdentifier)
-        is SdJwtVcItem -> this.path
-        else -> emptyList()
-    }
-}
+fun IssuedDocument.findClaimFromRequestedClaim(requestedClaim: RequestedClaim) =
+    findClaimFromPath(requestedClaim.toNamespacedPath())
 
 private fun List<String>.normalizedSdJwtPath(): List<String> {
     if (isEmpty()) return emptyList()
@@ -531,7 +520,7 @@ fun IssuedDocument.findClaimFromPath(path: List<String>): DocumentClaim? {
             }
 
             if (normalized.size > 1) {
-                found?.copy(identifier = normalized.joinToString("."))
+                found?.copy(pathElement = ClaimPathElement.Claim(normalized.joinToString(".")))
             } else {
                 found
             }
