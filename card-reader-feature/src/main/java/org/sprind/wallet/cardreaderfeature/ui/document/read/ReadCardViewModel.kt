@@ -457,7 +457,7 @@ class ReadCardViewModel(
 
         transitionTo(codeRetry.step) {
             copy(
-                bottomSheetTitle = resourceProvider.getString(R.string.pid_issuance_sheet_eid_pin_not_set_title),
+                bottomSheetTitle = resourceProvider.getString(R.string.pid_issuance_sheet_eID_PIN_not_set_title),
                 pinState = pinState.cleared(
                     capacity = codeRetry.step.codeLength(),
                     supportingText = codeRetry.supportingText,
@@ -500,7 +500,7 @@ class ReadCardViewModel(
         cardReaderInteractor.acceptRights()
         transitionTo(ReadCardScreenStep.EnterPin) {
             copy(
-                bottomSheetTitle = resourceProvider.getString(R.string.pid_issuance_sheet_eid_pin_not_set_title),
+                bottomSheetTitle = resourceProvider.getString(R.string.pid_issuance_sheet_eID_PIN_not_set_title),
                 pinState = pinState.cleared(CodeLength.EID_PIN),
                 isLoading = false,
             )
@@ -1069,7 +1069,7 @@ class ReadCardViewModel(
 
         transitionTo(fallbackStep) {
             copy(
-                bottomSheetTitle = resourceProvider.getString(R.string.pid_issuance_sheet_eid_pin_not_set_title),
+                bottomSheetTitle = resourceProvider.getString(R.string.pid_issuance_sheet_eID_PIN_not_set_title),
                 pinState = pinState.cleared(
                     capacity = fallbackStep.codeLength(),
                     supportingText = pinStateWarning,

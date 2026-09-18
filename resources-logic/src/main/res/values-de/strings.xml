@@ -223,4 +223,7 @@
     <string name="eu_pid_doctype_name">EU PID</string>
 
     <string name="nfc_scanning_progress_percentage">%1$d %%</string>
+
+    <string name="a11y_animation_play">Play animation</string>
+    <string name="a11y_animation_pause">Pause animation</string>
 </resources>

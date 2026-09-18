@@ -31,6 +31,9 @@ interface RevocationInteractor : NavigationGuard {
 
     fun storeUserConfirmedSavingCode(value: Boolean)
 
+    override val priority: Int
+        get() = super.priority - 1
+
     override val destination: String
         get() = ModuleRoute.DashboardModule.route
 

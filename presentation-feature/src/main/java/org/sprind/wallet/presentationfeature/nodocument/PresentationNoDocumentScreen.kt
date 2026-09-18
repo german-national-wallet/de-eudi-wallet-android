@@ -1,10 +1,8 @@
 package org.sprind.wallet.presentationfeature.nodocument
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -23,23 +21,15 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
-import eu.europa.ec.commonfeature.config.IssuanceFlowUiConfig
 import eu.europa.ec.resourceslogic.R
 import eu.europa.ec.uilogic.component.AppIcons
 import eu.europa.ec.uilogic.component.CancellableTopAppBar
 import eu.europa.ec.uilogic.component.content.ContentScreen
 import eu.europa.ec.uilogic.component.utils.SPACING_EXTRA_LARGE
-import eu.europa.ec.uilogic.component.utils.SPACING_MEDIUM
 import eu.europa.ec.uilogic.component.utils.SPACING_SMALL
-import eu.europa.ec.uilogic.component.wrap.ButtonConfig
-import eu.europa.ec.uilogic.component.wrap.ButtonType
-import eu.europa.ec.uilogic.component.wrap.WrapButton
 import eu.europa.ec.uilogic.component.wrap.WrapImage
 import eu.europa.ec.uilogic.navigation.DashboardScreens
-import eu.europa.ec.uilogic.navigation.IssuanceScreens
 import eu.europa.ec.uilogic.navigation.ModuleRoute
-import eu.europa.ec.uilogic.navigation.helper.generateComposableArguments
-import eu.europa.ec.uilogic.navigation.helper.generateComposableNavigationLink
 
 @Composable
 fun PresentationNoDocumentScreen(
@@ -50,33 +40,6 @@ fun PresentationNoDocumentScreen(
             CancellableTopAppBar(
                 onCloseClick = { navController.navigateToDashboard() }
             )
-        },
-        stickyBottom = { paddingValues ->
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(
-                        PaddingValues(
-                            bottom = paddingValues.calculateBottomPadding(),
-                        )
-                    ),
-                verticalArrangement = Arrangement.spacedBy(SPACING_MEDIUM.dp)
-            ) {
-
-                WrapButton(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = SPACING_MEDIUM.dp),
-                    buttonConfig = ButtonConfig(
-                        type = ButtonType.PRIMARY,
-                        onClick = { navController.navigateToAddDocument() }
-                    )
-                ) {
-                    Text(
-                        text = stringResource(id = R.string.eaa_presentation_credential_not_found_prim_button)
-                    )
-                }
-            }
         }
     ) { paddingValues ->
         PresentationNoDocumentContent(
@@ -135,26 +98,6 @@ private fun PresentationNoDocumentContent(modifier: Modifier = Modifier) {
 
 private fun NavController.navigateToDashboard() {
     navigate(DashboardScreens.Dashboard.screenRoute) {
-        popUpTo(ModuleRoute.PresentationModule.route) {
-            inclusive = true
-        }
-    }
-}
-
-private fun NavController.navigateToAddDocument() {
-    // screenRoute is the route template, navigating to it as-is leaves the flowType placeholder
-    // unfilled and the issuance graph throws while resolving the argument.
-    val route = generateComposableNavigationLink(
-        screen = IssuanceScreens.AddDocument,
-        arguments = generateComposableArguments(
-            mapOf(
-                "flowType" to IssuanceFlowUiConfig.fromIssuanceFlowUiConfig(
-                    IssuanceFlowUiConfig.EXTRA_DOCUMENT
-                )
-            )
-        )
-    )
-    navigate(route) {
         popUpTo(ModuleRoute.PresentationModule.route) {
             inclusive = true
         }

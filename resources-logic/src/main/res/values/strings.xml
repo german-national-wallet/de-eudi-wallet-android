@@ -309,4 +309,7 @@
     <string name="issuance_code_caption">Type the %1$d-digit transaction code you received</string>
 
     <string name="nfc_scanning_progress_percentage">%1$d %%</string>
+
+    <string name="a11y_animation_play">Play animation</string>
+    <string name="a11y_animation_pause">Pause animation</string>
 </resources>

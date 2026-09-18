@@ -165,10 +165,10 @@ private fun CancelFlowDialog(onEventSend: (Event) -> Unit) {
 @Composable
 private fun RejectIssuanceDialog(onEventSend: (Event) -> Unit) {
     DeclineConfirmationDialog(
-        headLineText = stringResource(R.string.pid_issuance_add_credential_reject_title),
-        contentText = stringResource(R.string.pid_issuance_add_credential_reject_paragraph),
-        confirmText = stringResource(R.string.pid_issuance_add_credential_reject_prim_button),
-        cancellationText = stringResource(R.string.pid_issuance_add_credential_reject_sec_button),
+        headLineText = stringResource(R.string.pid_issuance_digital_id_consent_reject_info_title),
+        contentText = stringResource(R.string.pid_issuance_digital_id_consent_reject_info_paragraph),
+        confirmText = stringResource(R.string.pid_issuance_digital_id_consent_reject_info_prim_button),
+        cancellationText = stringResource(R.string.pid_issuance_digital_id_consent_reject_info_sec_button),
         iconData = AppIcons.Info,
         onConfirm = { onEventSend(Event.Close) },
         onDismiss = { onEventSend(Event.DismissRejectIssuanceDialog) },

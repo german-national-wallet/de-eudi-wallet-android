@@ -124,6 +124,10 @@ sealed class RevocationScreens {
     data object SaveCode : Screen(name = "REVOCATION_SAVE_CODE")
 }
 
+sealed class OnboardingScreens {
+    data object Onboarding : Screen(name = "ONBOARDING")
+}
+
 sealed class ModuleRoute(val route: String) : NavigatableItem {
     data object StartupModule : ModuleRoute("STARTUP_MODULE")
     data object CommonModule : ModuleRoute("COMMON_MODULE")
@@ -133,4 +137,5 @@ sealed class ModuleRoute(val route: String) : NavigatableItem {
     data object IssuanceModule : ModuleRoute("ISSUANCE_MODULE")
     data object CardReadModule : ModuleRoute("CARD_READ_MODULE")
     data object RevocationModule : ModuleRoute("REVOCATION_MODULE")
+    data object OnboardingModule : ModuleRoute("ONBOARDING_MODULE")
 }

@@ -128,7 +128,7 @@ class ReadCardViewModelTest {
     @Before
     fun setUp() {
         closeable = MockitoAnnotations.openMocks(this)
-        whenever(resourceProvider.getString(R.string.pid_issuance_sheet_eid_pin_not_set_title))
+        whenever(resourceProvider.getString(R.string.pid_issuance_sheet_eID_PIN_not_set_title))
             .thenReturn("info")
         whenever(resourceProvider.getString(R.string.pid_presentation_wallet_pin_entry_error_wrong_pin))
             .thenReturn("wrong pin")
@@ -683,7 +683,7 @@ class ReadCardViewModelTest {
 
     @Test
     fun `when pin requested after nfc can prompt, route falls back to can success`() = runTest {
-        whenever(resourceProvider.getString(R.string.pid_issuance_sheet_eid_pin_not_set_title))
+        whenever(resourceProvider.getString(R.string.pid_issuance_sheet_eID_PIN_not_set_title))
             .thenReturn("info")
         whenever(resourceProvider.getString(R.string.pid_presentation_wallet_pin_entry_error_wrong_pin))
             .thenReturn("wrongPin")
@@ -707,7 +707,7 @@ class ReadCardViewModelTest {
     fun `when EnterCan arrives after PinRequested during CAN flow, then stay on EnterCan`() = runTest {
         whenever(resourceProvider.getString(R.string.pid_issuance_sheet_can_title))
             .thenReturn("bottomSheetInfoText")
-        whenever(resourceProvider.getString(R.string.pid_issuance_sheet_eid_pin_not_set_title))
+        whenever(resourceProvider.getString(R.string.pid_issuance_sheet_eID_PIN_not_set_title))
             .thenReturn("info")
         whenever(resourceProvider.getString(R.string.pid_presentation_wallet_pin_entry_error_wrong_pin))
             .thenReturn("wrongPin")
@@ -737,7 +737,7 @@ class ReadCardViewModelTest {
     fun `when PIN wrong twice then SDK requests CAN, first EnterCan shows PinBlockedError and retry stays on EnterCan`() = runTest {
         whenever(resourceProvider.getString(R.string.pid_issuance_sheet_can_title))
             .thenReturn("bottomSheetInfoText")
-        whenever(resourceProvider.getString(R.string.pid_issuance_sheet_eid_pin_not_set_title))
+        whenever(resourceProvider.getString(R.string.pid_issuance_sheet_eID_PIN_not_set_title))
             .thenReturn("info")
         whenever(resourceProvider.getString(R.string.pid_issuance_puk_entry_warning_wrong_puk_1))
             .thenReturn("wrongPuk")

@@ -74,13 +74,13 @@ fun IssuanceConsentView(
                 verticalSpacing = SPACING_MEDIUM.dp,
                 illustrationPlacement = ContentIllustrationPlacement.BELOW_TEXT,
             ),
-            title = { Text(text = stringResource(R.string.pid_issuance_add_credential_title)) },
+            title = { Text(text = stringResource(R.string.pid_issuance_digital_id_consent_title)) },
             illustration = { DocumentCard(modifier = Modifier.fillMaxWidth()) },
             extraContent = {
                 Column(verticalArrangement = Arrangement.spacedBy(SPACING_EXTRA_MEDIUM.dp)) {
                     TopActionRow(
                         action = NavigationTopAction(
-                            text = stringResource(R.string.pid_issuance_add_credential_show_data_button),
+                            text = stringResource(R.string.pid_issuance_digital_id_consent_tert_button),
                             icon = AppIcons.Visibility,
                             onClick = onShowCredentialDataClick,
                         ),
@@ -99,7 +99,7 @@ private fun IssuerSection(
 ) {
     Column {
         Text(
-            text = stringResource(R.string.pid_issuance_add_credential_issuer_label),
+            text = stringResource(R.string.pid_issuance_digital_id_consent_label),
             style = MaterialTheme.typography.labelLarge,
             color = MaterialTheme.colorScheme.onBackground,
         )

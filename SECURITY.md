@@ -28,15 +28,19 @@ them may be closed as a duplicate without detail.
 
 ## Reporting
 
-The bug bounty programme for this project is being set up. Until it is live,
-this document does not yet name a reporting channel.
+Report findings through our bug bounty program on HackerOne:
+https://hackerone.com/common_codes. Do not report vulnerabilities via GitHub
+issues.
 
 ## Safe harbour
 
-Security research conducted in good faith and within the scope above will not
-lead to legal action from us. Stay within scope, do not access or modify data
-belonging to other people, and give us reasonable time to remediate before
-disclosing.
+Security research conducted in good faith and in accordance with this policy
+and the applicable rules of the bug bounty program
+(https://hackerone.com/common_codes) will not lead to legal action from us. Stay
+within scope, do not access or modify data belonging to other people, and
+maintain the confidentiality of vulnerability information and affected data.
+Vulnerability details may be disclosed only after we have confirmed that the
+vulnerability has been remediated.
 
 ## Upstream dependencies
 

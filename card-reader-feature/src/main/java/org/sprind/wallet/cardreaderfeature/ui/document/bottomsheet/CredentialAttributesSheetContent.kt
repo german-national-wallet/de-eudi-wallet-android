@@ -62,7 +62,7 @@ fun CredentialAttributesSheetContent(
                 .padding(horizontal = SPACING_MEDIUM.dp),
         )
         WrapStickySecondaryButton(
-            text = stringResource(R.string.pid_issuance_add_credential_details_sec_button),
+            text = stringResource(R.string.pid_issuance_digital_id_consent_sec_button),
             paddingValues = PaddingValues(),
             modifier = Modifier.padding(vertical = SPACING_MEDIUM.dp),
             onClick = onCloseClick,

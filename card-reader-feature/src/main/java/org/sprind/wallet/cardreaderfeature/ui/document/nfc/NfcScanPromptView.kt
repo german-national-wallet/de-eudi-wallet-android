@@ -90,11 +90,11 @@ fun NfcScanPromptView(
     onCustomerServiceCallButtonClick: () -> Unit,
 ) {
     val title = when (nfcScanReason) {
-        NfcScanReason.EID_PIN -> stringResource(R.string.nfc_scanning_nfc_tap_title_card_pin)
+        NfcScanReason.EID_PIN -> stringResource(R.string.nfc_scanning_nfc_tap_title_card_pin_android_1)
         NfcScanReason.TRANSPORT_PIN -> stringResource(R.string.nfc_scanning_nfc_tap_title_transport_pin)
         NfcScanReason.PUK -> stringResource(R.string.nfc_scanning_nfc_tap_title_puk)
         NfcScanReason.CAN -> stringResource(R.string.nfc_scanning_nfc_tap_title_can)
-        NfcScanReason.EID_NEW_PIN_SET -> stringResource(R.string.nfc_scanning_nfc_tap_title_card_pin)
+        NfcScanReason.EID_NEW_PIN_SET -> stringResource(R.string.nfc_scanning_nfc_tap_title_card_pin_android_1)
     }
 
     ProvideContentTemplateStyle(
@@ -121,7 +121,7 @@ fun NfcScanPromptView(
             extraContent = {
                 Banner(
                     modifier = Modifier.fillMaxWidth(),
-                    body = stringResource(R.string.nfc_scanning_nfc_tap_banner_android),
+                    body = stringResource(R.string.nfc_scanning_nfc_tap_banner_android_1),
                     icon = AppIcons.Warning,
                 )
             },

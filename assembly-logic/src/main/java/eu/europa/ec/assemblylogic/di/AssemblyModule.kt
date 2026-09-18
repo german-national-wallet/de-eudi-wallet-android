@@ -52,6 +52,7 @@ import org.sprind.wallet.flags.FeatureFlagConfig
 import org.sprind.wallet.flags.FeatureFlagStorage
 import org.sprind.wallet.flags.models.SAVED_FEATURE_FLAGS_OVERRIDE
 import org.sprind.wallet.flags.di.FeatureFlagModule
+import org.sprind.wallet.onboardingfeature.di.FeatureOnboardingModule
 import org.sprind.wallet.revocationfeature.di.FeatureRevocationModule
 import org.sprind.wallet.walletpinfeature.di.FeatureWalletPinModule
 import org.sprind.wallet.pushnotificationsfeature.di.FeaturePushNotificationsModule
@@ -83,6 +84,7 @@ internal val assembledModules = listOf(
     FeaturePresentationModule().module,
     FeatureIssuanceModule().module,
     FeatureWalletPinModule().module,
+    FeatureOnboardingModule().module,
     FeatureRevocationModule().module,
     FeaturePushNotificationsModule().module,
     FeatureCardReaderModule().module,

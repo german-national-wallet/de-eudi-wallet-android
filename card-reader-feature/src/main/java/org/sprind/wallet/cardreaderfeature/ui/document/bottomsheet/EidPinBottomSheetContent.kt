@@ -64,7 +64,7 @@ fun EidPinBottomSheetContent(
                 )
                 HSpacer.Medium()
                 Text(
-                    text = stringResource(R.string.pid_issuance_sheet_eid_pin_not_set_title),
+                    text = stringResource(R.string.pid_issuance_sheet_eID_PIN_not_set_title),
                     style = MaterialTheme.typography.titleLarge.copy(
                         color = textColor
                     ),
@@ -79,13 +79,13 @@ fun EidPinBottomSheetContent(
                 verticalArrangement = Arrangement.spacedBy(SPACING_MEDIUM.dp)
             ) {
                 Text(
-                    text = stringResource(R.string.pid_issuance_sheet_eid_pin_not_set_paragraph_1),
+                    text = stringResource(R.string.pid_issuance_sheet_eID_PIN_not_set_paragraph_1),
                     style = MaterialTheme.typography.bodyLarge.copy(
                         color = textColor
                     )
                 )
 
-                BulletPointText(text = stringResource(R.string.pid_issuance_sheet_eid_pin_not_set_paragraph_2))
+                BulletPointText(text = stringResource(R.string.pid_issuance_sheet_eID_PIN_not_set_paragraph_2))
 
                 WrapButton(
                     buttonConfig = ButtonConfig(
@@ -100,7 +100,7 @@ fun EidPinBottomSheetContent(
                 ) {
                     WrapText(
                         modifier = Modifier,
-                        text = stringResource(R.string.pid_issuance_sheet_eid_pin_not_set_prim_button),
+                        text = stringResource(R.string.pid_issuance_sheet_eID_PIN_not_set_prim_button),
                         textConfig = TextConfig(
                             style = ThemeTextStyles.onPrimaryButton,
                             color = ThemeColors.onPrimaryButton,
@@ -109,9 +109,9 @@ fun EidPinBottomSheetContent(
                     )
                 }
                 Column(modifier = Modifier.fillMaxWidth()) {
-                    BulletPointText(text = stringResource(R.string.pid_issuance_sheet_eid_pin_not_set_list_1))
-                    BulletPointText(text = stringResource(R.string.pid_issuance_sheet_eid_pin_not_set_list_2))
-                    BulletPointText(text = stringResource(R.string.pid_issuance_sheet_eid_pin_not_set_list_3))
+                    BulletPointText(text = stringResource(R.string.pid_issuance_sheet_eID_PIN_not_set_list_1))
+                    BulletPointText(text = stringResource(R.string.pid_issuance_sheet_eID_PIN_not_set_list_2))
+                    BulletPointText(text = stringResource(R.string.pid_issuance_sheet_eID_PIN_not_set_list_3))
                 }
 
                 WrapButton(
@@ -125,7 +125,7 @@ fun EidPinBottomSheetContent(
                 ) {
                     TextAndIcon(
                         modifier = Modifier,
-                        textValue = stringResource(R.string.pid_issuance_sheet_eid_pin_not_set_sec_button),
+                        textValue = stringResource(R.string.pid_issuance_sheet_eID_PIN_not_set_sec_button),
                         textConfig = TextConfig(
                             style = ThemeTextStyles.onSecondaryButton,
                             color = ThemeColors.onSecondaryButton,

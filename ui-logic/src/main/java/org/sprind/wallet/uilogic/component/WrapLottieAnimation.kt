@@ -24,6 +24,7 @@ import androidx.compose.ui.layout.ContentScale
 import com.airbnb.lottie.compose.LottieAnimation
 import com.airbnb.lottie.compose.LottieCompositionSpec
 import com.airbnb.lottie.compose.LottieConstants
+import com.airbnb.lottie.compose.animateLottieCompositionAsState
 import com.airbnb.lottie.compose.rememberLottieComposition
 
 /**
@@ -34,6 +35,8 @@ import com.airbnb.lottie.compose.rememberLottieComposition
  * @param animation the raw resource holding the animation.
  * @param modifier applied to the animation; give it the size the design draws it at.
  * @param iterations how many times to play it; loops forever by default.
+ * @param isPlaying whether the animation should advance.
+ * @param restartOnPlay whether playback should restart from the beginning when resumed.
  * @param contentScale how the animation fills [modifier]'s bounds.
  */
 @Composable
@@ -41,14 +44,22 @@ fun WrapLottieAnimation(
     @RawRes animation: Int,
     modifier: Modifier = Modifier,
     iterations: Int = LottieConstants.IterateForever,
+    isPlaying: Boolean = true,
+    restartOnPlay: Boolean = true,
     contentScale: ContentScale = ContentScale.Fit,
 ) {
     val composition by rememberLottieComposition(LottieCompositionSpec.RawRes(animation))
+    val progress by animateLottieCompositionAsState(
+        composition = composition,
+        iterations = iterations,
+        isPlaying = isPlaying,
+        restartOnPlay = restartOnPlay,
+    )
 
     LottieAnimation(
         composition = composition,
         modifier = modifier,
-        iterations = iterations,
+        progress = { progress },
         contentScale = contentScale,
     )
 }

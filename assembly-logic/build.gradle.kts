@@ -16,6 +16,7 @@
 
 import com.android.build.api.dsl.LibraryExtension
 import org.gradle.kotlin.dsl.project
+import project.convention.logic.config.LibraryModule
 import project.convention.logic.config.LibraryModule.AnalyticsLogic
 import project.convention.logic.config.LibraryModule.AssemblyLogic
 import project.convention.logic.config.LibraryModule.AuthenticationLogic
@@ -28,6 +29,7 @@ import project.convention.logic.config.LibraryModule.DashboardFeature
 import project.convention.logic.config.LibraryModule.FeatureFlags
 import project.convention.logic.config.LibraryModule.IssuanceFeature
 import project.convention.logic.config.LibraryModule.NetworkLogic
+import project.convention.logic.config.LibraryModule.OnboardingFeature
 import project.convention.logic.config.LibraryModule.PresentationFeature
 import project.convention.logic.config.LibraryModule.PushNotificationsFeature
 import project.convention.logic.config.LibraryModule.WalletPinFeature
@@ -93,6 +95,7 @@ dependencies {
     // Feature Modules
     api(project(CommonFeature.path))
     api(project(StartupFeature.path))
+    api(project(OnboardingFeature.path))
     api(project(RevocationFeature.path))
     api(project(DashboardFeature.path))
     api(project(PresentationFeature.path))

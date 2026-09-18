@@ -44,10 +44,10 @@ fun EidFunctionInfoSheetContent(
         ),
         onCloseClick = onCloseClick,
     ) {
-        InfoCard(headline = stringResource(R.string.pid_issuance_eid_function_info_headline_1)) {
+        InfoCard(headline = stringResource(R.string.pid_issuance_eid_function_info_heading_1)) {
             InfoCardText(stringResource(R.string.pid_issuance_eid_function_info_paragraph_1))
         }
-        InfoCard(headline = stringResource(R.string.pid_issuance_eid_function_info_headline_2)) {
+        InfoCard(headline = stringResource(R.string.pid_issuance_eid_function_info_heading_2)) {
             InfoCardText(stringResource(R.string.pid_issuance_eid_function_info_paragraph_2))
         }
     }

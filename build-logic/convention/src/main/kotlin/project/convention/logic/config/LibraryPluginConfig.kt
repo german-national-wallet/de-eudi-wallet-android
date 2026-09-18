@@ -36,6 +36,7 @@ enum class LibraryModule(val path: String) {
     BaselineProfileLogic(":baseline-profile"),
     CommonFeature(":common-feature"),
     StartupFeature(":startup-feature"),
+    OnboardingFeature(":onboarding-feature"),
     RevocationFeature(":revocation-feature"),
     DashboardFeature(":dashboard-feature"),
     PresentationFeature(":presentation-feature"),

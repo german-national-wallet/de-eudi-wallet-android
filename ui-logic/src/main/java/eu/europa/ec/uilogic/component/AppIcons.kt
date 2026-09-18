@@ -633,4 +633,16 @@ object AppIcons {
         contentDescriptionId = R.string.content_description_error_icon,
         imageVector = null,
     )
+
+    val AnimationPause = IconData(
+        resourceId = R.drawable.ic_animation_pause,
+        contentDescriptionId = R.string.a11y_animation_pause,
+        imageVector = null,
+    )
+
+    val AnimationPlay = IconData(
+        resourceId = R.drawable.ic_animation_play,
+        contentDescriptionId = R.string.a11y_animation_play,
+        imageVector = null,
+    )
 }

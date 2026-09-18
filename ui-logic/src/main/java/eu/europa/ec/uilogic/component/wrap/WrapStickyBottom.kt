@@ -299,10 +299,12 @@ fun WrapStickyPrimaryButton(
     paddingValues: PaddingValues,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
+    buttonModifier: Modifier = Modifier,
     trailingIcon: IconData? = null,
 ) {
     WrapStickyBottomColumn(paddingValues = paddingValues, modifier = modifier) {
         WrapStickyButton(
+            modifier = buttonModifier,
             action = StickyButtonAction(
                 text = text,
                 onClick = onClick,

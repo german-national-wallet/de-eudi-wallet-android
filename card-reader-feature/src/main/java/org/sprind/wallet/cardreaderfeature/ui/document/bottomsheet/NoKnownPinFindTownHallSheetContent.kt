@@ -93,7 +93,7 @@ fun NoKnownPinFindTownHallBottomSheetContent(
                 ) {
                     TextAndIcon(
                         modifier = Modifier,
-                        textValue = stringResource(R.string.pid_issuance_sheet_eid_pin_not_set_sec_button),
+                        textValue = stringResource(R.string.pid_issuance_sheet_eID_PIN_not_set_sec_button),
                         textConfig = TextConfig(
                             style = ThemeTextStyles.onSecondaryButton,
                             color = ThemeColors.onSecondaryButton

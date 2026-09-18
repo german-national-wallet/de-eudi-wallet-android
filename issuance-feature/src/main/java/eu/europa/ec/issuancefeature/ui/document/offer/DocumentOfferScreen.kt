@@ -185,7 +185,7 @@ private fun DocumentOfferLayout(
                             onClick = onAddClicked
                         )
                     ) {
-                        Text(text = stringResource(R.string.eaa_issuance_eaa_info_prim_button_no_code))
+                        Text(text = stringResource(R.string.eaa_issuance_eaa_info_prim_button))
                     }
                 }
             }

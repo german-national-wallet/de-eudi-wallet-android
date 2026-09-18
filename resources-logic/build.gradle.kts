@@ -35,4 +35,6 @@ dependencies {
     api(libs.androidx.compose.material.icons.extended)
     api(libs.androidx.compose.material3.windowSizeClass)
     api(libs.material)
+    api(libs.media3.ui)
+    api(libs.media3.exoplayer)
 }
