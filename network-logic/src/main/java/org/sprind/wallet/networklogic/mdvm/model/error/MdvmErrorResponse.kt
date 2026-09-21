@@ -16,15 +16,17 @@
 
 package org.sprind.wallet.networklogic.mdvm.model.error
 
+import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+import org.sprind.wallet.networklogic.common.model.WithTraceId
 
 @Serializable
 data class MdvmErrorResponse(
     val code: String,
     val description: String? = null,
     val timestamp: String? = null,
-    val trace_id: String? = null,
-)
+    @SerialName("trace_id") val traceId: String? = null,
+): WithTraceId<MdvmErrorResponse> {
+    override fun withTraceId(traceId: String?): MdvmErrorResponse = copy(traceId = traceId)
 
-internal fun MdvmErrorResponse.withTraceId(traceId: String?): MdvmErrorResponse =
-    this.copy(trace_id = traceId)
+}

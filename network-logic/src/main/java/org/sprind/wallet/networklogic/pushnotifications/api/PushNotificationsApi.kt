@@ -21,7 +21,7 @@ import org.sprind.wallet.networklogic.common.HttpMessageSigningApiFactory
 import org.sprind.wallet.networklogic.pushnotifications.model.PushNotificationsApiResult
 import org.sprind.wallet.networklogic.pushnotifications.model.PushNotificationsChallengeResponse
 import org.sprind.wallet.networklogic.pushnotifications.model.PushNotificationsRegisterRequest
-import org.sprind.wallet.networklogic.pushnotifications.model.toPushNotificationsApiResult
+import org.sprind.wallet.networklogic.pushnotifications.extensions.toPushNotificationsApiResult
 import retrofit2.Response
 import retrofit2.http.Body
 import retrofit2.http.DELETE

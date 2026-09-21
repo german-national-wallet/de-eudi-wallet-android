@@ -23,6 +23,7 @@ import okhttp3.ResponseBody.Companion.toResponseBody
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Test
+import org.sprind.wallet.networklogic.common.extensions.traceId
 import org.sprind.wallet.networklogic.trace.CLIENT_TRACE_ID_HEADER
 import retrofit2.Response
 

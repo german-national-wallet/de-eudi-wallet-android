@@ -97,7 +97,7 @@ class WalletRegistrationInteractorTest {
 
     @Test
     fun `keeps the MDVM error code so it can be shown to the user`() = runTest {
-        val mdvmError = MdvmErrorResponse(code = "ANDROID_INTEGRITY_FAILURE", trace_id = TRACE_ID)
+        val mdvmError = MdvmErrorResponse(code = "ANDROID_INTEGRITY_FAILURE", traceId = TRACE_ID)
         whenever(mdvmInteractor.mdvmRegistration())
             .thenReturn(ApiResult.Failure(mdvmError.toMdvmError()))
 

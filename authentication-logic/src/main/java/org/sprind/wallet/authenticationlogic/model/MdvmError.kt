@@ -35,7 +35,7 @@ data class MdvmError(
 ) {
     init { require(type.errorSource.isServer == (serverResponse != null)) }
     val code: String get() = type.code
-    val traceId: String? get() = serverResponse?.trace_id
+    val traceId: String? get() = serverResponse?.traceId
 }
 
 typealias MdvmResult<T> = ApiResult<T, MdvmError>

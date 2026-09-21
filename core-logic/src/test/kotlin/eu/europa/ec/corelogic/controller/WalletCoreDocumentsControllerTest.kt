@@ -211,28 +211,12 @@ class WalletCoreDocumentsControllerTest {
     }
 
     @Test
-    fun `Given missing document then reissueDocument returns metadata failure`() = coroutineRule.runTest {
-        whenever(eudiWallet.getDocumentById("missing-doc")).thenReturn(null)
-
-        subject.reissueDocument(documentId = "missing-doc").runFlowTest {
-            val state = awaitItem()
-            assertTrue(state is ReissueDocumentPartialState.Failure)
-            val failure = state as ReissueDocumentPartialState.Failure
-            assertEquals(
-                "resourceProvider's genericErrorMessage",
-                failure.errorMessage,
-            )
-            cancelAndIgnoreRemainingEvents()
-        }
-    }
-
-    @Test
     fun `Given reissue authorization exception then reissueDocument forwards upstream reauth message`() =
         coroutineRule.runTest {
             val issuedDocument = mock(IssuedDocument::class.java)
-            whenever(eudiWallet.getDocumentById("doc-1")).thenReturn(issuedDocument)
             // PID document → the attested re-issuance path (WIA required by its /token endpoint).
             whenever(issuedDocument.format).thenReturn(MsoMdocFormat("eu.europa.ec.eudi.pid.1"))
+            whenever(issuedDocument.id).thenReturn("doc-1")
             stubWalletAttestation()
 
             doAnswer { invocation ->
@@ -249,7 +233,7 @@ class WalletCoreDocumentsControllerTest {
                 onIssueEvent = any()
             )
 
-            subject.reissueDocument(documentId = "doc-1")
+            subject.reissueDocument(document = issuedDocument)
                 .runFlowTest {
                     val first = awaitItem()
                     val failure = when (first) {
@@ -268,9 +252,9 @@ class WalletCoreDocumentsControllerTest {
     fun `Given reissue failure with unauthorized message then reissueDocument forwards unauthorized message`() =
         coroutineRule.runTest {
             val issuedDocument = mock(IssuedDocument::class.java)
-            whenever(eudiWallet.getDocumentById("doc-2")).thenReturn(issuedDocument)
             // PID document → the attested re-issuance path (WIA required by its /token endpoint).
             whenever(issuedDocument.format).thenReturn(MsoMdocFormat("eu.europa.ec.eudi.pid.1"))
+            whenever(issuedDocument.id).thenReturn("doc-2")
             stubWalletAttestation()
 
             doAnswer { invocation ->
@@ -287,7 +271,7 @@ class WalletCoreDocumentsControllerTest {
                 onIssueEvent = any()
             )
 
-            subject.reissueDocument(documentId = "doc-2")
+            subject.reissueDocument(document = issuedDocument)
                 .runFlowTest {
                     val first = awaitItem()
                     val failure = when (first) {

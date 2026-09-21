@@ -87,8 +87,8 @@ class ReissueLowBatchDocumentsFlowTest {
 
             val states = runFlow().toList()
 
-            verify(documentsController).reissueDocument("pid-mdoc")
-            verify(documentsController).reissueDocument("pid-sdjwt")
+            verify(documentsController).reissueDocument(mdoc)
+            verify(documentsController).reissueDocument(sdJwt)
             assertTrue(states.last() is PresentationLoadingReissuePartialState.Success)
         }
 
@@ -105,8 +105,8 @@ class ReissueLowBatchDocumentsFlowTest {
 
             runFlow().toList()
 
-            verify(documentsController).reissueDocument("pid-sdjwt")
-            verify(documentsController).reissueDocument("pid-mdoc")
+            verify(documentsController).reissueDocument(sdJwt)
+            verify(documentsController).reissueDocument(mdoc)
         }
 
     @Test
@@ -139,9 +139,9 @@ class ReissueLowBatchDocumentsFlowTest {
 
             runFlow().toList()
 
-            verify(documentsController).reissueDocument("pid-sdjwt")
-            verify(documentsController).reissueDocument("pid-mdoc")
-            verify(documentsController, never()).reissueDocument("diploma")
+            verify(documentsController).reissueDocument(sdJwt)
+            verify(documentsController).reissueDocument(mdoc)
+            verify(documentsController, never()).reissueDocument(diploma)
         }
 
     @Test
@@ -151,12 +151,12 @@ class ReissueLowBatchDocumentsFlowTest {
             whenever(presentationController.disclosedDocuments)
                 .thenReturn(mutableListOf(disclosed("diploma")))
             whenever(documentsController.getAllIssuedDocuments()).thenReturn(listOf(diploma))
-            whenever(documentsController.reissueDocument("diploma"))
+            whenever(documentsController.reissueDocument(diploma))
                 .thenReturn(flowOf(ReissueDocumentPartialState.InProgress))
 
             runFlow().toList()
 
-            verify(documentsController).reissueDocument("diploma")
+            verify(documentsController).reissueDocument(diploma)
         }
 
     @Test
@@ -167,15 +167,15 @@ class ReissueLowBatchDocumentsFlowTest {
             whenever(presentationController.disclosedDocuments)
                 .thenReturn(mutableListOf(disclosed("pid-sdjwt")))
             whenever(documentsController.getAllIssuedDocuments()).thenReturn(listOf(sdJwt, mdoc))
-            whenever(documentsController.reissueDocument("pid-sdjwt"))
+            whenever(documentsController.reissueDocument(sdJwt))
                 .thenReturn(flowOf(ReissueDocumentPartialState.Failure("boom")))
-            whenever(documentsController.reissueDocument("pid-mdoc"))
+            whenever(documentsController.reissueDocument(mdoc))
                 .thenReturn(flowOf(ReissueDocumentPartialState.Success(listOf("pid-mdoc-new"))))
 
             val states = runFlow().toList()
 
-            verify(documentsController).reissueDocument("pid-sdjwt")
-            verify(documentsController).reissueDocument("pid-mdoc")
+            verify(documentsController).reissueDocument(sdJwt)
+            verify(documentsController).reissueDocument(mdoc)
             val failure = states.last() as PresentationLoadingReissuePartialState.Failure
             assertTrue(failure.error.contains("pid-sdjwt"), "expected the failing id, got: ${failure.error}")
             assertTrue(failure.error.contains("boom"), "expected the upstream message, got: ${failure.error}")

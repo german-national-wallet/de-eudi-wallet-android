@@ -16,22 +16,7 @@
 
 package org.sprind.wallet.networklogic.pushnotifications.model
 
-import com.google.gson.Gson
 import org.sprind.wallet.networklogic.common.model.ApiResult
-import org.sprind.wallet.networklogic.utils.traceId
-import retrofit2.Response
 
 /** Result type for push notifications API calls, carrying [PushNotificationsErrorResponse] on failure. */
 typealias PushNotificationsApiResult<T> = ApiResult<T, PushNotificationsErrorResponse>
-
-internal inline fun <reified T> Response<T>.toPushNotificationsApiResult(): PushNotificationsApiResult<T> {
-    return if (isSuccessful) {
-        val body = body() ?: if (T::class == Unit::class) @Suppress("UNCHECKED_CAST") (Unit as T) else null
-        body?.let { ApiResult.Success(it) } ?: ApiResult.Failure(PushNotificationsErrorResponse(errorCode = "UNKNOWN"))
-    } else {
-        val traceId = traceId()
-        val error = Gson().fromJson(errorBody()?.string(), PushNotificationsErrorResponse::class.java)
-
-        ApiResult.Failure(error.withTraceId(traceId = traceId))
-    }
-}

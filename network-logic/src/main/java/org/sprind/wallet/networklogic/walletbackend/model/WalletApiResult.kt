@@ -16,25 +16,7 @@
 
 package org.sprind.wallet.networklogic.walletbackend.model
 
-import com.google.gson.Gson
-import org.sprind.wallet.networklogic.walletbackend.model.response.WalletErrorResponse
 import org.sprind.wallet.networklogic.common.model.ApiResult
-import org.sprind.wallet.networklogic.utils.traceId
-import org.sprind.wallet.networklogic.walletbackend.model.response.withTraceId
-import retrofit2.Response
+import org.sprind.wallet.networklogic.walletbackend.model.response.WalletErrorResponse
 
 typealias WalletApiResult<T> = ApiResult<T, WalletErrorResponse>
-
-
-internal inline fun <reified T> Response<T>.toWalletApiResult(): WalletApiResult<T> {
-    return if (isSuccessful) {
-        val body = body() ?: if (T::class == Unit::class) @Suppress("UNCHECKED_CAST") (Unit as T) else null
-        body?.let { ApiResult.Success(it) }
-            ?: ApiResult.Failure(WalletErrorResponse(errorCode = "UNKNOWN", traceId = traceId()))
-    } else {
-        val traceId = traceId()
-        val error = Gson().fromJson(errorBody()?.string(), WalletErrorResponse::class.java)
-
-        ApiResult.Failure(error.withTraceId(traceId = traceId))
-    }
-}

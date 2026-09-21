@@ -32,6 +32,10 @@ class AusweisSdkAuthorizationHandler(
 
     private var deferredResult: CompletableDeferred<Result<AuthorizationResponse>>? = null
 
+    fun forgetPendingAuthorization() {
+        _authorizationRequest.resetReplayCache()
+    }
+
     override suspend fun authorize(authorizationUrl: String): Result<AuthorizationResponse> {
         val deferred = CompletableDeferred<Result<AuthorizationResponse>>()
         deferredResult = deferred

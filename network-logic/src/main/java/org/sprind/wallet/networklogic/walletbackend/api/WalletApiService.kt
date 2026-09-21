@@ -23,7 +23,7 @@ import org.sprind.wallet.networklogic.walletbackend.model.request.AttestationReq
 import org.sprind.wallet.networklogic.walletbackend.model.attestation.WalletAttestationResponse
 import org.sprind.wallet.networklogic.walletbackend.model.response.WalletChallengeResponse
 import org.sprind.wallet.networklogic.walletbackend.model.response.WalletRegisterResponse
-import org.sprind.wallet.networklogic.walletbackend.model.toWalletApiResult
+import org.sprind.wallet.networklogic.walletbackend.extensions.toWalletApiResult
 import retrofit2.Response
 import retrofit2.http.Body
 import retrofit2.http.DELETE

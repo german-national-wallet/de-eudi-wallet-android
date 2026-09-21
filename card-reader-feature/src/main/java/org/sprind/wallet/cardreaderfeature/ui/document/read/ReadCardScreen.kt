@@ -34,7 +34,7 @@ import eu.europa.ec.businesslogic.extension.toUri
 import eu.europa.ec.uilogic.component.utils.LifecycleEffect
 import eu.europa.ec.uilogic.component.utils.OneTimeLaunchedEffect
 import eu.europa.ec.uilogic.extension.finish
-import eu.europa.ec.uilogic.navigation.DashboardScreens
+import eu.europa.ec.uilogic.navigation.ModuleRoute
 import org.sprind.wallet.cardreaderfeature.ui.document.privacy.PrivacyPolicyRoute
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.onEach
@@ -132,21 +132,10 @@ private fun handleNavigationEffect(
     navController: NavController,
 ) {
     when (navigationEffect) {
-        is Effect.Navigation.Pop -> {
-            navController.navigate(navigationEffect.screenRoute) {
-                popUpTo(DashboardScreens.Dashboard.screenRoute) {
-                    inclusive = navigationEffect.inclusive
-                }
-            }
-        }
+        is Effect.Navigation.Pop -> navController.leaveCardReader(navigationEffect.screenRoute)
 
-        is Effect.Navigation.SwitchScreen -> {
-            navController.navigate(navigationEffect.screenRoute) {
-                popUpTo(DashboardScreens.Dashboard.screenRoute) {
-                    inclusive = navigationEffect.inclusive
-                }
-            }
-        }
+        is Effect.Navigation.SwitchScreen ->
+            navController.leaveCardReader(navigationEffect.screenRoute)
 
         is Effect.Navigation.Finish -> context.finish()
         is Effect.Navigation.OpenLink -> {
@@ -159,5 +148,14 @@ private fun handleNavigationEffect(
 
         is Effect.Navigation.NavigateToPrivacyPolicy ->
             navController.navigate(PrivacyPolicyRoute(navigationEffect.url))
+    }
+}
+
+/**
+ * Navigates to [screenRoute], taking the whole card reader off the back stack on the way.
+ */
+private fun NavController.leaveCardReader(screenRoute: String) {
+    navigate(screenRoute) {
+        popUpTo(ModuleRoute.CardReadModule.route) { inclusive = true }
     }
 }

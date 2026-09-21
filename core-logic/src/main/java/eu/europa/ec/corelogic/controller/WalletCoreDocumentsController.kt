@@ -270,11 +270,13 @@ interface WalletCoreDocumentsController {
 
     fun resolveDocumentOffer(offerUri: String): Flow<ResolveDocumentOfferPartialState>
 
-    fun issueDeferredDocument(docId: DocumentId): Flow<IssueDeferredDocumentPartialState>
+    fun issueDeferredDocument(
+        document: DeferredDocument
+    ): Flow<IssueDeferredDocumentPartialState>
 
     // EUDI-added
     fun reissueDocument(
-        documentId: DocumentId
+        document: IssuedDocument
     ): Flow<ReissueDocumentPartialState>
 
     // END EUDI-added
@@ -904,18 +906,18 @@ class WalletCoreDocumentsControllerImpl(
             )
         }
 
-    override fun issueDeferredDocument(docId: DocumentId): Flow<IssueDeferredDocumentPartialState> =
+    override fun issueDeferredDocument(
+        document: DeferredDocument
+    ): Flow<IssueDeferredDocumentPartialState> =
         callbackFlow {
-            (getDocumentById(docId) as? DeferredDocument)?.let { deferredDoc ->
+            val manager = document.issuerMetadata?.credentialIssuerIdentifier
+                ?.let(::getManagerForIssuer)
+                ?: openId4VciManagers.values.firstOrNull()
 
-                val manager = deferredDoc.issuerMetadata?.credentialIssuerIdentifier
-                    ?.let(::getManagerForIssuer)
-                    ?: openId4VciManagers.values.firstOrNull()
+            require(manager != null) { documentErrorMessage }
 
-                require(manager != null) { documentErrorMessage }
-
-                manager.issueDeferredDocument(
-                    deferredDocument = deferredDoc,
+            manager.issueDeferredDocument(
+                deferredDocument = document,
                     executor = null,
                     onIssueResult = { deferredIssuanceResult ->
                         when (deferredIssuanceResult) {
@@ -963,17 +965,10 @@ class WalletCoreDocumentsControllerImpl(
                         }
                     }
                 )
-            } ?: trySendBlocking(
-                IssueDeferredDocumentPartialState.Failed(
-                    documentId = docId,
-                    errorMessage = documentErrorMessage
-                )
-            )
-
             awaitClose()
         }.safeAsync {
             IssueDeferredDocumentPartialState.Failed(
-                documentId = docId,
+                documentId = document.id,
                 errorMessage = it.localizedMessage ?: genericErrorMessage
             )
         }
@@ -1045,16 +1040,8 @@ class WalletCoreDocumentsControllerImpl(
     }
 
     override fun reissueDocument(
-        documentId: DocumentId,
+        document: IssuedDocument,
     ): Flow<ReissueDocumentPartialState> = callbackFlow {
-        val document = getDocumentById(documentId) as? IssuedDocument
-        if (document == null) {
-            sendReissueError(R.string.issuance_generic_error) {
-                "Document not found for reissue: $documentId"
-            }
-            return@callbackFlow
-        }
-
         val issuerId = document.issuerMetadata?.credentialIssuerIdentifier
         val manager = issuerId?.let(::getManagerForIssuer)
             ?: openId4VciManagers.values.firstOrNull()
@@ -1095,18 +1082,18 @@ class WalletCoreDocumentsControllerImpl(
             // on a dead refresh token, and AusweisSdkAuthorizationHandler.authorize() then suspends
             // forever because only ReadCardViewModel drives it. A failure is reported instead.
             manager.reissueDocumentAttested(
-                documentId = documentId,
+                documentId = document.id,
                 walletAttestation = attestationSpec.wbWiaJwt,
                 walletWiaPopPublicKey = attestationSpec.wiWiaPopKeyPair.public,
                 walletWiaPopPrivateKey = attestationSpec.wiWiaPopKeyPair.private,
                 allowAuthorizationFallback = false,
-                onIssueEvent = onIssueEvent(documentId),
+                onIssueEvent = onIssueEvent(document.id),
             )
         } else {
             manager.reissueDocument(
-                documentId = documentId,
+                documentId = document.id,
                 allowAuthorizationFallback = false,
-                onIssueEvent = onIssueEvent(documentId),
+                onIssueEvent = onIssueEvent(document.id),
             )
         }
 

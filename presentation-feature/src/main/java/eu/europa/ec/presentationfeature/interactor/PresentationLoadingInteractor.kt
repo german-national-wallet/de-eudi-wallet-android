@@ -27,14 +27,9 @@ import eu.europa.ec.corelogic.controller.WalletCoreDocumentsController
 import eu.europa.ec.corelogic.controller.WalletCorePartialState
 import eu.europa.ec.corelogic.controller.WalletCorePresentationController
 import eu.europa.ec.corelogic.model.AuthenticationData
-import eu.europa.ec.corelogic.model.isPid
-import eu.europa.ec.corelogic.model.toDocumentIdentifier
-import eu.europa.ec.eudi.wallet.document.IssuedDocument
 import eu.europa.ec.uilogic.BuildConfig
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.mapNotNull
-import org.sprind.wallet.corelogic.controller.ReissueDocumentPartialState
 
 import kotlinx.coroutines.runBlocking
 import java.net.URI
@@ -194,98 +189,3 @@ class PresentationLoadingInteractorImpl(
  */
 internal val REISSUE_TIMEOUT: Duration = 30.seconds
 
-private const val REISSUE_FLOW_LOG_TAG = "reissueLowBatch: "
-
-/**
- * Evaluates the just-presented documents and reissues any whose one-time-use batch has fallen to
- * [eu.europa.ec.corelogic.model.DocumentIdentifier.minAvailableCredentials] or fewer.
- *
- * A PID is the exception: its two formats are refreshed as a unit, see below.
- *
- * Shared by both presentation interactors because the flow completes on different screens depending
- * on the credential's secure area: PID presentations (RWSCA/PIN, no device auth) finish on the
- * request screen, while presentations needing an Android Keystore unlock finish on the loading
- * screen. Both must be able to trigger the refresh while the rWSCA PIN session is still open.
- */
-internal fun reissueLowBatchDocumentsFlow(
-    walletCorePresentationController: WalletCorePresentationController,
-    walletCoreDocumentsController: WalletCoreDocumentsController,
-    logController: LogController,
-): Flow<PresentationLoadingReissuePartialState> =
-    flow {
-        // early return in case we haven't presented anything
-        if (walletCorePresentationController.disclosedDocuments.isNullOrEmpty()) {
-            emit(PresentationLoadingReissuePartialState.NotNeeded)
-            return@flow
-        }
-
-        val issuedDocumentsById = walletCoreDocumentsController.getAllIssuedDocuments()
-            .associateBy { it.id }
-
-        val disclosedDocuments = walletCorePresentationController.disclosedDocuments
-            .orEmpty()
-            .mapNotNull { issuedDocumentsById[it.documentId] }
-
-        val reissuableDocuments = disclosedDocuments
-            .filter { it.hasLowBatch() && it.isEligibleForReissue() }
-            .toMutableSet()
-
-        // Special case: one disclosed document is a PID and any PID is low, we refresh all the PIDs.
-        // A PID is two documents (mdoc + SD-JWT VC) forming one batch, but a presentation discloses
-        // only one format. Rule: refresh as soon as EITHER runs low, and refresh both together —
-        // a format left behind is depleted by presentations that never disclose it.
-        if (disclosedDocuments.any { it.toDocumentIdentifier().isPid }) {
-            val pids = issuedDocumentsById.values.filter { it.toDocumentIdentifier().isPid }
-            if (pids.any { it.hasLowBatch() }) {
-                reissuableDocuments.addAll(pids)
-            }
-        }
-
-        // Nothing reissuable? Return
-        if (reissuableDocuments.isEmpty()) {
-            emit(PresentationLoadingReissuePartialState.NotNeeded)
-            return@flow
-        }
-
-        // Every document is attempted even when an earlier one failed: bailing early would leave a
-        // PID's sibling format depleted until some later presentation happened to disclose it.
-        val failures = mutableListOf<String>()
-        reissuableDocuments.forEach { document ->
-            walletCoreDocumentsController.reissueDocument(
-                documentId = document.id,
-            ).collect { reissueState ->
-                when (reissueState) {
-                    is ReissueDocumentPartialState.InProgress -> {
-                        logController.d(REISSUE_FLOW_LOG_TAG) { "Re-issuing ${document.id}" }
-                    }
-
-                    is ReissueDocumentPartialState.Success -> {
-                        logController.d(REISSUE_FLOW_LOG_TAG) { "Re-issued ${document.id}" }
-                    }
-
-                    is ReissueDocumentPartialState.UserAuthRequired -> emit(
-                        PresentationLoadingReissuePartialState.UserAuthenticationRequired(
-                            crypto = reissueState.crypto,
-                            resultHandler = reissueState.resultHandler
-                        )
-                    )
-
-                    is ReissueDocumentPartialState.Failure -> {
-                        failures.add("${document.id}: ${reissueState.errorMessage}")
-                    }
-                }
-            }
-        }
-
-        if (failures.isNotEmpty()) {
-            emit(PresentationLoadingReissuePartialState.Failure(failures.joinToString("; ")))
-        } else {
-            emit(PresentationLoadingReissuePartialState.Success)
-        }
-    }
-
-private fun IssuedDocument.isEligibleForReissue(): Boolean =
-    toDocumentIdentifier().eligibleForReissue
-
-private suspend fun IssuedDocument.hasLowBatch(): Boolean =
-    credentialsCount() <= toDocumentIdentifier().minAvailableCredentials

@@ -18,9 +18,6 @@ package org.sprind.wallet.authenticationlogic.model
 
 import org.sprind.wallet.networklogic.common.NetEntity
 import org.sprind.wallet.networklogic.common.model.ApiResult
-import org.sprind.wallet.networklogic.mdvm.model.error.MdvmErrorResponse
-import org.sprind.wallet.networklogic.mdvm.model.error.MdvmErrorType
-import org.sprind.wallet.networklogic.mdvm.model.error.toMdvmErrorType
 import org.sprind.wallet.networklogic.rwsca.model.error.RwscaErrorResponse
 import org.sprind.wallet.networklogic.rwsca.model.error.RwscaErrorType
 import org.sprind.wallet.networklogic.rwsca.model.error.toRwscaErrorType
@@ -47,7 +44,7 @@ sealed class RwscaError(
     data class FromRwsca(
         val type: RwscaErrorType,
         val serverResponse: RwscaErrorResponse?,
-    ) : RwscaError(type.errorSource, type.code, serverResponse?.trace_id, serverResponse != null)
+    ) : RwscaError(type.errorSource, type.code, serverResponse?.traceId, serverResponse != null)
 
     /**
      * An RwscaError caused by an underlying MDVM operation failing with the given [mdvmError].
@@ -57,7 +54,7 @@ sealed class RwscaError(
     ) : RwscaError(
         originatingEntity = mdvmError.type.errorSource,
         code = mdvmError.type.code,
-        traceId = mdvmError.serverResponse?.trace_id,
+        traceId = mdvmError.serverResponse?.traceId,
         hasServerResponse = mdvmError.serverResponse != null,
     )
 }

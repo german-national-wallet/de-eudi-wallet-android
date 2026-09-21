@@ -56,7 +56,7 @@ class RwscaRegistrationInteractorImplTest {
             code = "PIN_VERIFICATION_FAILED",
             description = "fake description",
             timestamp = "2026-01-01T00:00:00Z",
-            trace_id = "fake-trace-id",
+            traceId = "fake-trace-id",
             tryCounter = 2,
             tryAllowedAfter = null,
         )

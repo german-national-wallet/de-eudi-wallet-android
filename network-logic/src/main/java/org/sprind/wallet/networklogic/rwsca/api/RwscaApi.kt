@@ -28,7 +28,7 @@ import org.sprind.wallet.networklogic.rwsca.model.response.RwscaInitializePinAnd
 import org.sprind.wallet.networklogic.rwsca.model.response.RwscaRegisterResponse
 import org.sprind.wallet.networklogic.rwsca.model.response.RwscaSignDataResponse
 import org.sprind.wallet.networklogic.rwsca.model.response.RwscaStartPinSessionResponse
-import org.sprind.wallet.networklogic.rwsca.model.toRwscaApiResult
+import org.sprind.wallet.networklogic.rwsca.extensions.toRwscaApiResult
 import retrofit2.Response
 import retrofit2.http.Body
 import retrofit2.http.DELETE

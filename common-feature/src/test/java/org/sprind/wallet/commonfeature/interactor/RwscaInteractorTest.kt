@@ -68,14 +68,14 @@ class RwscaInteractorTest {
         code = "MDVM_ERROR",
         description = "fake description",
         timestamp = "2026-01-01T00:00:00Z",
-        trace_id = "fake-trace-id",
+        traceId = "fake-trace-id",
     )
     private val mdvmError = mdvmErrorResponse.toMdvmError()
     private val rwscaErrorResponse = RwscaErrorResponse(
         code = "RWSCA_ERROR",
         description = "fake description",
         timestamp = "2026-01-01T00:00:00Z",
-        trace_id = "fake-trace-id",
+        traceId = "fake-trace-id",
         tryCounter = 3,
         tryAllowedAfter = "2126-01-01T00:00:00Z",
     )

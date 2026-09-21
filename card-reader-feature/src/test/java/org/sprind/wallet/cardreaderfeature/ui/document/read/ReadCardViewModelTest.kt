@@ -464,6 +464,43 @@ class ReadCardViewModelTest {
     }
 
     @Test
+    fun `when the screen asks to be set up again, then one card is still answered once`() =
+        runTest {
+            val pin = "123456"
+            doNothing().`when`(cardReaderInteractor).providePin(UserPinImpl(pin))
+
+            val sdkFlow = MutableSharedFlow<WorkflowEvent>()
+            whenever(cardReaderInteractor.eidFlow).thenReturn(sdkFlow)
+
+            viewModel.setEvent(Event.Init)
+            // The screen is set up a second time while the first listener is still running.
+            viewModel.setEvent(Event.Init)
+            viewModel.setEvent(Event.OnContinueClickOnboardingPin)
+            viewModel.typeIntoCodeField(pin)
+            viewModel.setEvent(Event.OnContinueClickCardPin)
+
+            sdkFlow.emit(WorkflowEvent.CardRecognized)
+
+            // Two listeners would send the card two PINs for the one the user typed.
+            verify(cardReaderInteractor, times(1)).providePin(UserPinImpl(pin))
+        }
+
+    @Test
+    fun `when the flow is left, then the workflow no longer moves the screen`() = runTest {
+        val sdkFlow = MutableSharedFlow<WorkflowEvent>()
+        whenever(cardReaderInteractor.eidFlow).thenReturn(sdkFlow)
+
+        viewModel.setEvent(Event.Init)
+        viewModel.setEvent(Event.Close)
+        val routeOnLeaving = viewModel.viewState.value.currentRoute
+
+        sdkFlow.emit(WorkflowEvent.PinRequested(pinRetryCounter = 2))
+
+        // A reader left behind must not go on answering a workflow the user has walked away from.
+        assertEquals(routeOnLeaving, viewModel.viewState.value.currentRoute)
+    }
+
+    @Test
     fun `when AuthenticationCompleted, then Completed state, effect to SwitchScreen, and cancel identification`() =
         runTest {
             val flow =
@@ -701,6 +738,64 @@ class ReadCardViewModelTest {
         coroutineRule.testScope.testScheduler.runCurrent()
 
         assertEquals(CardReaderRoute.ENTER_CAN_SUCCESS, viewModel.viewState.value.currentRoute)
+    }
+
+    @Test
+    fun `when the card asks for the pin during the can read, then the can is reported as correct`() =
+        runTest {
+            whenever(resourceProvider.getString(R.string.pid_issuance_sheet_eID_PIN_not_set_title))
+                .thenReturn("info")
+
+            val flow = MutableSharedFlow<WorkflowEvent>(extraBufferCapacity = 16)
+            whenever(cardReaderInteractor.eidFlow).thenReturn(flow)
+
+            viewModel.setEvent(Event.Init)
+            coroutineRule.testScope.testScheduler.runCurrent()
+            viewModel.setEvent(Event.OnEnterCanButtonPress)
+            viewModel.typeIntoCodeField("123456")
+            viewModel.setEvent(Event.OnCanUpdate)
+            viewModel.setEvent(Event.OnStartScanningClick)
+
+            // The card only asks for the PIN once it has taken the CAN, so this is the CAN read
+            // succeeding: nothing here may say it failed.
+            flow.emit(WorkflowEvent.PinRequested(1))
+            coroutineRule.testScope.testScheduler.runCurrent()
+
+            with(viewModel.viewState.value) {
+                assertEquals(CardReaderRoute.ENTER_CAN_SUCCESS, currentRoute)
+                assertNull(scanStatus)
+                assertNull(pinState.supportingText)
+                assertFalse(isLoading)
+            }
+        }
+
+    @Test
+    fun `when the can is refused during the read, then the entry comes back naming it`() = runTest {
+        whenever(resourceProvider.getString(R.string.pid_issuance_sheet_can_title))
+            .thenReturn("bottomSheetInfoText")
+        whenever(resourceProvider.getString(R.string.pid_issuance_can_entry_error_wrong_can))
+            .thenReturn("wrongCan")
+
+        val flow = MutableSharedFlow<WorkflowEvent>(extraBufferCapacity = 16)
+        whenever(cardReaderInteractor.eidFlow).thenReturn(flow)
+
+        viewModel.setEvent(Event.Init)
+        coroutineRule.testScope.testScheduler.runCurrent()
+        viewModel.setEvent(Event.OnEnterCanButtonPress)
+        viewModel.typeIntoCodeField("123456")
+        viewModel.setEvent(Event.OnCanUpdate)
+        viewModel.setEvent(Event.OnStartScanningClick)
+
+        // Asking for the CAN again, with one already sent, is the card refusing it.
+        flow.emit(WorkflowEvent.EnterCan)
+        coroutineRule.testScope.testScheduler.runCurrent()
+
+        with(viewModel.viewState.value) {
+            assertEquals(CardReaderRoute.ENTER_CAN, currentRoute)
+            assertEquals("wrongCan", pinState.supportingText)
+            assertNull(scanStatus)
+            assertFalse(isLoading)
+        }
     }
 
     @Test
@@ -1085,7 +1180,7 @@ class ReadCardViewModelTest {
         }
 
     @Test
-    fun `when the code is refused during a read, then the scan reports it without leaving the screen`() =
+    fun `when the code is refused during a read, then the code entry comes back with the warning`() =
         coroutineRule.runTest {
             viewModel.setEvent(Event.Init)
             viewModel.goToNfcPromptForEidPin()
@@ -1094,33 +1189,45 @@ class ReadCardViewModelTest {
             workflowEventsFlow.value = WorkflowEvent.PinRequested(pinRetryCounter = 2)
 
             with(viewModel.viewState.value) {
-                assertEquals(CardScanStatus.FAILED, scanStatus)
-                // The screen does not move under the user while the card is still on the sensor.
-                assertEquals(CardReaderRoute.NFC_SCAN_EID_PIN, currentRoute)
-                assertEquals(ReadCardScreenStep.EnterPin, codeRetry?.step)
-            }
-        }
-
-    @Test
-    fun `when a refused read is given up on, then the code entry comes back with the warning`() =
-        coroutineRule.runTest {
-            viewModel.setEvent(Event.Init)
-            viewModel.goToNfcPromptForEidPin()
-            viewModel.setEvent(Event.OnStartScanningClick)
-            workflowEventsFlow.value = WorkflowEvent.PinRequested(pinRetryCounter = 2)
-
-            viewModel.setEvent(Event.OnCancelScanClick)
-
-            with(viewModel.viewState.value) {
+                // Only the entry screen can do anything about a refused code, so the read ends
+                // there by itself rather than on a sheet the user has to cancel.
                 assertEquals(CardReaderRoute.ENTER_PIN, currentRoute)
                 assertEquals("wrong pin", pinState.supportingText)
                 assertNull(scanStatus)
-                assertNull(codeRetry)
+                assertFalse(viewModel.viewState.value.isLoading)
             }
         }
 
     @Test
-    fun `when a running read is given up on, then the scan instructions come back`() =
+    fun `when the entry screen reports an untouched field, then the warning stays`() =
+        coroutineRule.runTest {
+            viewModel.setEvent(Event.Init)
+            viewModel.goToNfcPromptForEidPin()
+            viewModel.setEvent(Event.OnStartScanningClick)
+            workflowEventsFlow.value = WorkflowEvent.PinRequested(pinRetryCounter = 2)
+
+            // The field reports its contents as it is created, with nothing typed into it yet.
+            viewModel.setEvent(Event.OnPinUpdate)
+
+            assertEquals("wrong pin", viewModel.viewState.value.pinState.supportingText)
+        }
+
+    @Test
+    fun `when a digit is typed after a refusal, then the warning goes`() =
+        coroutineRule.runTest {
+            viewModel.setEvent(Event.Init)
+            viewModel.goToNfcPromptForEidPin()
+            viewModel.setEvent(Event.OnStartScanningClick)
+            workflowEventsFlow.value = WorkflowEvent.PinRequested(pinRetryCounter = 2)
+
+            viewModel.typeIntoCodeField("1")
+            viewModel.setEvent(Event.OnPinUpdate)
+
+            assertNull(viewModel.viewState.value.pinState.supportingText)
+        }
+
+    @Test
+    fun `when a read is given up on, then the scan instructions come back`() =
         coroutineRule.runTest {
             viewModel.goToNfcPromptForEidPin()
             viewModel.setEvent(Event.OnStartScanningClick)
@@ -1148,7 +1255,6 @@ class ReadCardViewModelTest {
                 // The simulator is never asked for a code, so the re-request says nothing about the
                 // one that was entered and must not flash the entry screen over the read.
                 assertEquals(CardReaderRoute.NFC_SCAN_EID_PIN, currentRoute)
-                assertNull(codeRetry)
                 assertEquals(CardScanStatus.READY, scanStatus)
             }
         }

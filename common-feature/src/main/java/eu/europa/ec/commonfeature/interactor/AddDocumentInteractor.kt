@@ -204,6 +204,9 @@ class AddDocumentInteractorImpl(
     override fun cancelIssuance() {
         issuanceJob?.cancel()
         issuanceJob = null
+        // The authorization this issuance was waiting on goes with it; see
+        // AusweisSdkAuthorizationHandler.forgetPendingAuthorization.
+        authorizationHandler.forgetPendingAuthorization()
     }
 
     override fun resumeOpenId4VciWithAuthorization(uri: String) {

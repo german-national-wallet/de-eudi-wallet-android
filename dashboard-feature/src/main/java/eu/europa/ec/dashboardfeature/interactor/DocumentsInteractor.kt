@@ -23,6 +23,7 @@ import eu.europa.ec.dashboardfeature.controllers.FiltersController
 import eu.europa.ec.dashboardfeature.model.FilterableAttributes
 import eu.europa.ec.dashboardfeature.model.FilterableDocumentItem
 import eu.europa.ec.dashboardfeature.model.FilterableDocuments
+import eu.europa.ec.eudi.wallet.document.DeferredDocument
 import eu.europa.ec.eudi.wallet.document.DocumentId
 import eu.europa.ec.eudi.wallet.document.IssuedDocument
 import eu.europa.ec.eudi.wallet.document.UnsignedDocument
@@ -338,7 +339,21 @@ class DocumentsInteractorImpl(
         dispatcher: CoroutineDispatcher = Dispatchers.IO,
     ): DocumentInteractorRetryIssuingDeferredDocumentPartialState {
         return withContext(dispatcher) {
-            walletCoreDocumentsController.issueDeferredDocument(deferredDocumentId)
+            // The deferred flow is keyed by DocumentId (it arrives from the issuance
+            // DeferredSuccess state); resolve it to the stored DeferredDocument before
+            // delegating, since the controller expects the document itself.
+            val document = walletCoreDocumentsController.getDocumentById(deferredDocumentId)
+            val deferredDocument = document as? DeferredDocument
+            if (deferredDocument == null) {
+                val notFound =
+                    DocumentInteractorRetryIssuingDeferredDocumentPartialState.Failure(
+                        documentId = deferredDocumentId,
+                        errorMessage = genericErrorMsg
+                    )
+                return@withContext notFound
+            }
+
+            walletCoreDocumentsController.issueDeferredDocument(deferredDocument)
                 .map { result ->
                     when (result) {
                         is IssueDeferredDocumentPartialState.Failed -> {

@@ -53,6 +53,7 @@ import eu.europa.ec.uilogic.navigation.DashboardScreens
 import eu.europa.ec.uilogic.navigation.IssuanceScreens
 import eu.europa.ec.uilogic.navigation.helper.generateComposableArguments
 import eu.europa.ec.uilogic.navigation.helper.generateComposableNavigationLink
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.launch
@@ -112,6 +113,15 @@ class ReadCardViewModel(
      * Six digits covers both, since a transport PIN is shorter.
      */
     private val replayCode = CodeEntryBuffer(CodeLength.EID_PIN)
+
+    /**
+     * The two collectors bridging the eID workflow and the authorization handler to this screen.
+     * Held so that both starting them again and leaving the flow can stop the running ones: the
+     * workflow is process-wide and outlives the screen, so a reader that has been left behind
+     * would go on answering it alongside the one the user is actually looking at.
+     */
+    private var workflowSubscription: Job? = null
+    private var authorizationSubscription: Job? = null
     private var isWorkflowControllerReady = false
 
     private var scanCompletion: ScanCompletion? = null
@@ -252,7 +262,12 @@ class ReadCardViewModel(
             }
 
             is Event.OnPinUpdate -> {
-                if (viewState.value.pinState.supportingText != null) {
+                // The field reports its contents once as it is created, before the user has
+                // touched it, so an empty entry is not the warning being answered — taking it for
+                // one is what wiped the wrong-PIN warning in the instant the entry screen came
+                // back with it. The first digit typed is what says the user has read it.
+                val entered = viewState.value.pinState
+                if (entered.supportingText != null && entered.buffer.length > 0) {
                     setState { copy(pinState = pinState.copy(supportingText = null)) }
                 }
             }
@@ -435,7 +450,6 @@ class ReadCardViewModel(
         setState {
             copy(
                 scanStatus = CardScanStatus.READY,
-                codeRetry = null,
                 readingProgress = null,
                 isBottomSheetOpen = false,
                 isLoading = false,
@@ -449,22 +463,7 @@ class ReadCardViewModel(
     }
 
     private fun cancelScan() {
-        val codeRetry = viewState.value.codeRetry
-        if (codeRetry == null) {
-            setState { copy(scanStatus = null, readingProgress = null) }
-            return
-        }
-
-        transitionTo(codeRetry.step) {
-            copy(
-                bottomSheetTitle = resourceProvider.getString(R.string.pid_issuance_sheet_eID_PIN_not_set_title),
-                pinState = pinState.cleared(
-                    capacity = codeRetry.step.codeLength(),
-                    supportingText = codeRetry.supportingText,
-                ),
-                isLoading = false,
-            )
-        }
+        setState { copy(scanStatus = null, readingProgress = null) }
     }
 
     private fun continueAfterScan() {
@@ -639,15 +638,31 @@ class ReadCardViewModel(
         )
     }
 
+    /**
+     * Stops listening to the eID workflow. Leaving the flow is the end of this screen's interest in
+     * it, whether or not the ViewModel itself is torn down with the screen.
+     */
+    private fun unsubscribeFromCardReaderInteractorEvents() {
+        workflowSubscription?.cancel()
+        workflowSubscription = null
+        authorizationSubscription?.cancel()
+        authorizationSubscription = null
+    }
+
     private fun subscribeToCardReaderInteractorEvents(showLoader: Boolean = true) {
-        viewModelScope.launch {
+        // Both the workflow and the authorization handler are process-wide, so listening to them
+        // twice means handling every event twice — two PINs sent to the card for the one the user
+        // typed. Whatever asked for a subscription, it replaces the one already running.
+        unsubscribeFromCardReaderInteractorEvents()
+
+        authorizationSubscription = viewModelScope.launch {
             addDocumentsInteractor.authorizationHandler.authorizationRequest.collect { url ->
                 logController.d(logTag) { "Authorization requested via Handler: $url" }
                 requestAuthentication(url)
             }
         }
 
-        viewModelScope.launch {
+        workflowSubscription = viewModelScope.launch {
             cardReaderInteractor.eidFlow.onStart {
                 setState { copy(isLoading = showLoader) }
             }.collect { event ->
@@ -693,7 +708,6 @@ class ReadCardViewModel(
                             setState {
                                 copy(
                                     scanStatus = CardScanStatus.SUCCESS,
-                                    codeRetry = null,
                                     isLoading = false,
                                     readingProgress = null,
                                     pinState = pinState.cleared(),
@@ -836,7 +850,6 @@ class ReadCardViewModel(
                             setState {
                                 copy(
                                     scanStatus = CardScanStatus.SUCCESS,
-                                    codeRetry = null,
                                     isLoading = false,
                                     readingProgress = null,
                                     pinState = pinState.cleared(),
@@ -858,32 +871,34 @@ class ReadCardViewModel(
                     }
 
                     WorkflowEvent.EnterCan -> {
-                        setState {
-                            copy(
-                                // If eid pin is not requested and directly can is requested, then we refresh the cached pin
-                                pinState = pinState.cleared(CodeLength.CAN).also { replayCode.wipe() },
-                            )
-                        }
-                        val nextStep = if (viewState.value.currentRoute.isInPinEntryStage()) {
+                        // The CAN, not the eID PIN, is what the card is waiting for, so a PIN kept
+                        // for a replay is stale from here on.
+                        replayCode.wipe()
+                        val routeWhenAsked = viewState.value.currentRoute
+                        val nextStep = if (routeWhenAsked.isInPinEntryStage()) {
                             ReadCardScreenStep.PinBlockedError
                         } else {
                             ReadCardScreenStep.EnterCan
                         }
 
-                        // if current step was already EnterCan, show warning message
-                        val pinState =
-                            if (viewState.value.currentRoute == CardReaderRoute.ENTER_CAN) {
-                                viewState.value.pinState.cleared(
-                                    capacity = CodeLength.CAN,
-                                    supportingText = resourceProvider.getString(R.string.pid_issuance_can_entry_error_wrong_can),
-                                )
-                            } else viewState.value.pinState.cleared(CodeLength.CAN)
+                        // Asking for the CAN again while one is already on its way to the card is
+                        // the card refusing it, whether the flow is still on the entry screen or
+                        // has moved on to the read.
+                        val warning = if (routeWhenAsked.isInCanEntryStage()) {
+                            resourceProvider.getString(R.string.pid_issuance_can_entry_error_wrong_can)
+                        } else {
+                            null
+                        }
 
                         transitionTo(nextStep) {
                             copy(
                                 isLoading = false,
+                                readingProgress = null,
                                 bottomSheetTitle = resourceProvider.getString(R.string.pid_issuance_sheet_can_title),
-                                pinState = pinState,
+                                pinState = pinState.cleared(
+                                    capacity = CodeLength.CAN,
+                                    supportingText = warning,
+                                ),
                             )
                         }
                     }
@@ -1004,7 +1019,7 @@ class ReadCardViewModel(
         val enteringNfcPrompt = step.toRoute().isNfcPrompt
         setState {
             val next = withStep(step = step, flowType = flowType)
-                .copy(scanStatus = null, codeRetry = null)
+                .copy(scanStatus = null)
                 .update()
             // Reset any progress from a previous read so the next one starts clean.
             if (enteringNfcPrompt) next.copy(readingProgress = null) else next
@@ -1045,44 +1060,49 @@ class ReadCardViewModel(
         replayCode.wipe()
         if (currentState.scanStatus != null && currentState.eidCardType.isVirtual) return
 
+        when (currentState.currentRoute) {
+            CardReaderRoute.NFC_SCAN_CAN -> {
+                transitionTo(ReadCardScreenStep.EnterCanSuccess) {
+                    copy(
+                        bottomSheetTitle = resourceProvider.getString(R.string.pid_issuance_sheet_eID_PIN_not_set_title),
+                        pinState = pinState.cleared(CodeLength.EID_PIN),
+                        isLoading = false,
+                        readingProgress = null,
+                    )
+                }
+                return
+            }
+
+            // The same request, already acted on: the CAN success screen is waiting for the user to
+            // move on to the PIN by hand, and a repeat must not move it or blame a code for it.
+            CardReaderRoute.ENTER_CAN_SUCCESS -> return
+
+            else -> Unit
+        }
+
         val pinStateWarning = if (pinRetryCounter == 1) {
             resourceProvider.getString(R.string.pid_issuance_puk_entry_warning_wrong_puk_1)
         } else {
             resourceProvider.getString(R.string.pid_presentation_wallet_pin_entry_error_wrong_pin)
         }
-        val fallbackStep = pinRequestedFallbackStep(currentState.currentRoute)
+        val retryStep = pinRetryStep(currentState.currentRoute)
 
-        if (currentState.scanStatus != null) {
-            setState {
-                copy(
-                    scanStatus = CardScanStatus.FAILED,
-                    codeRetry = CardReaderCodeRetry(
-                        step = fallbackStep,
-                        supportingText = pinStateWarning,
-                    ),
-                    isLoading = false,
-                    readingProgress = null,
-                )
-            }
-            return
-        }
-
-        transitionTo(fallbackStep) {
+        transitionTo(retryStep) {
             copy(
                 bottomSheetTitle = resourceProvider.getString(R.string.pid_issuance_sheet_eID_PIN_not_set_title),
                 pinState = pinState.cleared(
-                    capacity = fallbackStep.codeLength(),
+                    capacity = retryStep.codeLength(),
                     supportingText = pinStateWarning,
                 ),
                 isLoading = false,
+                readingProgress = null,
             )
         }
     }
 
-    private fun pinRequestedFallbackStep(currentRoute: CardReaderRoute): ReadCardScreenStep {
+    private fun pinRetryStep(currentRoute: CardReaderRoute): ReadCardScreenStep {
         return when (currentRoute) {
             CardReaderRoute.NFC_SCAN_TRANSPORT_PIN -> ReadCardScreenStep.EnterTransportPin
-            CardReaderRoute.NFC_SCAN_CAN -> ReadCardScreenStep.EnterCanSuccess
             else -> ReadCardScreenStep.EnterPin
         }
     }
@@ -1097,6 +1117,10 @@ class ReadCardViewModel(
             this != CardReaderRoute.ENTER_CAN &&
             this != CardReaderRoute.NFC_SCAN_CAN &&
             this != CardReaderRoute.ENTER_CAN_SUCCESS
+    }
+
+    private fun CardReaderRoute.isInCanEntryStage(): Boolean {
+        return this == CardReaderRoute.ENTER_CAN || this == CardReaderRoute.NFC_SCAN_CAN
     }
 
     private fun handleBackNavigation() {
@@ -1135,6 +1159,7 @@ class ReadCardViewModel(
     }
 
     private fun exitToDashboard() {
+        unsubscribeFromCardReaderInteractorEvents()
         wipeEnteredCodes()
         setState {
             copy(
@@ -1155,7 +1180,7 @@ class ReadCardViewModel(
                             "flowType" to flowType
                         ),
                     )
-                ), inclusive = false
+                )
             )
         }
     }
@@ -1195,7 +1220,6 @@ class ReadCardViewModel(
                     )
                 ),
                 redirectUrl = redirectUrl,
-                inclusive = false
             )
         }
     }
@@ -1213,7 +1237,6 @@ class ReadCardViewModel(
                         )
                     )
                 ),
-                inclusive = false
             )
         }
     }

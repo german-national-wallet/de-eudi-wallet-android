@@ -16,7 +16,9 @@
 
 package org.sprind.wallet.networklogic.pushnotifications.model
 
-import com.google.gson.annotations.SerializedName
+import kotlinx.serialization.SerialName
+import kotlinx.serialization.Serializable
+import org.sprind.wallet.networklogic.common.model.WithTraceId
 
 /**
  * Error response body returned by push notifications endpoints on failure.
@@ -26,14 +28,15 @@ import com.google.gson.annotations.SerializedName
  * @property timestamp Optional timestamp of the error.
  * @property traceId Optional trace ID for correlating with backend logs.
  */
+@Serializable
 data class PushNotificationsErrorResponse(
-    @SerializedName("code")
+    @SerialName("code")
     val errorCode: String,
     val description: String? = null,
     val timestamp: String? = null,
-    @SerializedName("trace_id")
+    @SerialName("trace_id")
     val traceId: String? = null,
-)
-
-internal fun PushNotificationsErrorResponse.withTraceId(traceId: String?): PushNotificationsErrorResponse =
-    this.copy(traceId = traceId)
+) : WithTraceId<PushNotificationsErrorResponse> {
+    override fun withTraceId(traceId: String?): PushNotificationsErrorResponse =
+        this.copy(traceId = traceId)
+}

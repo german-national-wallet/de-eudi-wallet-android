@@ -71,7 +71,7 @@ class WalletRegistrationControllerTest {
     @Test
     fun `getChallenge - emits Failure on API failure`() = runTest {
         //When
-        val response = ApiResult.Failure(WalletErrorResponse("errorCode", "traceId"))
+        val response = ApiResult.Failure(WalletErrorResponse(errorCode = "errorCode", traceId = "traceId"))
         whenever(apiClient.getChallenge()).thenReturn(response)
         // Then
         subject.getChallenge().test {
@@ -169,7 +169,7 @@ class WalletRegistrationControllerTest {
         val authChallenge = "test_challenge"
         val mdvmToken = "test_mdvm_token"
 
-        val response = WalletErrorResponse("errorCode", "traceId")
+        val response = WalletErrorResponse(errorCode = "errorCode", traceId = "traceId")
         val result = ApiResult.Failure(response)
 
         whenever(apiClient.signingApi(mdvmAuthPrvk)).thenReturn(signingWalletApiClient)

@@ -16,17 +16,19 @@
 
 package org.sprind.wallet.networklogic.rwsca.model.error
 
+import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+import org.sprind.wallet.networklogic.common.model.WithTraceId
 
 @Serializable
 data class RwscaErrorResponse(
     val code: String,
     val description: String? = null,
     val timestamp: String? = null, // date-time
-    val trace_id: String? = null,
-    val tryCounter: Int? = null, // int32
-    val tryAllowedAfter: String? = null, // date-time
-)
+    @SerialName("trace_id") val traceId: String? = null,
+    @SerialName("try_counter") val tryCounter: Int? = null, // int32
+    @SerialName("try_allowed_after") val tryAllowedAfter: String? = null, // date-time
+): WithTraceId<RwscaErrorResponse> {
+    override fun withTraceId(traceId: String?): RwscaErrorResponse = copy(traceId = traceId)
 
-internal fun RwscaErrorResponse.withTraceId(traceId: String?): RwscaErrorResponse =
-    this.copy(trace_id = traceId)
+}

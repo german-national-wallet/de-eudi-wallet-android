@@ -1,0 +1,38 @@
+/*
+ * Copyright (c) 2026 European Commission
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package org.sprind.wallet.networklogic.pushnotifications.extensions
+
+import org.sprind.wallet.networklogic.common.extensions.toApiResult
+import org.sprind.wallet.networklogic.pushnotifications.model.PushNotificationsApiResult
+import org.sprind.wallet.networklogic.pushnotifications.model.PushNotificationsErrorResponse
+import retrofit2.Response
+
+internal const val UNKNOWN_PUSH_NOTIFICATIONS_ERROR_CODE = "UNKNOWN"
+
+/**
+ * Converts this Retrofit [Response] into a [PushNotificationsApiResult], using
+ * [PushNotificationsErrorResponse] as the error type.
+ *
+ * Delegates to [Response.toApiResult] with a factory that produces a
+ * [PushNotificationsErrorResponse] whose `errorCode` is
+ * [UNKNOWN_PUSH_NOTIFICATIONS_ERROR_CODE]. The response's trace id headers, if present,
+ * are attached to the resulting error via [PushNotificationsErrorResponse.withTraceId].
+ *
+ * @param T The successful body type declared by the Retrofit endpoint.
+ */
+internal inline fun <reified T> Response<T>.toPushNotificationsApiResult(): PushNotificationsApiResult<T> =
+    this.toApiResult { PushNotificationsErrorResponse(errorCode = UNKNOWN_PUSH_NOTIFICATIONS_ERROR_CODE) }

@@ -18,6 +18,7 @@ package eu.europa.ec.dashboardfeature.interactor
 
 import eu.europa.ec.corelogic.model.DeferredDocumentDataDomain
 import eu.europa.ec.eudi.wallet.document.Document
+import eu.europa.ec.eudi.wallet.document.DeferredDocument
 import eu.europa.ec.eudi.wallet.document.DocumentId
 import eu.europa.ec.commonfeature.util.TestsData.mockedPendingMdlUi
 import eu.europa.ec.commonfeature.util.TestsData.mockedPendingPidUi
@@ -377,7 +378,11 @@ class TestDocumentsInteractor {
             val deferredDocuments: Map<DocumentId, FormatType> = mapOf(
                 mockDeferredPendingDocId to mockDeferredPendingType
             )
-            whenever(walletCoreDocumentsController.issueDeferredDocument(mockDeferredPendingDocId))
+            val deferredDocument = mock<DeferredDocument>()
+            whenever(deferredDocument.id).thenReturn(mockDeferredPendingDocId)
+            whenever(walletCoreDocumentsController.getDocumentById(mockDeferredPendingDocId))
+                .thenReturn(deferredDocument)
+            whenever(walletCoreDocumentsController.issueDeferredDocument(deferredDocument))
                 .thenThrow(mockedExceptionWithMessage)
 
             // When
@@ -407,7 +412,11 @@ class TestDocumentsInteractor {
             val deferredDocuments: Map<DocumentId, FormatType> = mapOf(
                 mockDeferredPendingDocId to mockDeferredPendingType
             )
-            whenever(walletCoreDocumentsController.issueDeferredDocument(mockDeferredPendingDocId))
+            val deferredDocument = mock<DeferredDocument>()
+            whenever(deferredDocument.id).thenReturn(mockDeferredPendingDocId)
+            whenever(walletCoreDocumentsController.getDocumentById(mockDeferredPendingDocId))
+                .thenReturn(deferredDocument)
+            whenever(walletCoreDocumentsController.issueDeferredDocument(deferredDocument))
                 .thenThrow(mockedExceptionWithNoMessage)
 
             // When
@@ -437,7 +446,11 @@ class TestDocumentsInteractor {
             val deferredDocuments: Map<DocumentId, FormatType> = mapOf(
                 mockDeferredPendingDocId to mockDeferredPendingType
             )
-            whenever(walletCoreDocumentsController.issueDeferredDocument(mockDeferredPendingDocId))
+            val deferredDocument = mock<DeferredDocument>()
+            whenever(deferredDocument.id).thenReturn(mockDeferredPendingDocId)
+            whenever(walletCoreDocumentsController.getDocumentById(mockDeferredPendingDocId))
+                .thenReturn(deferredDocument)
+            whenever(walletCoreDocumentsController.issueDeferredDocument(deferredDocument))
                 .thenReturn(emptyFlow())
 
             // When
@@ -464,7 +477,11 @@ class TestDocumentsInteractor {
         docId: DocumentId,
         response: IssueDeferredDocumentPartialState
     ) {
-        whenever(walletCoreDocumentsController.issueDeferredDocument(docId))
+        val deferredDocument = mock<DeferredDocument>()
+        whenever(deferredDocument.id).thenReturn(docId)
+        whenever(walletCoreDocumentsController.getDocumentById(docId))
+            .thenReturn(deferredDocument)
+        whenever(walletCoreDocumentsController.issueDeferredDocument(deferredDocument))
             .thenReturn(response.toFlow())
     }
     //endregion

@@ -25,7 +25,7 @@ import org.sprind.wallet.networklogic.mdvm.model.request.MdvmRenewalRequest
 import org.sprind.wallet.networklogic.mdvm.model.response.MdvmChallengeResponse
 import org.sprind.wallet.networklogic.mdvm.model.response.MdvmRegisterResponse
 import org.sprind.wallet.networklogic.mdvm.model.response.MdvmRenewalResponse
-import org.sprind.wallet.networklogic.mdvm.utils.toMdvmApiResult
+import org.sprind.wallet.networklogic.mdvm.extensions.toMdvmApiResult
 import retrofit2.Response
 import retrofit2.Retrofit
 import retrofit2.http.Body

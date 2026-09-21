@@ -48,11 +48,6 @@ data class CardReaderReturnTarget(
     val flowType: CardReaderFlowType,
 )
 
-data class CardReaderCodeRetry(
-    val step: ReadCardScreenStep,
-    val supportingText: String,
-)
-
 data class State(
     val currentStep: ReadCardScreenStep = ReadCardScreenStep.OnboardingCard,
     // Route metadata is stored directly on state so toolbar, progress, and
@@ -88,7 +83,6 @@ data class State(
     val isNfcEnabled: Boolean = true,
     val nfcAntennaPosition: NfcAntennaPosition = NfcAntennaPosition.MIDDLE,
     val scanStatus: CardScanStatus? = null,
-    val codeRetry: CardReaderCodeRetry? = null,
 ) : ViewState {
     /**
      * Updates the active step and refreshes the route-derived metadata that the
@@ -167,8 +161,9 @@ sealed class Event : ViewEvent {
     data object OnStartScanningClick : Event()
 
     /**
-     * The running scan was given up on. It is the only way off the scan screen, since the read has
-     * to be able to take its time without the screen changing under the user's hands.
+     * The running scan was given up on. It is the user's only way off the scan screen: a read has
+     * to be able to take its time without the screen changing under the user's hands, and it is the
+     * workflow itself, asking for a code again, that ends a read that went wrong.
      */
     data object OnCancelScanClick : Event()
 
@@ -211,15 +206,12 @@ sealed class Event : ViewEvent {
 
 sealed class Effect : ViewSideEffect {
     sealed class Navigation : Effect() {
-        data class Pop(
-            val screenRoute: String,
-            val inclusive: Boolean,
-        ) : Navigation()
+        /** Leaves the reader for [screenRoute]; the reader's own destinations go with it. */
+        data class Pop(val screenRoute: String) : Navigation()
 
         data object Finish : Navigation()
         data class SwitchScreen(
             val screenRoute: String,
-            val inclusive: Boolean,
             val redirectUrl: String,
         ) : Navigation()
 
