@@ -16,22 +16,17 @@
 
 package eu.europa.ec.issuancefeature.ui.success
 
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import eu.europa.ec.commonfeature.ui.document_success.DocumentSuccessScreen
 import eu.europa.ec.commonfeature.ui.document_success.Effect
-import eu.europa.ec.commonfeature.ui.success.SuccessView
-import eu.europa.ec.uilogic.component.content.ContentScreen
-import eu.europa.ec.uilogic.component.content.ScreenNavigateAction
 import eu.europa.ec.uilogic.extension.cacheDeepLink
 import kotlinx.coroutines.flow.collectLatest
+import org.sprind.wallet.walletpinfeature.ui.document.pinset.view.WalletPinSetSuccessView
 
 @Composable
 fun DocumentIssuanceSuccessScreen(
@@ -75,17 +70,10 @@ fun DocumentIssuanceSuccessScreen(
     }
 
     if (viewModel.shouldUseSimpleSuccessView()) {
-        ContentScreen(
+        WalletPinSetSuccessView(
             isLoading = state.isLoading,
-            navigatableAction = ScreenNavigateAction.NONE,
-        ) { paddingValues ->
-            SuccessView(
-                title = viewModel.getSimpleSuccessTitle(),
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(paddingValues)
-            )
-        }
+            title = viewModel.getSimpleSuccessTitle()
+        )
 
         LaunchedEffect(viewModel) {
             viewModel.scheduleAutoNavigation()

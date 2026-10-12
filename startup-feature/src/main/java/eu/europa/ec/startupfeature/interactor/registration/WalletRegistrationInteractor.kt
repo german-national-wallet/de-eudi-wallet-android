@@ -8,6 +8,7 @@ import kotlinx.coroutines.flow.flow
 import org.sprind.wallet.businesslogic.controller.revocation.WalletRevocationStore
 import org.sprind.wallet.commonfeature.interactor.MdvmInteractor
 import org.sprind.wallet.networklogic.common.model.ApiResult
+import org.sprind.wallet.networklogic.mdvm.model.error.MdvmErrorType
 
 sealed class WalletInitialRegistrationPartialState {
     data object AlreadyRegistered : WalletInitialRegistrationPartialState()
@@ -34,6 +35,7 @@ sealed class WalletInitialRegistrationPartialState {
         WB_SERVICE_UNAVAILABLE,
         WB_BAD_REQUEST,
         WB_INTERNAL_ERROR,
+        NO_INTERNET,
         UNKNOWN
     }
 }
@@ -66,7 +68,11 @@ class WalletRegistrationInteractorImpl(
             is ApiResult.Failure -> {
                 emit(
                     WalletInitialRegistrationPartialState.Failure(
-                        errorCode = WalletInitialRegistrationPartialState.ErrorCode.UNKNOWN,
+                        errorCode = if (mdvmResult.error.type == MdvmErrorType.NO_INTERNET) {
+                            WalletInitialRegistrationPartialState.ErrorCode.NO_INTERNET
+                        } else {
+                            WalletInitialRegistrationPartialState.ErrorCode.UNKNOWN
+                        },
                         traceId = mdvmResult.error.traceId,
                         backendErrorCode = mdvmResult.error.code,
                     )

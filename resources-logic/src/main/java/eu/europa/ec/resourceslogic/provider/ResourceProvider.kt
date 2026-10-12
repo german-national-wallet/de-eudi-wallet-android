@@ -21,6 +21,11 @@ import android.content.Context
 import androidx.annotation.PluralsRes
 import androidx.annotation.RawRes
 import androidx.annotation.StringRes
+import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.withStyle
 import eu.europa.ec.resourceslogic.R
 import java.util.Locale
 
@@ -35,6 +40,9 @@ interface ResourceProvider {
     fun genericErrorMessage(): String
     fun genericNetworkErrorMessage(): String
     fun getLocale(): Locale
+
+    /** Styled string from a resource using Markdown bold (`**text**`), as the design tokens do. */
+    fun getMarkdownString(@StringRes resId: Int): AnnotatedString
 }
 
 class ResourceProviderImpl(
@@ -85,4 +93,22 @@ class ResourceProviderImpl(
         }
 
     override fun getLocale(): Locale = Locale.getDefault()
+
+    override fun getMarkdownString(@StringRes resId: Int): AnnotatedString =
+        getString(resId).markdownToAnnotatedString()
+}
+
+private val markdownBold = Regex("""\*\*(.+?)\*\*""")
+
+internal fun String.markdownToAnnotatedString(): AnnotatedString {
+    val source = this
+    return buildAnnotatedString {
+        var last = 0
+        markdownBold.findAll(source).forEach { match ->
+            append(source, last, match.range.first)
+            withStyle(SpanStyle(fontWeight = FontWeight.Bold)) { append(match.groupValues[1]) }
+            last = match.range.last + 1
+        }
+        append(source, last, source.length)
+    }
 }

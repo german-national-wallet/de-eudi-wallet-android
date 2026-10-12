@@ -16,9 +16,15 @@
 
 package eu.europa.ec.corelogic.extension
 
+import eu.europa.ec.eudi.openid4vci.CredentialConfiguration
+import eu.europa.ec.eudi.openid4vci.CredentialConfigurationIdentifier
+import eu.europa.ec.eudi.openid4vci.CredentialMetadata
+import eu.europa.ec.eudi.openid4vci.Display
 import eu.europa.ec.eudi.wallet.document.IssuedDocument
 import eu.europa.ec.eudi.wallet.document.format.MsoMdocFormat
+import eu.europa.ec.eudi.wallet.document.format.SdJwtVcFormat
 import eu.europa.ec.eudi.wallet.document.metadata.IssuerMetadata
+import eu.europa.ec.eudi.wallet.issue.openid4vci.Offer
 import io.mockk.coEvery
 import io.mockk.every
 import io.mockk.mockk
@@ -117,5 +123,76 @@ class EaaCardDataExtensionsTest {
 
         assertEquals("doc-4", result.id)
         assertNull(result.validityDate)
+    }
+
+    /**
+     * The card draws [EaaCardData.description] as its title and [EaaCardData.name] underneath, so
+     * the two have to stay distinct. The offer used to put the display name in both, which made a
+     * credential read as "FitLife Membership / FitLife Membership" while being offered and as
+     * "Health Club Membership Card / FitLife Membership" once it was in the wallet.
+     */
+    @Test
+    fun `OfferedDocument toEaaCardData keeps the description apart from the name`() {
+        val offered = offeredDocument(
+            Display(
+                name = "FitLife Membership",
+                locale = locale,
+                logo = Display.Logo(
+                    uri = URI.create("https://issuer.example/logo.png"),
+                    alternativeText = null,
+                ),
+                description = "Health Club Membership Card",
+                backgroundColor = "#5B5B70",
+                backgroundImage = URI.create("https://issuer.example/bg.png"),
+            )
+        )
+
+        val result = offered.toEaaCardData(locale)
+
+        assertEquals("Health Club Membership Card", result.description)
+        assertEquals("FitLife Membership", result.name)
+        assertEquals("#5B5B70", result.backgroundColor)
+        assertEquals("https://issuer.example/bg.png", result.backgroundImageUri?.toString())
+        assertEquals("https://issuer.example/logo.png", result.logoUri?.toString())
+        assertNull(result.validityDate)
+    }
+
+    @Test
+    fun `OfferedDocument toEaaCardData falls back to the credential type without a description`() {
+        val offered = offeredDocument(
+            Display(name = "FitLife Membership", locale = locale, description = null)
+        )
+
+        val result = offered.toEaaCardData(locale)
+
+        assertEquals(VCT, result.description)
+        assertEquals("FitLife Membership", result.name)
+    }
+
+    @Test
+    fun `OfferedDocument toEaaCardData falls back to the credential type without metadata`() {
+        val offered = offeredDocument(display = null)
+
+        val result = offered.toEaaCardData(locale)
+
+        assertEquals(VCT, result.description)
+        assertEquals(VCT, result.name)
+    }
+
+    private fun offeredDocument(display: Display?): Offer.OfferedDocument {
+        val configuration = mockk<CredentialConfiguration>(relaxed = true)
+        every { configuration.credentialMetadata } returns display?.let {
+            CredentialMetadata(display = listOf(it))
+        }
+        val offered = mockk<Offer.OfferedDocument>(relaxed = true)
+        every { offered.configuration } returns configuration
+        every { offered.configurationIdentifier } returns
+            CredentialConfigurationIdentifier("config-1")
+        every { offered.documentFormat } returns SdJwtVcFormat(vct = VCT)
+        return offered
+    }
+
+    private companion object {
+        const val VCT = "urn:health-club:membership"
     }
 }

@@ -22,7 +22,7 @@ internal class EnvironmentConfigImpl : WalletBackendEnvironmentConfig() {
         get() = "https://dev.wallet-backend.example.invalid"
 
     override val pidIssuerSpec
-        get() = PidIssuerSpec.DEMO
+        get() = PidIssuerSpec.PREPROD
 
     override val otelServiceName: String
         get() = "dev-android"
@@ -31,5 +31,6 @@ internal class EnvironmentConfigImpl : WalletBackendEnvironmentConfig() {
     override val enableDebugMenu: Boolean = true
     override val enableLogcat: Boolean = true
     override val enableLogWriter: Boolean = true
+    override val enableSimulatedEidCard: Boolean = true
 
 }

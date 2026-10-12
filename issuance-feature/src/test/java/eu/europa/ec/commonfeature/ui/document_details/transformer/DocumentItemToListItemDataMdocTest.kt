@@ -63,8 +63,6 @@ class DocumentItemToListItemDataMdocTest {
                     MdocKeys.AGE_EQUAL_OR_OVER,
                     MdocKeys.ISSUING_AUTHORITY,
                     MdocKeys.ISSUING_COUNTRY,
-                    MdocKeys.ISSUANCE_DATE,
-                    MdocKeys.EXPIRY_DATE,
                 )
             )
         )
@@ -83,8 +81,6 @@ class DocumentItemToListItemDataMdocTest {
                     "Alter gleich oder über",
                     "Behörde",
                     "Ausstellender Staat",
-                    "Erstellt am",
-                    "Gültig bis",
                 )
             )
         )
@@ -120,8 +116,6 @@ class DocumentItemToListItemDataMdocTest {
 
         assertTextValue(result[8], "DEUTSCHLAND")
         assertTextValue(result[9], "DEUTSCHLAND")
-        assertTextValue(result[10], "09.Mar.2026")
-        assertTextValue(result[11], "23.Mar.2026")
     }
 
     private fun assertTextValue(item: ListItemData, expected: String) {

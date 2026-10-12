@@ -24,7 +24,6 @@ import androidx.compose.material3.dynamicDarkColorScheme
 import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.SideEffect
-import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
 import androidx.core.view.WindowCompat
@@ -80,9 +79,12 @@ class ThemeManager {
             if (!LocalView.current.isInEditMode) {
                 SideEffect {
                     val window = (view.context as Activity).window
-                    window.statusBarColor = colorScheme.secondary.toArgb()
-                    WindowCompat.getInsetsController(window, view).isAppearanceLightStatusBars =
-                        darkTheme
+                    // The bars are transparent (edge-to-edge), so icon contrast follows the theme.
+                    // Light bars = dark icons, which are needed on a light background.
+                    WindowCompat.getInsetsController(window, view).apply {
+                        isAppearanceLightStatusBars = !darkTheme
+                        isAppearanceLightNavigationBars = !darkTheme
+                    }
                 }
             }
         }

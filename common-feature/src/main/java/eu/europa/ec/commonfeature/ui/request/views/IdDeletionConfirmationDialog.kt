@@ -79,7 +79,7 @@ fun IdDeletionConfirmationDialog(
                     textConfig = TextConfig(
                         maxLines = Int.MAX_VALUE,
                         style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        color = ThemeColors.onBackgroundVariant
                     )
                 )
 

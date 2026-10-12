@@ -113,4 +113,5 @@ fun provideCryptoKeyGenerator(): CryptoKeyGenerator =
     CryptoKeyGeneratorImpl()
 
 @Single
-fun provideUserRuntimeConfig(): UserRuntimeConfig = UserRuntimeConfigImpl()
+fun provideUserRuntimeConfig(configLogic: ConfigLogic): UserRuntimeConfig =
+    UserRuntimeConfigImpl(configLogic)

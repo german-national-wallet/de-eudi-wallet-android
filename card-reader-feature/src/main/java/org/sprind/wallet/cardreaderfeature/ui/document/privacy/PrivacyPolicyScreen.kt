@@ -16,15 +16,10 @@
 
 package org.sprind.wallet.cardreaderfeature.ui.document.privacy
 
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Modifier
 import androidx.navigation.NavController
-import eu.europa.ec.uilogic.component.content.ContentScreen
-import eu.europa.ec.uilogic.component.content.ScreenNavigateAction
 import kotlinx.serialization.Serializable
-import org.sprind.wallet.uilogic.component.SecureWebView
+import org.sprind.wallet.uilogic.component.WebPageScreen
 
 /**
  * Route to [PrivacyPolicyScreen].
@@ -45,15 +40,8 @@ fun PrivacyPolicyScreen(
     navController: NavController,
     url: String,
 ) {
-    ContentScreen(
-        navigatableAction = ScreenNavigateAction.BACKABLE,
+    WebPageScreen(
+        url = url,
         onBack = { navController.popBackStack() },
-    ) { paddingValues ->
-        SecureWebView(
-            url = url,
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues),
-        )
-    }
+    )
 }

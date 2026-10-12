@@ -46,6 +46,32 @@ sealed class PresentationScreens {
 
     data object PresentationNoDocument : Screen(name = "PRESENTATION_NO_DOCUMENT")
 
+    /** The URI parameters are URL encoded, and empty when absent. */
+    data object PresentationRequestRejected : Screen(
+        name = "PRESENTATION_REQUEST_REJECTED",
+        parameters = "?${ParamKey.REJECTION_REASON}={${ParamKey.REJECTION_REASON}}" +
+                "&${ParamKey.REPORT_URI}={${ParamKey.REPORT_URI}}" +
+                "&${ParamKey.REDIRECT_URI}={${ParamKey.REDIRECT_URI}}"
+    ) {
+        object ParamKey {
+            const val REJECTION_REASON = "rejectionReason"
+            const val REPORT_URI = "reportUri"
+            const val REDIRECT_URI = "redirectUri"
+        }
+    }
+
+    /** `traceId` is URL encoded, and empty when absent. */
+    data object PresentationError : Screen(
+        name = "PRESENTATION_ERROR",
+        parameters = "?${ParamKey.REASON}={${ParamKey.REASON}}" +
+                "&${ParamKey.TRACE_ID}={${ParamKey.TRACE_ID}}"
+    ) {
+        object ParamKey {
+            const val REASON = "reason"
+            const val TRACE_ID = "traceId"
+        }
+    }
+
     data object PresentationSuccess : Screen(name = "PRESENTATION_SUCCESS")
 }
 
@@ -122,10 +148,21 @@ sealed class RevocationScreens {
     data object Intro : Screen(name = "REVOCATION_INTRO")
 
     data object SaveCode : Screen(name = "REVOCATION_SAVE_CODE")
+
+    /** The revocation code as the settings menu shows it, once onboarding is behind the user. */
+    data object KeyInfo : Screen(name = "REVOCATION_KEY_INFO")
 }
 
 sealed class OnboardingScreens {
     data object Onboarding : Screen(name = "ONBOARDING")
+}
+
+/** The app setup steps shown after onboarding, before the dashboard is reached. */
+sealed class SetupScreens {
+    data object PlatformAuth : Screen(name = "SETUP_PLATFORM_AUTH")
+    data object PrivacyPolicy : Screen(name = "SETUP_PRIVACY_POLICY")
+    data object Notifications : Screen(name = "SETUP_NOTIFICATIONS")
+    data object Success : Screen(name = "SETUP_SUCCESS")
 }
 
 sealed class ModuleRoute(val route: String) : NavigatableItem {
@@ -138,4 +175,5 @@ sealed class ModuleRoute(val route: String) : NavigatableItem {
     data object CardReadModule : ModuleRoute("CARD_READ_MODULE")
     data object RevocationModule : ModuleRoute("REVOCATION_MODULE")
     data object OnboardingModule : ModuleRoute("ONBOARDING_MODULE")
+    data object SetupModule : ModuleRoute("SETUP_MODULE")
 }

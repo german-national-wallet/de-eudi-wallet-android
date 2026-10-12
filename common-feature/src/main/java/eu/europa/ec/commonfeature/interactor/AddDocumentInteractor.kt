@@ -239,6 +239,10 @@ class AddDocumentInteractorImpl(
                         )
 
                     is IssueDocumentsPartialState.RefreshTokenReceived -> null
+
+                    // Only ever emitted for the authorization-code-flow consent gate
+                    // (EAA document-offer issuance), not applicable to this path.
+                    is IssueDocumentsPartialState.AwaitingConsent -> null
                 }
                 if (mapped == null) {
                     return@first false
@@ -253,7 +257,9 @@ class AddDocumentInteractorImpl(
 
                     else -> Unit
                 }
-                true
+                // UserAuthRequired is forwarded but not terminal: once the user has
+                // authenticated, the issuance continues and publishes its outcome.
+                mapped !is IssueDocumentPartialState.UserAuthRequired
             }
         }
     }

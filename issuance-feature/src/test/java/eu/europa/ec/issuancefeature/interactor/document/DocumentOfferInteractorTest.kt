@@ -31,6 +31,7 @@ import eu.europa.ec.testlogic.rule.CoroutineTestRule
 import eu.europa.ec.uilogic.config.ConfigNavigation
 import eu.europa.ec.uilogic.config.NavigationType
 import eu.europa.ec.uilogic.serializer.UiSerializer
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.flowOf
 import org.junit.After
 import org.junit.Before
@@ -39,9 +40,11 @@ import org.junit.Test
 import org.mockito.Mock
 import org.mockito.MockitoAnnotations
 import org.mockito.kotlin.any
+import org.mockito.kotlin.anyOrNull
 import org.mockito.kotlin.never
 import org.mockito.kotlin.verify
 import org.mockito.kotlin.whenever
+import kotlin.test.assertEquals
 
 class DocumentOfferInteractorTest {
 
@@ -79,6 +82,62 @@ class DocumentOfferInteractorTest {
     @After
     fun tearDown() {
         closeable.close()
+    }
+
+    @Test
+    fun `Given controller emits AwaitingConsent When issueDocuments collects, Then interactor maps to AwaitingConsent`() {
+        coroutineRule.runTest {
+            whenever(walletCoreDocumentsController.issueDocumentsByOfferUri(any(), anyOrNull())).thenReturn(
+                flowOf(IssueDocumentsPartialState.AwaitingConsent)
+            )
+
+            interactor.issueDocuments(
+                offerUri = "offer-uri",
+                issuerName = "issuer",
+                navigation = mockedConfigNavigation,
+                txCode = null
+            ).runFlowTest {
+                assertEquals(
+                    IssueDocumentsInteractorPartialState.AwaitingConsent,
+                    awaitItem()
+                )
+            }
+        }
+    }
+
+    @Test
+    fun `Given controller issuanceState emits AwaitingConsent, Then interactor issuanceState maps to AwaitingConsent`() {
+        coroutineRule.runTest {
+            // issuanceState is wired up once at construction time, so the controller
+            // stub must be in place before building this test's own interactor instance.
+            whenever(walletCoreDocumentsController.issuanceState).thenReturn(
+                MutableSharedFlow<IssueDocumentsPartialState>(replay = 1).apply {
+                    tryEmit(IssueDocumentsPartialState.AwaitingConsent)
+                }
+            )
+            val interactorWithStubbedState = DocumentOfferInteractorImpl(
+                walletCoreDocumentsController = walletCoreDocumentsController,
+                deviceAuthenticationInteractor = deviceAuthenticationInteractor,
+                resourceProvider = resourceProvider,
+                uiSerializer = uiSerializer,
+            )
+
+            interactorWithStubbedState.issuanceState.runFlowTest {
+                assertEquals(
+                    IssueDocumentsInteractorPartialState.AwaitingConsent,
+                    awaitItem()
+                )
+            }
+        }
+    }
+
+    @Test
+    fun `When continueIssuanceAfterConsent is called, Then it delegates to the controller`() {
+        coroutineRule.runTest {
+            interactor.continueIssuanceAfterConsent()
+
+            verify(walletCoreDocumentsController).continueIssuanceAfterConsent()
+        }
     }
 
     @Test

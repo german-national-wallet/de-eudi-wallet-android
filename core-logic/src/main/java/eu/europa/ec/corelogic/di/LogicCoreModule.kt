@@ -73,6 +73,7 @@ import org.multipaz.securearea.SecureArea
 import org.sprind.wallet.authenticationlogic.controller.rwsca.RwscaController
 import org.sprind.wallet.authenticationlogic.provider.RwscaPinSessionHolder
 import org.sprind.wallet.authenticationlogic.provider.RwscaRegistrationsProvider
+import org.sprind.wallet.corelogic.config.PidConfigurationOverridesProvider
 import org.sprind.wallet.corelogic.platformauth.PlatformAuthInvariant
 import eu.europa.ec.authenticationlogic.controller.storage.WalletPinUnBlockTimeStorageController
 import org.sprind.wallet.authenticationlogic.controller.mdvm.MdvmKeyManager
@@ -247,6 +248,7 @@ fun provideWalletCoreDocumentsController(
     logController: LogController,
     @OpenId4VciVp openId4VciVpKtorHttpClient: HttpClient,
     telemetry: org.sprind.wallet.analyticslogic.controller.Telemetry,
+    pidConfigurationOverridesProvider: PidConfigurationOverridesProvider,
 ): WalletCoreDocumentsController {
     return WalletCoreDocumentsControllerImpl(
         resourceProvider,
@@ -259,6 +261,7 @@ fun provideWalletCoreDocumentsController(
         logController = logController,
         ktorHttpClientFactory = { openId4VciVpKtorHttpClient },
         telemetry = telemetry,
+        pidConfigurationOverridesProvider = pidConfigurationOverridesProvider,
     )
 }
 @Single

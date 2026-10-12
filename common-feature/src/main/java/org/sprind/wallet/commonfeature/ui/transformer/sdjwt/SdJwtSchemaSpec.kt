@@ -16,12 +16,10 @@
 
 package org.sprind.wallet.commonfeature.ui.transformer.sdjwt
 
-import eu.europa.ec.businesslogic.util.formatInstantToDateString
 import eu.europa.ec.businesslogic.util.toDateFormatted
 import eu.europa.ec.resourceslogic.R
 import org.sprind.wallet.commonfeature.ui.transformer.DocumentFieldSpec
 import java.lang.Boolean
-import java.time.Instant
 import java.util.Locale
 import kotlin.String
 import kotlin.let
@@ -123,21 +121,5 @@ val sdJwtSchema: List<DocumentFieldSpec> = listOf(
     ) { map, locale, _ ->
         map[SdJwtKeys.ISSUING_COUNTRY]?.value
             ?.let { Locale("", it).getDisplayCountry(locale).uppercase() }
-    },
-
-    DocumentFieldSpec(
-        key = SdJwtKeys.ISSUED_AT,
-        labelRes = R.string.pid_issuance_data_consent_label_created_at
-    ) { map, locale, _ ->
-        map[SdJwtKeys.ISSUED_AT]?.value?.toLongOrNull()
-            ?.let { Instant.ofEpochSecond(it).formatInstantToDateString(locale = locale) }
-    },
-
-    DocumentFieldSpec(
-        key = SdJwtKeys.EXPIRED,
-        labelRes = R.string.pid_issuance_data_consent_label_expire_date
-    ) { map, locale, _ ->
-        map[SdJwtKeys.EXPIRED]?.value?.toLongOrNull()
-            ?.let { Instant.ofEpochSecond(it).formatInstantToDateString(locale = locale) }
-    },
+    }
 )

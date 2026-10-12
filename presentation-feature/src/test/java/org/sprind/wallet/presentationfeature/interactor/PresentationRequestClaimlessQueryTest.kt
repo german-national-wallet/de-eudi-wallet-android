@@ -50,6 +50,7 @@ import org.multipaz.document.Document
 import org.multipaz.presentment.CredentialMatchSourceOpenID4VP
 import org.multipaz.presentment.CredentialPresentmentSetOptionMemberMatch
 import org.sprind.wallet.commonfeature.interactor.RwscaInteractor
+import org.sprind.wallet.corelogic.model.RelyingPartyRegistrationStatus
 
 /**
  * A verifier may send a Credential Query with no `claims` - OpenID4VP §6.4.1, meaning "prove you
@@ -153,10 +154,13 @@ class PresentationRequestClaimlessQueryTest {
 
     private fun requestReceived(
         vararg matches: CredentialPresentmentSetOptionMemberMatch,
+        relyingPartyRegistration: RelyingPartyRegistrationStatus =
+            RelyingPartyRegistrationStatus.NotEvaluated,
     ) = TransferEventPartialState.RequestReceived(
         requestData = matches.toList(),
         verifierName = VERIFIER_NAME,
         verifierIsTrusted = true,
+        relyingPartyRegistration = relyingPartyRegistration,
     )
 
     /** A match reporting an empty claim map, as wallet-core does for a query without `claims`. */

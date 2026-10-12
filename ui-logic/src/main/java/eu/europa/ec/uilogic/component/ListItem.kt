@@ -1,7 +1,9 @@
 package eu.europa.ec.uilogic.component
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -9,7 +11,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -23,6 +24,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
@@ -135,7 +137,11 @@ sealed class ListItemLeadingContentData {
  * - [Checkbox]: Displays a checkbox with associated data.
  */
 sealed class ListItemTrailingContentData {
-    data class Icon(val iconData: IconData, val tint: Color? = null) : ListItemTrailingContentData()
+    data class Icon(
+        val iconData: IconData,
+        val tint: Color? = null,
+        val size: Int = DEFAULT_ICON_SIZE,
+    ) : ListItemTrailingContentData()
     data class Checkbox(val checkboxData: CheckboxData) : ListItemTrailingContentData()
     data class RadioButton(val radioButtonData: RadioButtonData) : ListItemTrailingContentData()
 }
@@ -192,7 +198,7 @@ fun ListItem(
     trailingModifier: Modifier = Modifier,
     hideSensitiveContent: Boolean = false,
     mainContentVerticalPadding: Dp? = null,
-    clickableAreas: List<ClickableArea> = listOf(ClickableArea.TRAILING_CONTENT),
+    clickableAreas: List<ClickableArea> = listOf(TRAILING_CONTENT),
     overlineTextStyle: TextStyle = MaterialTheme.typography.labelMedium.copy(
         color = MaterialTheme.colorScheme.onSurfaceVariant
     ),
@@ -216,13 +222,17 @@ fun ListItem(
 
     with(item) {
         Row(
-            modifier = if (clickableAreas.contains(ENTIRE_ROW) && onItemClick != null) {
-                Modifier.clickable {
-                    onItemClick(item)
+            // The caller's modifier carries the row's own semantics, so it sits on the same node as
+            // the click rather than on a wrapper the merged node would hide.
+            modifier = modifier.then(
+                if (clickableAreas.contains(ENTIRE_ROW) && onItemClick != null) {
+                    Modifier.clickable(role = Role.Button) {
+                        onItemClick(item)
+                    }
+                } else {
+                    Modifier
                 }
-            } else {
-                Modifier
-            },
+            ),
             horizontalArrangement = Arrangement.Start,
             verticalAlignment = Alignment.CenterVertically
         ) {
@@ -232,16 +242,27 @@ fun ListItem(
                     val leadingContentModifier = leadingModifier
                         .padding(end = SIZE_MEDIUM.dp)
                         .size(safeLeadingContentData.size.dp)
-                        .clip(RoundedCornerShape(ICON_SIZE_40.dp))
+                        .clip(CircleShape)
                         .then(blurModifier)
 
                     when (safeLeadingContentData) {
-                        is ListItemLeadingContentData.Icon -> WrapIcon(
-                            modifier = leadingContentModifier,
-                            iconData = safeLeadingContentData.iconData,
-                            customTint = safeLeadingContentData.tint
-                                ?: MaterialTheme.colorScheme.onBackground,
-                        )
+                        is ListItemLeadingContentData.Icon ->
+                            Box(
+                                modifier = Modifier
+                                    .padding(end = SIZE_MEDIUM.dp)
+                                    .size(ICON_SIZE_40.dp)
+                                    .clip(CircleShape)
+                                    .background(MaterialTheme.colorScheme.surfaceContainerLow)
+                                    .then(blurModifier),
+                                contentAlignment = Alignment.Center,
+                            ) {
+                                WrapIcon(
+                                    modifier = leadingModifier.size(safeLeadingContentData.size.dp),
+                                    iconData = safeLeadingContentData.iconData,
+                                    customTint = safeLeadingContentData.tint
+                                        ?: MaterialTheme.colorScheme.onBackground,
+                                )
+                            }
 
                         is ListItemLeadingContentData.UserImage -> ImageOrPlaceholder(
                             modifier = leadingContentModifier,
@@ -296,7 +317,7 @@ fun ListItem(
                             contentScale = ContentScale.Fit,
                         )
 
-                        is ListItemMainContentData.Text -> Text(
+                        is Text -> Text(
                             modifier = blurModifier,
                             text = mainContentData.text,
                             style = mainTextStyle,
@@ -331,31 +352,45 @@ fun ListItem(
                 when (safeTrailingContentData) {
                     is ListItemTrailingContentData.Checkbox -> WrapCheckbox(
                         checkboxData = safeTrailingContentData.checkboxData.copy(
-                            onCheckedChange = if (clickableAreas.contains(ClickableArea.TRAILING_CONTENT)) {
+                            onCheckedChange = if (clickableAreas.contains(TRAILING_CONTENT)) {
                                 { onItemClick?.invoke(item) }
                             } else null
                         ),
                         modifier = trailingModifier.padding(start = SIZE_MEDIUM.dp),
                     )
 
-                    is ListItemTrailingContentData.Icon -> WrapIconButton(
-                        modifier = trailingModifier
+                    is ListItemTrailingContentData.Icon -> {
+                        val trailingIconModifier = trailingModifier
                             .padding(start = SIZE_MEDIUM.dp)
-                            .size(DEFAULT_ICON_SIZE.dp),
-                        iconData = safeTrailingContentData.iconData,
-                        customTint = safeTrailingContentData.tint
-                            ?: MaterialTheme.colorScheme.onBackground,
-                        onClick = {
-                            if (clickableAreas.contains(ClickableArea.TRAILING_CONTENT)) {
-                                onItemClick?.invoke(item)
-                            }
-                        },
-                        throttleClicks = false,
-                    )
+                            .size(safeTrailingContentData.size.dp)
+                        val trailingIconTint = safeTrailingContentData.tint
+                            ?: MaterialTheme.colorScheme.onBackground
+
+                        if (clickableAreas.contains(ClickableArea.TRAILING_CONTENT)) {
+                            WrapIconButton(
+                                modifier = trailingIconModifier,
+                                iconData = safeTrailingContentData.iconData,
+                                size = safeTrailingContentData.size.dp,
+                                customTint = trailingIconTint,
+                                onClick = { onItemClick?.invoke(item) },
+                                throttleClicks = false,
+                            )
+                        } else {
+                            // Decoration on a row that is already the target: a plain icon, so it
+                            // is neither a second button in the accessibility tree nor squeezed
+                            // through the button's circular clip, which shaves the corners off a
+                            // glyph that fills its box.
+                            WrapIcon(
+                                modifier = trailingIconModifier,
+                                iconData = safeTrailingContentData.iconData,
+                                customTint = trailingIconTint,
+                            )
+                        }
+                    }
 
                     is ListItemTrailingContentData.RadioButton -> WrapRadioButton(
                         radioButtonData = safeTrailingContentData.radioButtonData.copy(
-                            onCheckedChange = if (clickableAreas.contains(ClickableArea.TRAILING_CONTENT)) {
+                            onCheckedChange = if (clickableAreas.contains(TRAILING_CONTENT)) {
                                 { onItemClick?.invoke(item) }
                             } else null
                         ),

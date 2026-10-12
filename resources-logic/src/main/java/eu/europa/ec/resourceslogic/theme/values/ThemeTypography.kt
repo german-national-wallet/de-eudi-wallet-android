@@ -41,6 +41,7 @@ internal class ThemeTypography {
                 bodySmall      = DesignTypography.bodySmall,
             )
 
+        val headlineExtraMedium:  ThemeTextStyle get() = DesignTypography.headlineExtraMedium
         val titleLargeMedium:     ThemeTextStyle get() = DesignTypography.titleLargeMedium
         val titleMediumLarge:     ThemeTextStyle get() = DesignTypography.titleMediumLarge
         val labelLargeProminent:  ThemeTextStyle get() = DesignTypography.labelLargeProminent

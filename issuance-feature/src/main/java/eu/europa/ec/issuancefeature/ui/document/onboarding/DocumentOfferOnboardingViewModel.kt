@@ -20,30 +20,32 @@ import eu.europa.ec.uilogic.mvi.MviViewModel
 import eu.europa.ec.uilogic.mvi.ViewEvent
 import eu.europa.ec.uilogic.mvi.ViewSideEffect
 import eu.europa.ec.uilogic.mvi.ViewState
-import eu.europa.ec.uilogic.serializer.UiSerializer
 import org.koin.android.annotation.KoinViewModel
 import org.koin.core.annotation.InjectedParam
 
-class State(): ViewState
+data class State(
+    val showCloseConfirmationDialog: Boolean = false
+) : ViewState
 
-sealed class Event: ViewEvent {
-    class EnterPin(): Event()
-    class Decline(): Event()
+sealed class Event : ViewEvent {
+    data object EnterPin : Event()
+    data object Decline : Event()
+    data object Cancel : Event()
+    data object DismissCloseConfirmationDialog : Event()
 }
 
-sealed class Effect: ViewSideEffect {
-    sealed class Navigation: Effect() {
-        class EnterPin(val offerSerializedConfig: String): Navigation()
-        object Decline: Navigation()
-        object CloseApp: Navigation()
+sealed class Effect : ViewSideEffect {
+    sealed class Navigation : Effect() {
+        data class EnterPin(val offerSerializedConfig: String) : Navigation()
+        data object Decline : Navigation()
+        data object CloseApp : Navigation()
     }
 }
 
 @KoinViewModel
 class DocumentOfferOnboardingViewModel(
-    private val uiSerializer: UiSerializer,
     @InjectedParam private val offerSerializedConfig: String,
-): MviViewModel<Event, State, Effect>() {
+) : MviViewModel<Event, State, Effect>() {
     override fun setInitialState(): State {
         return State()
     }
@@ -51,14 +53,20 @@ class DocumentOfferOnboardingViewModel(
     override fun handleEvents(event: Event) {
         when (event) {
             is Event.EnterPin -> {
-                setEffect {
-                    Effect.Navigation.EnterPin(offerSerializedConfig)
-                }
-            };
+                setEffect { Effect.Navigation.EnterPin(offerSerializedConfig) }
+            }
+
             is Event.Decline -> {
-                setEffect {
-                    Effect.Navigation.Decline
-                }
+                setState { copy(showCloseConfirmationDialog = false) }
+                setEffect { Effect.Navigation.Decline }
+            }
+
+            is Event.Cancel -> {
+                setState { copy(showCloseConfirmationDialog = true) }
+            }
+
+            is Event.DismissCloseConfirmationDialog -> {
+                setState { copy(showCloseConfirmationDialog = false) }
             }
         }
     }

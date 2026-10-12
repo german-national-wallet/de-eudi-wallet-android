@@ -2,48 +2,45 @@
 
 package eu.europa.ec.uilogic.component.dialog
 
-import android.content.ClipData
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.material3.BasicAlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.Clipboard
-import androidx.compose.ui.platform.LocalClipboard
-import androidx.compose.ui.platform.toClipEntry
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.DialogProperties
 import eu.europa.ec.resourceslogic.R
 import eu.europa.ec.resourceslogic.theme.values.ThemeColors
 import eu.europa.ec.uilogic.component.AppIcons
+import eu.europa.ec.uilogic.component.IconData
 import eu.europa.ec.uilogic.component.preview.PreviewTheme
 import eu.europa.ec.uilogic.component.preview.ThemeModeWithGermanAndEnglishPreviews
-import eu.europa.ec.uilogic.component.utils.ELEVATION_8
+import eu.europa.ec.uilogic.component.utils.DEFAULT_ICON_SIZE
 import eu.europa.ec.uilogic.component.utils.SPACING_LARGE
 import eu.europa.ec.uilogic.component.utils.SPACING_MEDIUM
+import eu.europa.ec.uilogic.component.utils.SPACING_SMALL
 import eu.europa.ec.uilogic.component.wrap.ButtonConfig
 import eu.europa.ec.uilogic.component.wrap.ButtonType
 import eu.europa.ec.uilogic.component.wrap.TextConfig
 import eu.europa.ec.uilogic.component.wrap.WrapButton
 import eu.europa.ec.uilogic.component.wrap.WrapIcon
-import eu.europa.ec.uilogic.component.wrap.WrapImage
 import eu.europa.ec.uilogic.component.wrap.WrapText
-import kotlinx.coroutines.launch
 import org.sprind.wallet.resourceslogic.theme.values.ThemeTextStyles
+import org.sprind.wallet.uilogic.component.ScrollFadeColumn
 
 data class GenericErrorDialogConfig(
     val titleRes: Int,
@@ -53,7 +50,11 @@ data class GenericErrorDialogConfig(
     val dismissable: Boolean = true,
     val primaryButtonTextRes: Int? = null,
     val onPrimaryButtonClick: () -> Unit = {},
+    val secondaryButtonTextRes: Int? = null,
+    val onSecondaryButtonClick: () -> Unit = {},
     val onDismiss: () -> Unit = {},
+    val iconData: IconData = AppIcons.Warning,
+    val bodyTextAlign: TextAlign = TextAlign.Center,
 )
 
 @Composable
@@ -61,165 +62,172 @@ fun GenericErrorDialog(
     config: GenericErrorDialogConfig,
 ) {
     GenericErrorDialog(
+        config = config,
         title = stringResource(config.titleRes),
         bodyText = stringResource(config.bodyTextRes),
-        errorCode = config.errorCode,
-        traceId = config.traceId,
         primaryButtonText = config.primaryButtonTextRes?.let { stringResource(it) },
-        dismissable = config.dismissable,
-        onDismiss = config.onDismiss,
-        onPrimaryButtonClick = config.onPrimaryButtonClick
+        secondaryButtonText = config.secondaryButtonTextRes?.let { stringResource(it) },
     )
 }
 
 @Composable
 private fun GenericErrorDialog(
+    config: GenericErrorDialogConfig,
     title: String,
     bodyText: String,
-    errorCode: String?,
-    traceId: String?,
     primaryButtonText: String?,
-    dismissable: Boolean,
-    onDismiss: () -> Unit,
-    onPrimaryButtonClick: () -> Unit,
+    secondaryButtonText: String?,
 ) {
     BasicAlertDialog(
-        onDismissRequest = onDismiss,
+        onDismissRequest = config.onDismiss,
         properties = DialogProperties(
-            dismissOnBackPress = dismissable,
-            dismissOnClickOutside = dismissable
+            dismissOnBackPress = config.dismissable,
+            dismissOnClickOutside = config.dismissable
         )
     ) {
+        // Figma "Basic dialog" (WD-4274): surface container, 28dp corners, elevation 4.
         Surface(
-            shape = RoundedCornerShape(SPACING_MEDIUM.dp),
-            color = MaterialTheme.colorScheme.surfaceContainerHigh,
-            tonalElevation = ELEVATION_8.dp
+            shape = RoundedCornerShape(DIALOG_CORNER_RADIUS.dp),
+            color = MaterialTheme.colorScheme.surface,
+            tonalElevation = 0.dp,
+            shadowElevation = DIALOG_SHADOW_ELEVATION.dp,
         ) {
-            Column(
-                modifier = Modifier
-                    .padding(SPACING_LARGE.dp)
-                    .fillMaxWidth(),
-                verticalArrangement = Arrangement.spacedBy(SPACING_MEDIUM.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-
-                WrapIcon(
-                    iconData = AppIcons.InfoFilled,
-                    customTint = MaterialTheme.colorScheme.error
-                )
-
-                WrapText(
-                    text = title,
-                    textConfig = TextConfig(
-                        style = MaterialTheme.typography.headlineSmall,
-                        color = MaterialTheme.colorScheme.onSurface,
-                        textAlign = TextAlign.Center
+            Column(modifier = Modifier.fillMaxWidth()) {
+                // Long content scrolls above the pinned buttons, with a fade hinting at the rest.
+                ScrollFadeColumn(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .weight(1f, fill = false),
+                    contentModifier = Modifier.padding(
+                        start = SPACING_LARGE.dp,
+                        top = SPACING_LARGE.dp,
+                        end = SPACING_LARGE.dp,
+                    ),
+                    verticalArrangement = Arrangement.spacedBy(SPACING_MEDIUM.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    WrapIcon(
+                        modifier = Modifier.size(DEFAULT_ICON_SIZE.dp),
+                        iconData = config.iconData,
+                        customTint = MaterialTheme.colorScheme.error
                     )
-                )
 
-                WrapText(
-                    text = bodyText,
-                    textConfig = TextConfig(
-                        maxLines = Int.MAX_VALUE,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                )
-
-                errorCode?.let {
-                    Column {
-                        WrapText(
-                            modifier = Modifier.fillMaxWidth(),
-                            text = stringResource(R.string.global_error_code_title),
-                            textConfig = TextConfig(
-                                maxLines = Int.MAX_VALUE,
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        )
-                        WrapText(
-                            modifier = Modifier.fillMaxWidth(),
-                            text = errorCode,
-                            textConfig = TextConfig(
-                                maxLines = Int.MAX_VALUE,
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        )
-                    }
-                }
-
-                traceId?.let {
-                    val clipboard: Clipboard = LocalClipboard.current
-                    val scope = rememberCoroutineScope()
-                    val title = stringResource(R.string.global_trace_id_title)
-
-                    Row(
+                    WrapText(
                         modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(SPACING_MEDIUM.dp)
-                    ) {
-                        Column(modifier = Modifier.weight(1f)) {
-                            WrapText(
-                                text = title,
-                                textConfig = TextConfig(
-                                    maxLines = Int.MAX_VALUE,
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            )
-                            WrapText(
-                                text = traceId,
-                                textConfig = TextConfig(
-                                    maxLines = Int.MAX_VALUE,
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            )
-                        }
-                        Box(
-                            modifier = Modifier.align(Alignment.CenterVertically)
-                        ) {
+                        text = title,
+                        textConfig = TextConfig(
+                            maxLines = Int.MAX_VALUE,
+                            style = ThemeTextStyles.dialogTitle,
+                            color = MaterialTheme.colorScheme.onSurface,
+                            textAlign = TextAlign.Center
+                        )
+                    )
 
-                            WrapImage(
-                                iconData = AppIcons.Copy,
-                                contentScale = ContentScale.Fit,
-                                modifier = Modifier.clickable {
-                                    scope.launch {
-                                        clipboard.setClipEntry(
-                                            ClipData.newPlainText(
-                                                title,
-                                                traceId
-                                            ).toClipEntry()
-                                        )
-                                    }
+                    Column(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalArrangement = Arrangement.spacedBy(SPACING_SMALL.dp),
+                    ) {
+                        WrapText(
+                            modifier = Modifier.fillMaxWidth(),
+                            text = bodyText,
+                            textConfig = TextConfig(
+                                maxLines = Int.MAX_VALUE,
+                                style = MaterialTheme.typography.bodyLarge,
+                                color = ThemeColors.onBackgroundVariant,
+                                textAlign = config.bodyTextAlign,
+                            )
+                        )
+
+                        // Selectable so support references can be copied (long press).
+                        SelectionContainer {
+                            Column(verticalArrangement = Arrangement.spacedBy(SPACING_SMALL.dp)) {
+                                config.errorCode?.let { errorCode ->
+                                    SupportReference(
+                                        label = stringResource(R.string.global_error_code_title),
+                                        value = errorCode,
+                                    )
                                 }
-                            )
+                                config.traceId?.let { traceId ->
+                                    SupportReference(
+                                        label = stringResource(R.string.global_trace_id_title),
+                                        value = traceId,
+                                    )
+                                }
+                            }
                         }
                     }
                 }
 
-                primaryButtonText?.let {
-                    WrapButton(
-                        modifier = Modifier.fillMaxWidth(),
-                        buttonConfig = ButtonConfig(
-                            type = ButtonType.PRIMARY,
-                            onClick = onPrimaryButtonClick,
-                        ),
+                if (primaryButtonText != null || secondaryButtonText != null) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(SPACING_LARGE.dp),
+                        verticalArrangement = Arrangement.spacedBy(SPACING_SMALL.dp),
                     ) {
-                        WrapText(
-                            modifier = Modifier,
-                            text = primaryButtonText,
-                            textConfig = TextConfig(
-                                style = ThemeTextStyles.onPrimaryButton,
-                                color = ThemeColors.onPrimaryButton,
+                        primaryButtonText?.let {
+                            DialogButton(
+                                text = it,
+                                type = ButtonType.PRIMARY,
+                                onClick = config.onPrimaryButtonClick,
                             )
-                        )
+                        }
+                        secondaryButtonText?.let {
+                            DialogButton(
+                                text = it,
+                                type = ButtonType.SECONDARY,
+                                onClick = config.onSecondaryButtonClick,
+                            )
+                        }
                     }
+                } else {
+                    Spacer(modifier = Modifier.height(SPACING_LARGE.dp))
                 }
             }
         }
     }
 }
+
+/** A "Label:" / value pair such as the error code or trace ID, as in the Figma sheets. */
+@Composable
+private fun SupportReference(label: String, value: String) {
+    WrapText(
+        modifier = Modifier.fillMaxWidth(),
+        text = "$label:\n$value",
+        textConfig = TextConfig(
+            maxLines = Int.MAX_VALUE,
+            style = MaterialTheme.typography.bodyMedium,
+            color = ThemeColors.onBackgroundVariant,
+        )
+    )
+}
+
+@Composable
+private fun DialogButton(text: String, type: ButtonType, onClick: () -> Unit) {
+    WrapButton(
+        modifier = Modifier.fillMaxWidth(),
+        buttonConfig = ButtonConfig(type = type, onClick = onClick),
+    ) {
+        WrapText(
+            text = text,
+            textConfig = TextConfig(
+                style = if (type == ButtonType.PRIMARY) {
+                    ThemeTextStyles.onPrimaryButton
+                } else {
+                    ThemeTextStyles.onSecondaryButton
+                },
+                color = if (type == ButtonType.PRIMARY) {
+                    ThemeColors.onPrimaryButton
+                } else {
+                    ThemeColors.onSecondaryButton
+                },
+            )
+        )
+    }
+}
+
+private const val DIALOG_CORNER_RADIUS = 28
+private const val DIALOG_SHADOW_ELEVATION = 6
 
 @ThemeModeWithGermanAndEnglishPreviews
 @Composable
@@ -233,7 +241,9 @@ private fun GenericErrorDialogWithErrorCodeAndTraceIdTextPreview() {
                 traceId = "34iu234082034u02934j23o420394j32",
                 primaryButtonTextRes = R.string.pid_inspection_dialog_delete_pid_prim_button,
                 onDismiss = {},
-                onPrimaryButtonClick = {}
+                onPrimaryButtonClick = {},
+                secondaryButtonTextRes = R.string.global_cancel_button,
+                onSecondaryButtonClick = {},
             )
         )
     }
@@ -250,7 +260,8 @@ private fun GenericErrorDialogWithoutPrimaryButtonPreview() {
                 errorCode = "WB_ATTESTATION_VERIFICATION_FAILED",
                 traceId = "34iu234082034u02934j23o420394j32",
                 onDismiss = {},
-                onPrimaryButtonClick = {}
+                onPrimaryButtonClick = {},
+                onSecondaryButtonClick = {},
             )
         )
     }
@@ -261,14 +272,34 @@ private fun GenericErrorDialogWithoutPrimaryButtonPreview() {
 private fun GenericErrorDialogWithoutErrorCodeAndTraceIdPreview() {
     PreviewTheme {
         GenericErrorDialog(
-            title = stringResource(R.string.pid_inspection_dialog_delete_pid_title),
-            bodyText = stringResource(R.string.pid_inspection_dialog_delete_pid_paragraph),
-            errorCode = null,
-            traceId = null,
-            dismissable = true,
-            primaryButtonText = stringResource(R.string.pid_inspection_dialog_delete_pid_prim_button),
-            onDismiss = {},
-            onPrimaryButtonClick = {}
+            config = GenericErrorDialogConfig(
+                titleRes = R.string.pid_inspection_dialog_delete_pid_title,
+                bodyTextRes = R.string.pid_inspection_dialog_delete_pid_paragraph,
+                primaryButtonTextRes = R.string.pid_inspection_dialog_delete_pid_prim_button,
+            )
         )
     }
+}
+
+@ThemeModeWithGermanAndEnglishPreviews
+@Composable
+private fun GenericErrorDialogNoInternetPreview() {
+    PreviewTheme {
+        GenericErrorDialog(
+            config = GenericErrorDialogConfig(
+                titleRes = R.string.global_no_internet_error_title,
+                bodyTextRes = R.string.global_no_internet_error_paragraph,
+                primaryButtonTextRes = R.string.global_no_internet_error_prim_button,
+                iconData = AppIcons.Warning,
+                bodyTextAlign = TextAlign.Center,
+            )
+        )
+    }
+}
+
+/** Large font scale so the content overflows: it scrolls and shows the bottom fade. */
+@Preview(name = "Overflowing content", showBackground = true, fontScale = 2f, locale = "de")
+@Composable
+private fun GenericErrorDialogOverflowingPreview() {
+    GenericErrorDialogWithErrorCodeAndTraceIdTextPreview()
 }

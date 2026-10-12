@@ -2,12 +2,21 @@ package eu.europa.ec.corelogic.controller
 
 import com.nimbusds.jose.jwk.JWK
 import com.nimbusds.jwt.SignedJWT
+import com.nimbusds.oauth2.sdk.auth.ClientAuthenticationMethod
+import eu.europa.ec.eudi.openid4vci.CIAuthorizationServerMetadata
 import eu.europa.ec.eudi.openid4vci.CredentialConfigurationIdentifier
 import eu.europa.ec.eudi.openid4vci.CredentialIssuerMetadata
+import eu.europa.ec.eudi.openid4vci.CredentialIssuanceError.AccessTokenRequestFailed
+import eu.europa.ec.eudi.openid4vci.CredentialIssuerMetadataError.InvalidSignedMetadata
+import eu.europa.ec.eudi.openid4vci.CredentialIssuerMetadataError.MissingSignedMetadata
+import eu.europa.ec.eudi.openid4vci.CredentialOfferRequestError.UnableToResolveCredentialIssuerMetadata
+import eu.europa.ec.eudi.openid4vci.CredentialOfferRequestException
 import eu.europa.ec.eudi.openid4vci.CredentialOffer
 import eu.europa.ec.eudi.openid4vci.CredentialIssuerId
+import eu.europa.ec.eudi.openid4vci.Grants
 import eu.europa.ec.eudi.wallet.EudiWallet
 import eu.europa.ec.eudi.wallet.document.IssuedDocument
+import eu.europa.ec.eudi.wallet.document.UnsignedDocument
 import eu.europa.ec.eudi.wallet.document.format.MsoMdocFormat
 import eu.europa.ec.eudi.wallet.issue.openid4vci.IssueEvent
 import eu.europa.ec.eudi.wallet.issue.openid4vci.Offer
@@ -21,6 +30,7 @@ import eu.europa.ec.authenticationlogic.controller.storage.HardwareKeyStorageCon
 import eu.europa.ec.authenticationlogic.jwt.JwtParser
 import eu.europa.ec.authenticationlogic.model.JwtKeyPair
 import eu.europa.ec.authenticationlogic.model.WalletInstanceAttestationSpec
+import eu.europa.ec.businesslogic.BuildConfig
 import eu.europa.ec.businesslogic.controller.log.LogController
 import eu.europa.ec.corelogic.config.WalletCoreConfig
 import eu.europa.ec.resourceslogic.R
@@ -41,6 +51,8 @@ import org.mockito.Mockito.mock
 import org.mockito.MockitoAnnotations
 import org.mockito.kotlin.any
 import org.mockito.kotlin.anyOrNull
+import org.mockito.kotlin.argumentCaptor
+import org.mockito.kotlin.atLeast
 import org.mockito.kotlin.doAnswer
 import org.mockito.kotlin.doThrow
 import org.mockito.kotlin.eq
@@ -49,8 +61,11 @@ import org.mockito.kotlin.times
 import org.mockito.kotlin.verify
 import org.mockito.kotlin.whenever
 import org.sprind.wallet.corelogic.controller.ReissueDocumentPartialState
+import org.sprind.wallet.corelogic.config.PidConfigurationOverrides
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.first
+import org.multipaz.crypto.Algorithm
+import org.multipaz.securearea.SecureArea
 import java.security.PrivateKey
 import java.security.interfaces.ECPrivateKey
 
@@ -81,11 +96,23 @@ class WalletCoreDocumentsControllerTest {
     private lateinit var appAttestationController: AppAttestationController
 
     private val configIssuerUrl = "https://issuer.eudiw.dev"
+    private val attestationBasedIssuerUrl = "https://wallet-provider.eudiw.dev"
+    private val unknownEaaIssuerUrl = "https://eaa-provider.example.com"
 
     private val config: OpenId4VciManager.Config =
         OpenId4VciManager.Config.Builder()
             .withClientAuthenticationType(
                 OpenId4VciManager.ClientAuthenticationType.None("https://issuer.eudiw.dev")
+            )
+            .withAuthFlowRedirectionURI("https://example.com/auth")
+            .build()
+
+    private val attestationBasedConfig: OpenId4VciManager.Config =
+        OpenId4VciManager.Config.Builder()
+            .withClientAuthenticationType(
+                OpenId4VciManager.ClientAuthenticationType.AttestationBased(
+                    "https://wallet-provider.eudiw.dev"
+                )
             )
             .withAuthFlowRedirectionURI("https://example.com/auth")
             .build()
@@ -98,18 +125,23 @@ class WalletCoreDocumentsControllerTest {
 
     private lateinit var closeable: AutoCloseable
 
+    private var pidConfigurationOverrides = PidConfigurationOverrides()
+
     private val subject: WalletCoreDocumentsController by lazy {
         WalletCoreDocumentsControllerImpl(
             resourceProvider = resourceProvider,
             eudiWallet = eudiWallet,
             walletCoreConfig = walletCoreConfig,
-            pidIssuerUrl = "https://fake.issuer.example.com/",
+            pidIssuerUrl = PID_ISSUER_URL,
             authorizationHandler = mock(),
             hardwareKeyStorageController = hardwareKeyStorageController,
             appAttestationController = appAttestationController,
             logController = logController,
             ktorHttpClientFactory = null,
             telemetry = telemetry,
+            pidConfigurationOverridesProvider = { pidConfigurationOverrides },
+            // Runs issuanceEventScope on the test scheduler instead of Dispatchers.IO.
+            dispatcher = coroutineRule.testDispatcher,
         )
     }
 
@@ -120,7 +152,12 @@ class WalletCoreDocumentsControllerTest {
         whenever(resourceProvider.getString(R.string.issuance_generic_error))
             .thenReturn(mockedGenericErrorMessage)
 
-        whenever(walletCoreConfig.vciConfig).thenReturn(mapOf(configIssuerUrl to config))
+        whenever(walletCoreConfig.vciConfig).thenReturn(
+            mapOf(
+                configIssuerUrl to config,
+                attestationBasedIssuerUrl to attestationBasedConfig,
+            )
+        )
         whenever(walletCoreConfig.defaultDPopConfig).thenReturn(DPopConfig.Disabled)
         whenever(eudiWallet.createOpenId4VciManager(any(), anyOrNull()))
             .thenReturn(openId4VciManager)
@@ -298,7 +335,11 @@ class WalletCoreDocumentsControllerTest {
     // instead of re-resolving by URI.
     // ---------------------------------------------------------------------
 
-    private fun buildOffer(issuerUrl: String): Offer {
+    private fun buildOffer(
+        issuerUrl: String,
+        authorizationServerMetadata: CIAuthorizationServerMetadata? = null,
+        grants: Grants? = null,
+    ): Offer {
         // CredentialIssuerId is a value class — construct it directly
         // instead of mocking (Mockito can't mock inline classes).
         val credentialIssuerId = CredentialIssuerId.invoke(issuerUrl).getOrThrow()
@@ -308,8 +349,179 @@ class WalletCoreDocumentsControllerTest {
         val credentialOffer = mock(CredentialOffer::class.java)
         whenever(credentialOffer.credentialIssuerIdentifier).thenReturn(credentialIssuerId)
         whenever(credentialOffer.credentialIssuerMetadata).thenReturn(credentialIssuerMetadata)
+        if (authorizationServerMetadata != null) {
+            whenever(credentialOffer.authorizationServerMetadata).thenReturn(authorizationServerMetadata)
+        }
+        if (grants != null) {
+            whenever(credentialOffer.grants).thenReturn(grants)
+        }
         return Offer(credentialOffer)
     }
+
+    // ---------------------------------------------------------------------
+    // WD-3993: consent shown after browser authorization for the
+    // authorization-code flow.
+    //
+    // An offer with no pre-authorized-code grant requires browser auth. Its
+    // first DocumentRequiresCreateSettings — which always fires right after
+    // authorization and right before credential submission — is withheld
+    // (instead of auto-resumed) until the app calls continueIssuanceAfterConsent,
+    // so the UI can show consent only now, after the browser step.
+    // ---------------------------------------------------------------------
+
+    @Test
+    fun `Given auth-code-flow offer, first DocumentRequiresCreateSettings arms the consent gate instead of auto-resuming`() =
+        coroutineRule.runTest {
+            val offerUri = "openid-credential-offer://?credential_offer_uri=https://offer.uri"
+            val offer = buildOffer(
+                configIssuerUrl,
+                grants = Grants.AuthorizationCode(),
+            )
+            subject.cacheOffer(offerUri, offer)
+
+            var resumeCalled = false
+            var cancelCalled = false
+            val gateEvent = IssueEvent.DocumentRequiresCreateSettings.OptionalReusePolicy(
+                offeredDocument = mock(Offer.OfferedDocument::class.java),
+                resume = { resumeCalled = true },
+                cancel = { cancelCalled = true },
+            )
+
+            doAnswer { invocation ->
+                val callback = invocation.getArgument<OpenId4VciManager.OnIssueEvent>(3)
+                callback(gateEvent)
+                null
+            }.whenever(openId4VciManager).issueDocumentByOffer(
+                offer = eq(offer),
+                txCode = anyOrNull(),
+                executor = anyOrNull(),
+                onIssueEvent = any(),
+            )
+
+            subject.issueDocumentsByOfferUri(offerUri = offerUri, txCode = null)
+                .runFlowTest {
+                    val state = awaitItem()
+                    assertTrue(state is IssueDocumentsPartialState.AwaitingConsent)
+                    cancelAndIgnoreRemainingEvents()
+                }
+
+            // Withheld, not auto-resumed.
+            assertTrue(!resumeCalled)
+            assertTrue(!cancelCalled)
+            // The persistent flow carries it too, so a recovery path (e.g. after the
+            // ViewModel is recreated while the browser round-trip is in flight) can
+            // still observe it.
+            assertEquals(
+                IssueDocumentsPartialState.AwaitingConsent,
+                subject.issuanceState.replayCache.lastOrNull()
+            )
+        }
+
+    @Test
+    fun `Given auth-code-flow offer, DocumentRequiresUserAuth after the consent gate is published on issuanceState`() =
+        coroutineRule.runTest {
+            val offerUri = "openid-credential-offer://?credential_offer_uri=https://offer.uri"
+            val offer = buildOffer(
+                configIssuerUrl,
+                grants = Grants.AuthorizationCode(),
+            )
+            subject.cacheOffer(offerUri, offer)
+
+            val gateEvent = IssueEvent.DocumentRequiresCreateSettings.OptionalReusePolicy(
+                offeredDocument = mock(Offer.OfferedDocument::class.java),
+                resume = {},
+                cancel = {},
+            )
+            val callback = argumentCaptor<OpenId4VciManager.OnIssueEvent>()
+            doAnswer { invocation ->
+                invocation.getArgument<OpenId4VciManager.OnIssueEvent>(3)(gateEvent)
+                null
+            }.whenever(openId4VciManager).issueDocumentByOffer(
+                offer = eq(offer),
+                txCode = anyOrNull(),
+                executor = anyOrNull(),
+                onIssueEvent = callback.capture(),
+            )
+
+            // The UI stops collecting at the consent gate, which cancels the
+            // callbackFlow's producer scope.
+            subject.issueDocumentsByOfferUri(offerUri = offerUri, txCode = null)
+                .first { it is IssueDocumentsPartialState.AwaitingConsent }
+
+            // After consent, credential submission hits a key that needs user auth.
+            val unsignedDocument = mock(UnsignedDocument::class.java)
+            whenever(unsignedDocument.id).thenReturn("doc-1")
+            whenever(unsignedDocument.name).thenReturn("University Diploma")
+            callback.lastValue(
+                IssueEvent.DocumentRequiresUserAuth(
+                    document = unsignedDocument,
+                    signingAlgorithm = Algorithm.ESP256,
+                    keysRequireAuth = mapOf("alias" to mock(SecureArea::class.java)),
+                    resume = {},
+                    cancel = {},
+                )
+            )
+
+            // Must still reach the UI (previously it was launched into the cancelled
+            // producer scope and dropped, so the biometric prompt never showed).
+            // (issuanceEventScope runs on the test dispatcher; awaiting lets it run.)
+            val state = subject.issuanceState.first { it !is IssueDocumentsPartialState.AwaitingConsent }
+            assertTrue(state is IssueDocumentsPartialState.UserAuthRequired)
+        }
+
+    @Test
+    fun `Given auth-code-flow offer, when a post-consent event handler throws, then a Failure is published and issuance is cancelled`() =
+        coroutineRule.runTest {
+            val offerUri = "openid-credential-offer://?credential_offer_uri=https://offer.uri"
+            val offer = buildOffer(
+                configIssuerUrl,
+                grants = Grants.AuthorizationCode(),
+            )
+            subject.cacheOffer(offerUri, offer)
+
+            val gateEvent = IssueEvent.DocumentRequiresCreateSettings.OptionalReusePolicy(
+                offeredDocument = mock(Offer.OfferedDocument::class.java),
+                resume = {},
+                cancel = {},
+            )
+            val callback = argumentCaptor<OpenId4VciManager.OnIssueEvent>()
+            doAnswer { invocation ->
+                invocation.getArgument<OpenId4VciManager.OnIssueEvent>(3)(gateEvent)
+                null
+            }.whenever(openId4VciManager).issueDocumentByOffer(
+                offer = eq(offer),
+                txCode = anyOrNull(),
+                executor = anyOrNull(),
+                onIssueEvent = callback.capture(),
+            )
+
+            subject.issueDocumentsByOfferUri(offerUri = offerUri, txCode = null)
+                .first { it is IssueDocumentsPartialState.AwaitingConsent }
+
+            // A second document's create-settings event arrives after the gate. Its
+            // offeredDocument mock has no offer, so the handler throws an exception.
+            var cancelled = false
+            callback.lastValue(
+                IssueEvent.DocumentRequiresCreateSettings.OptionalReusePolicy(
+                    offeredDocument = mock(Offer.OfferedDocument::class.java),
+                    resume = {},
+                    cancel = { cancelled = true },
+                )
+            )
+
+            // As with the producer scope before, the failure must surface as a Failure
+            // state rather than escape as an uncaught exception.
+            val state = subject.issuanceState.first { it !is IssueDocumentsPartialState.AwaitingConsent }
+            assertTrue(state is IssueDocumentsPartialState.Failure)
+            assertTrue(cancelled)
+        }
+
+    @Test
+    fun `continueIssuanceAfterConsent is a safe no-op when nothing is awaiting consent`() =
+        coroutineRule.runTest {
+            // Should not throw even though no issuance ever gated.
+            subject.continueIssuanceAfterConsent()
+        }
 
     @Test
     fun `Given cached offer, issueDocumentsByOfferUri reuses it and does not re-resolve`() =
@@ -354,6 +566,223 @@ class WalletCoreDocumentsControllerTest {
                 offerUri = any(),
                 executor = anyOrNull(),
                 onResolvedOffer = any(),
+            )
+        }
+
+    @Test
+    fun `Given the issuer rejects the transaction code, issueDocumentsByOfferUri reports a grant rejection`() =
+        coroutineRule.runTest {
+            val offerUri = "openid-credential-offer://?credential_offer_uri=https://offer.uri"
+            val offer = buildOffer(configIssuerUrl)
+            subject.cacheOffer(offerUri, offer)
+
+            doAnswer { invocation ->
+                val callback = invocation.getArgument<OpenId4VciManager.OnIssueEvent>(3)
+                callback(IssueEvent.Failure(AccessTokenRequestFailed("invalid_grant", null)))
+                null
+            }.whenever(openId4VciManager).issueDocumentByOffer(
+                offer = eq(offer),
+                txCode = eq("111111"),
+                executor = anyOrNull(),
+                onIssueEvent = any(),
+            )
+
+            subject.issueDocumentsByOfferUri(offerUri = offerUri, txCode = "111111")
+                .runFlowTest {
+                    val state = awaitItem()
+                    assertTrue(state is IssueDocumentsPartialState.Failure && state.isGrantRejection)
+                    cancelAndIgnoreRemainingEvents()
+                }
+        }
+
+    @Test
+    fun `Given the issuer metadata cannot be verified, issueDocumentsByOfferUri says the provider is not verified`() =
+        coroutineRule.runTest {
+            val offerUri = "openid-credential-offer://?credential_offer_uri=https://offer.uri"
+            val offer = buildOffer(configIssuerUrl)
+            subject.cacheOffer(offerUri, offer)
+            whenever(resourceProvider.getString(R.string.issuance_issuer_not_verified_error))
+                .thenReturn(ISSUER_NOT_VERIFIED_MESSAGE)
+
+            doAnswer { invocation ->
+                val callback = invocation.getArgument<OpenId4VciManager.OnIssueEvent>(3)
+                callback(IssueEvent.Failure(MissingSignedMetadata()))
+                null
+            }.whenever(openId4VciManager).issueDocumentByOffer(
+                offer = eq(offer),
+                txCode = anyOrNull(),
+                executor = anyOrNull(),
+                onIssueEvent = any(),
+            )
+
+            subject.issueDocumentsByOfferUri(offerUri = offerUri, txCode = null)
+                .runFlowTest {
+                    val state = awaitItem()
+                    assertTrue(state is IssueDocumentsPartialState.Failure && state.isIssuerNotVerified)
+                    assertEquals(ISSUER_NOT_VERIFIED_MESSAGE, (state as IssueDocumentsPartialState.Failure).errorMessage)
+                    cancelAndIgnoreRemainingEvents()
+                }
+        }
+
+    @Test
+    fun `Given the offer issuer metadata cannot be verified, resolveDocumentOffer says the provider is not verified`() =
+        coroutineRule.runTest {
+            val offerUri = "openid-credential-offer://?credential_offer_uri=https://offer.uri"
+            whenever(resourceProvider.getString(R.string.issuance_issuer_not_verified_error))
+                .thenReturn(ISSUER_NOT_VERIFIED_MESSAGE)
+
+            doAnswer { invocation ->
+                val callback = invocation.getArgument<OpenId4VciManager.OnResolvedOffer>(2)
+                callback(
+                    OfferResult.Failure(
+                        CredentialOfferRequestException(
+                            UnableToResolveCredentialIssuerMetadata(
+                                InvalidSignedMetadata(IllegalStateException("untrusted chain"))
+                            )
+                        )
+                    )
+                )
+                null
+            }.whenever(openId4VciManager).resolveDocumentOffer(
+                offerUri = any(),
+                executor = anyOrNull(),
+                onResolvedOffer = any(),
+            )
+
+            subject.resolveDocumentOffer(offerUri)
+                .runFlowTest {
+                    assertEquals(
+                        ResolveDocumentOfferPartialState.Failure(ISSUER_NOT_VERIFIED_MESSAGE),
+                        awaitItem(),
+                    )
+                    cancelAndIgnoreRemainingEvents()
+                }
+        }
+
+    // ---------------------------------------------------------------------
+    // WD-4477: Metadata-driven WIA decision for unknown EAA issuers.
+    //
+    // When an EAA provider is not in the static vciConfig map, the wallet
+    // must inspect the AS metadata for `attest_jwt_client_auth` to decide
+    // whether to send a Wallet Instance Attestation at the PAR/token
+    // endpoints.
+    // ---------------------------------------------------------------------
+
+    /**
+     * Builds a mock [CIAuthorizationServerMetadata] whose
+     * `token_endpoint_auth_methods_supported` contains [methods].
+     */
+    private fun buildAsMetadata(
+        methods: List<ClientAuthenticationMethod>,
+    ): CIAuthorizationServerMetadata {
+        val metadata = mock(CIAuthorizationServerMetadata::class.java)
+        whenever(metadata.tokenEndpointAuthMethods).thenReturn(methods)
+        return metadata
+    }
+
+    @Test
+    fun `Given unknown EAA issuer with attest_jwt_client_auth, issueDocumentsByOfferUri uses AttestationBased config`() =
+        coroutineRule.runTest {
+            val offerUri = "openid-credential-offer://?credential_offer_uri=https://offer.uri"
+            val asMetadata = buildAsMetadata(
+                listOf(ClientAuthenticationMethod("attest_jwt_client_auth"))
+            )
+            val offer = buildOffer(unknownEaaIssuerUrl, asMetadata)
+            subject.cacheOffer(offerUri, offer)
+
+            doAnswer { invocation ->
+                val callback = invocation.getArgument<OpenId4VciManager.OnIssueEvent>(3)
+                callback(IssueEvent.Failure(IllegalStateException("stubbed issuance failure")))
+                null
+            }.whenever(openId4VciManager).issueDocumentByOffer(
+                offer = eq(offer),
+                txCode = anyOrNull(),
+                executor = anyOrNull(),
+                onIssueEvent = any(),
+            )
+
+            subject.issueDocumentsByOfferUri(offerUri = offerUri, txCode = null)
+                .runFlowTest {
+                    val state = awaitItem()
+                    assertTrue(state is IssueDocumentsPartialState.Failure)
+                    cancelAndIgnoreRemainingEvents()
+                }
+
+            // The manager for the unknown EAA issuer must be created with an
+            // AttestationBased config (metadata-driven fallback). The lazy
+            // delegate also pre-creates managers for known issuers, so match
+            // on the fallback config itself: fallbackConfig() is the only path
+            // that overrides authFlowRedirectionURI to the deep link, whereas
+            // every known-issuer config keeps its configured redirect URI.
+            val configCaptor = argumentCaptor<OpenId4VciManager.Config>()
+            verify(eudiWallet, atLeast(1)).createOpenId4VciManager(configCaptor.capture(), anyOrNull())
+            val fallbackConfigs = configCaptor.allValues.filter {
+                it.authFlowRedirectionURI == BuildConfig.ISSUE_AUTHORIZATION_DEEPLINK
+            }
+            assertEquals(
+                "Expected exactly one fallback (unknown EAA issuer) config, but found " +
+                    "${fallbackConfigs.map { it.clientAuthenticationType }}",
+                1,
+                fallbackConfigs.size
+            )
+            val eaaConfig = fallbackConfigs.single()
+            assertTrue(
+                "Expected the unknown EAA issuer's config to use AttestationBased client auth, " +
+                    "but was ${eaaConfig.clientAuthenticationType}",
+                eaaConfig.clientAuthenticationType is OpenId4VciManager.ClientAuthenticationType.AttestationBased
+            )
+        }
+
+    @Test
+    fun `Given unknown EAA issuer without attest_jwt_client_auth, issueDocumentsByOfferUri uses None config`() =
+        coroutineRule.runTest {
+            val offerUri = "openid-credential-offer://?credential_offer_uri=https://offer.uri"
+            val asMetadata = buildAsMetadata(
+                listOf(ClientAuthenticationMethod("client_secret_basic"))
+            )
+            val offer = buildOffer(unknownEaaIssuerUrl, asMetadata)
+            subject.cacheOffer(offerUri, offer)
+
+            doAnswer { invocation ->
+                val callback = invocation.getArgument<OpenId4VciManager.OnIssueEvent>(3)
+                callback(IssueEvent.Failure(IllegalStateException("stubbed issuance failure")))
+                null
+            }.whenever(openId4VciManager).issueDocumentByOffer(
+                offer = eq(offer),
+                txCode = anyOrNull(),
+                executor = anyOrNull(),
+                onIssueEvent = any(),
+            )
+
+            subject.issueDocumentsByOfferUri(offerUri = offerUri, txCode = null)
+                .runFlowTest {
+                    val state = awaitItem()
+                    assertTrue(state is IssueDocumentsPartialState.Failure)
+                    cancelAndIgnoreRemainingEvents()
+                }
+
+            // The manager for the unknown EAA issuer must be created with a
+            // None config (metadata-driven fallback: no attest_jwt_client_auth
+            // in AS metadata). The lazy delegate also pre-creates managers for
+            // known issuers, so match on the fallback config itself:
+            // fallbackConfig() is the only path that overrides
+            // authFlowRedirectionURI to the deep link.
+            val configCaptor = argumentCaptor<OpenId4VciManager.Config>()
+            verify(eudiWallet, atLeast(1)).createOpenId4VciManager(configCaptor.capture(), anyOrNull())
+            val fallbackConfigs = configCaptor.allValues.filter {
+                it.authFlowRedirectionURI == BuildConfig.ISSUE_AUTHORIZATION_DEEPLINK
+            }
+            assertEquals(
+                "Expected exactly one fallback (unknown EAA issuer) config, but found " +
+                    "${fallbackConfigs.map { it.clientAuthenticationType }}",
+                1,
+                fallbackConfigs.size
+            )
+            val eaaConfig = fallbackConfigs.single()
+            assertTrue(
+                "Expected the unknown EAA issuer's config to use None client auth, " +
+                    "but was ${eaaConfig.clientAuthenticationType}",
+                eaaConfig.clientAuthenticationType is OpenId4VciManager.ClientAuthenticationType.None
             )
         }
 
@@ -724,5 +1153,192 @@ class WalletCoreDocumentsControllerTest {
             assertTrue(result is ResolvePreferredPidConfigurationsPartialState.Failure)
         }
 
+    @Test
+    fun `resolvePreferredPidConfigurationIds picks an override even when it is not advertised`() {
+        val override = CredentialConfigurationIdentifier("pid-mso-mdoc_3")
+        val advertised = setOf(
+            WalletCoreDocumentsController.PID_CONFIGURATION_ID_MDOC_2_BETA,
+            WalletCoreDocumentsController.PID_CONFIGURATION_ID_SD_JWT_2_BETA,
+        )
+        val selected = WalletCoreDocumentsController.resolvePreferredPidConfigurationIds(
+            advertised = advertised,
+            mdocOverride = override,
+        )
+        assertEquals(
+            setOf(override, WalletCoreDocumentsController.PID_CONFIGURATION_ID_SD_JWT_2_BETA),
+            selected,
+        )
+    }
+
+    @Test
+    fun `resolvePreferredPidConfigurationIds picks both overrides regardless of advertised`() {
+        val mdoc = CredentialConfigurationIdentifier("pid-mso-mdoc")
+        val sdJwt = CredentialConfigurationIdentifier("pid-sd-jwt_3")
+        val selected = WalletCoreDocumentsController.resolvePreferredPidConfigurationIds(
+            advertised = emptySet(),
+            mdocOverride = mdoc,
+            sdJwtOverride = sdJwt,
+        )
+        assertEquals(setOf(mdoc, sdJwt), selected)
+    }
+
+    @Test
+    fun `Given both PID config overrides are set, resolvePreferredPidConfigurations returns them without fetching metadata`() =
+        coroutineRule.runTest {
+            pidConfigurationOverrides = PidConfigurationOverrides(mdoc = "pid-mso-mdoc_3", sdJwt = "pid-sd-jwt_3")
+
+            val result = subject.resolvePreferredPidConfigurations()
+
+            assertEquals(
+                ResolvePreferredPidConfigurationsPartialState.Success(
+                    setOf(
+                        CredentialConfigurationIdentifier("pid-mso-mdoc_3"),
+                        CredentialConfigurationIdentifier("pid-sd-jwt_3"),
+                    )
+                ),
+                result,
+            )
+            verify(openId4VciManager, never()).getIssuerMetadata(any())
+        }
+
+    @Test
+    fun `Given only the mdoc override is set, resolvePreferredPidConfigurations combines it with the advertised sd-jwt`() =
+        coroutineRule.runTest {
+            pidConfigurationOverrides = PidConfigurationOverrides(mdoc = "pid-mso-mdoc_3")
+            val metadata = mock(CredentialIssuerMetadata::class.java)
+            whenever(metadata.credentialConfigurationsSupported).thenReturn(
+                mapOf(
+                    WalletCoreDocumentsController.PID_CONFIGURATION_ID_MDOC to pidMdocConfiguration,
+                    WalletCoreDocumentsController.PID_CONFIGURATION_ID_SD_JWT to pidSdJwtConfiguration,
+                )
+            )
+            whenever(openId4VciManager.getIssuerMetadata(any())).thenReturn(Result.success(metadata))
+
+            val result = subject.resolvePreferredPidConfigurations()
+
+            assertEquals(
+                ResolvePreferredPidConfigurationsPartialState.Success(
+                    setOf(
+                        CredentialConfigurationIdentifier("pid-mso-mdoc_3"),
+                        WalletCoreDocumentsController.PID_CONFIGURATION_ID_SD_JWT,
+                    )
+                ),
+                result,
+            )
+        }
+
+    @Test
+    fun `Given only one override is set and metadata fetch fails, resolvePreferredPidConfigurations returns Failure`() =
+        coroutineRule.runTest {
+            pidConfigurationOverrides = PidConfigurationOverrides(mdoc = "pid-mso-mdoc_3")
+            whenever(openId4VciManager.getIssuerMetadata(any()))
+                .thenReturn(Result.failure(IllegalStateException("network down")))
+
+            val result = subject.resolvePreferredPidConfigurations()
+
+            assertTrue(result is ResolvePreferredPidConfigurationsPartialState.Failure)
+        }
+
+    @Test
+    fun `Given a PID config override, getScopedDocuments marks that configuration as PID`() =
+        coroutineRule.runTest {
+            pidConfigurationOverrides = PidConfigurationOverrides(mdoc = "pid-mso-mdoc_3")
+            val metadata = mock(CredentialIssuerMetadata::class.java)
+            whenever(metadata.credentialConfigurationsSupported).thenReturn(
+                mapOf(
+                    CredentialConfigurationIdentifier("pid-mso-mdoc_3") to pidMdocConfiguration,
+                    CredentialConfigurationIdentifier("some-eaa") to eu.europa.ec.eudi.openid4vci.MsoMdocCredential(
+                        credentialMetadata = null,
+                        docType = "org.example.eaa",
+                    ),
+                )
+            )
+            whenever(openId4VciManager.getIssuerMetadata(any())).thenReturn(Result.success(metadata))
+
+            val result = subject.getScopedDocuments(java.util.Locale.ENGLISH)
+
+            assertTrue(result is FetchScopedDocumentsPartialState.Success)
+            val isPidById = (result as FetchScopedDocumentsPartialState.Success).documents
+                .associate { it.configurationId to it.isPid }
+            assertEquals(mapOf("pid-mso-mdoc_3" to true, "some-eaa" to false), isPidById)
+        }
+
+    @Test
+    fun `isPidOffer is true for a known PID configuration ID from any issuer`() {
+        assertTrue(
+            WalletCoreDocumentsController.isPidOffer(
+                configurationId = WalletCoreDocumentsController.PID_CONFIGURATION_ID_MDOC,
+                formatType = null,
+                issuerId = "https://other.issuer.example.com",
+                knownPidConfigurationIds = WalletCoreDocumentsController.PIDS_ALL_CONFIGURATION_IDS,
+                pidIssuerUrl = PID_ISSUER_URL,
+            )
+        )
+    }
+
+    @Test
+    fun `isPidOffer is true for an unknown configuration ID with a PID doctype from the PID issuer`() {
+        assertTrue(
+            WalletCoreDocumentsController.isPidOffer(
+                configurationId = CredentialConfigurationIdentifier("pid-mso-mdoc_3"),
+                formatType = "eu.europa.ec.eudi.pid.1",
+                issuerId = PID_ISSUER_URL.trimEnd('/'),
+                knownPidConfigurationIds = WalletCoreDocumentsController.PIDS_ALL_CONFIGURATION_IDS,
+                pidIssuerUrl = PID_ISSUER_URL,
+            )
+        )
+        assertTrue(
+            WalletCoreDocumentsController.isPidOffer(
+                configurationId = CredentialConfigurationIdentifier("pid-sd-jwt_3"),
+                formatType = "urn:eudi:pid:de:1",
+                issuerId = PID_ISSUER_URL,
+                knownPidConfigurationIds = WalletCoreDocumentsController.PIDS_ALL_CONFIGURATION_IDS,
+                pidIssuerUrl = PID_ISSUER_URL,
+            )
+        )
+    }
+
+    @Test
+    fun `isPidOffer is false for an unknown configuration ID with a PID doctype from another issuer`() {
+        assertEquals(
+            false,
+            WalletCoreDocumentsController.isPidOffer(
+                configurationId = CredentialConfigurationIdentifier("pid-mso-mdoc_3"),
+                formatType = "eu.europa.ec.eudi.pid.1",
+                issuerId = "https://other.issuer.example.com",
+                knownPidConfigurationIds = WalletCoreDocumentsController.PIDS_ALL_CONFIGURATION_IDS,
+                pidIssuerUrl = PID_ISSUER_URL,
+            )
+        )
+    }
+
+    @Test
+    fun `isPidOffer is false for a non-PID doctype from the PID issuer`() {
+        assertEquals(
+            false,
+            WalletCoreDocumentsController.isPidOffer(
+                configurationId = CredentialConfigurationIdentifier("some-eaa"),
+                formatType = "org.example.eaa",
+                issuerId = PID_ISSUER_URL,
+                knownPidConfigurationIds = WalletCoreDocumentsController.PIDS_ALL_CONFIGURATION_IDS,
+                pidIssuerUrl = PID_ISSUER_URL,
+            )
+        )
+    }
+
+    private val pidMdocConfiguration = eu.europa.ec.eudi.openid4vci.MsoMdocCredential(
+        credentialMetadata = null,
+        docType = "eu.europa.ec.eudi.pid.1",
+    )
+
+    private val pidSdJwtConfiguration = eu.europa.ec.eudi.openid4vci.SdJwtVcCredential(
+        credentialMetadata = null,
+        type = "urn:eudi:pid:de:1",
+    )
+
     //endregion
 }
+
+private const val PID_ISSUER_URL = "https://fake.issuer.example.com/"
+
+private const val ISSUER_NOT_VERIFIED_MESSAGE = "The provider could not be verified"

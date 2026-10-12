@@ -79,7 +79,10 @@ sealed class IssueDocumentsInteractorPartialState {
         val successRoute: String,
     ) : IssueDocumentsInteractorPartialState()
 
-    data class Failure(val errorMessage: String) : IssueDocumentsInteractorPartialState()
+    data class Failure(
+        val errorMessage: String,
+        val isGrantRejection: Boolean = false,
+    ) : IssueDocumentsInteractorPartialState()
 
     data class UserAuthRequired(
         val crypto: BiometricCrypto,
@@ -90,6 +93,13 @@ sealed class IssueDocumentsInteractorPartialState {
         IssueDocumentsInteractorPartialState()
 
     data class OnCNonce(val aParameter: Nonce) : IssueDocumentsInteractorPartialState()
+
+    /**
+     * The authorization-code flow completed browser authorization and is
+     * paused waiting for the user to confirm consent. Never emitted for
+     * pre-authorized offers.
+     */
+    data object AwaitingConsent : IssueDocumentsInteractorPartialState()
 }
 
 interface DocumentOfferInteractor {
@@ -129,6 +139,14 @@ interface DocumentOfferInteractor {
     )
 
     fun resumeOpenId4VciWithAuthorization(uri: String)
+
+    /**
+     * Resumes an authorization-code-flow issuance that is paused waiting for
+     * consent, after the user has confirmed it on the document offer screen.
+     *
+     * No-op if no issuance is currently awaiting consent.
+     */
+    suspend fun continueIssuanceAfterConsent()
 }
 
 private data class DeduplicationInfo(val issuer: String?, val type: FormatType)
@@ -173,7 +191,10 @@ class DocumentOfferInteractorImpl(
         issuerName: String
     ): IssueDocumentsInteractorPartialState = when (this) {
         is IssueDocumentsPartialState.Failure ->
-            IssueDocumentsInteractorPartialState.Failure(errorMessage = errorMessage)
+            IssueDocumentsInteractorPartialState.Failure(
+                errorMessage = errorMessage,
+                isGrantRejection = isGrantRejection,
+            )
 
         is IssueDocumentsPartialState.PartialSuccess ->
             IssueDocumentsInteractorPartialState.Success(documentIds = documentIds)
@@ -200,6 +221,9 @@ class DocumentOfferInteractorImpl(
 
         is IssueDocumentsPartialState.RefreshTokenReceived ->
             IssueDocumentsInteractorPartialState.OnRefreshTokenReceived(refreshToken)
+
+        is IssueDocumentsPartialState.AwaitingConsent ->
+            IssueDocumentsInteractorPartialState.AwaitingConsent
     }
 
     override fun resolveDocumentOffer(offerUri: String): Flow<ResolveDocumentOfferInteractorPartialState> =
@@ -315,7 +339,8 @@ class DocumentOfferInteractorImpl(
             is IssueDocumentsPartialState.Failure,
             is IssueDocumentsPartialState.DeferredSuccess,
             is IssueDocumentsPartialState.RefreshTokenReceived,
-            is IssueDocumentsPartialState.UserAuthRequired -> {
+            is IssueDocumentsPartialState.UserAuthRequired,
+            is IssueDocumentsPartialState.AwaitingConsent -> {
                 // at the moment we do not deduplicate in these cases
             }
         }
@@ -369,6 +394,10 @@ class DocumentOfferInteractorImpl(
         walletCoreDocumentsController.resumeOpenId4VciWithAuthorization(uri)
     }
 
+    override suspend fun continueIssuanceAfterConsent() {
+        walletCoreDocumentsController.continueIssuanceAfterConsent()
+    }
+
     // Extracts claim paths with placeholder values from the credential configuration
     // Returns: [("path.to.claim", "—"), ("another.claim", "—")]
     private fun CredentialConfiguration.extractClaimDetails(
@@ -403,6 +432,7 @@ class DocumentOfferInteractorImpl(
             )
         },
         txCodeLength = txCodeSpec?.length,
+        isAuthorizationCodeFlow = credentialOffer.grants?.preAuthorizedCode() == null,
     )
 
     private fun buildGenericSuccessRouteForDeferred(

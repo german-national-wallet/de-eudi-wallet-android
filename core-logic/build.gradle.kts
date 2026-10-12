@@ -48,7 +48,9 @@ dependencies {
     testImplementation(project(LibraryModule.TestFeatureLogic.path))
     testImplementation(libs.mockk)
 
-    // Siop-Openid4VP library
+    // Siop-Openid4VP library. Only PresentationErrorMapper.kt references NiScy types, and
+    // only inside function bodies: no openid4vp type appears in any public signature, so
+    // implementation() keeps the NiScy artifact off downstream compile classpaths.
     implementation(libs.eudi.lib.jvm.siop.openid4vp.kt) {
         exclude(group = "org.bouncycastle")
     }

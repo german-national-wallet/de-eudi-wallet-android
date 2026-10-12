@@ -23,11 +23,14 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.navigation
 import androidx.navigation.navArgument
 import androidx.navigation.navDeepLink
+import androidx.navigation.toRoute
 import eu.europa.ec.dashboardfeature.BuildConfig
 import eu.europa.ec.dashboardfeature.ui.dashboard.DashboardScreen
 import org.sprind.wallet.dashboardfeature.ui.activities.ActivitiesScreen
 import org.sprind.wallet.dashboardfeature.ui.documentdetail.DashboardDocumentDetailScreen
 import org.sprind.wallet.dashboardfeature.ui.settings.SettingsScreen
+import org.sprind.wallet.dashboardfeature.ui.settings.SettingsWebPageRoute
+import org.sprind.wallet.dashboardfeature.ui.settings.SettingsWebPageScreen
 import org.sprind.wallet.uilogic.component.bottomNavigationTabDestination
 import eu.europa.ec.uilogic.navigation.DashboardScreens
 import eu.europa.ec.uilogic.navigation.ModuleRoute
@@ -63,6 +66,13 @@ fun NavGraphBuilder.featureDashboardGraph(navController: NavController) {
             SettingsScreen(
                 navHostController = navController,
                 viewModel = koinViewModel()
+            )
+        }
+
+        composable<SettingsWebPageRoute> { backStackEntry ->
+            SettingsWebPageScreen(
+                navController = navController,
+                route = backStackEntry.toRoute<SettingsWebPageRoute>(),
             )
         }
 

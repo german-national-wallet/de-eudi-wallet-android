@@ -16,14 +16,17 @@
 
 package eu.europa.ec.issuancefeature.ui.document.code
 
+import android.content.Context
 import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
+import eu.europa.ec.issuancefeature.ui.document.popToDashboardOrFinish
 import eu.europa.ec.resourceslogic.R
 import eu.europa.ec.uilogic.component.AppIcons
 import eu.europa.ec.uilogic.component.content.ContentScreen
@@ -39,8 +42,10 @@ import kotlinx.coroutines.flow.onEach
 import org.sprind.wallet.designsystem.typography.CustomTypography
 import org.sprind.wallet.uilogic.component.CodeEntryBody
 import org.sprind.wallet.uilogic.component.CodeEntryConfig
-import org.sprind.wallet.uilogic.component.codeEntryStateForPreview
 import org.sprind.wallet.uilogic.component.CodeVisibility
+import org.sprind.wallet.uilogic.component.codeEntryStateForPreview
+import org.sprind.wallet.uilogic.component.dialog.ConfirmationDialog
+import org.sprind.wallet.uilogic.component.dialog.ConfirmationDialogConfig
 import org.sprind.wallet.walletpinfeature.ui.document.pinset.view.WalletPinSetSuccessView
 
 @Composable
@@ -48,29 +53,55 @@ fun DocumentOfferCodeScreen(
     navController: NavController,
     viewModel: DocumentOfferCodeViewModel
 ) {
+    val context = LocalContext.current
     val state: State by viewModel.viewState.collectAsStateWithLifecycle()
 
     LaunchedEffect(Unit) {
         viewModel.effect.onEach { effect ->
             when (effect) {
-                is Effect.Navigation -> handleNavigationEffect(effect, navController)
+                is Effect.Navigation -> handleNavigationEffect(effect, navController, context)
             }
         }.collect()
     }
 
+    if (state.showCloseConfirmationDialog) {
+        ConfirmationDialog(
+            config = ConfirmationDialogConfig(
+                title = stringResource(R.string.eaa_issuance_dialog_cancel_title),
+                body = stringResource(R.string.eaa_issuance_dialog_cancel_paragraph),
+                confirmText = stringResource(R.string.eaa_issuance_dialog_cancel_prim_button),
+                dismissText = stringResource(R.string.eaa_issuance_dialog_cancel_sec_button),
+                onConfirm = {
+                    viewModel.setEvent(Event.Decline)
+                },
+                onDismiss = {
+                    viewModel.setEvent(Event.DismissCloseConfirmationDialog)
+                },
+            )
+        )
+    }
+
     ContentScreen(
         isLoading = state.isLoading,
+        hideTopBar = state.isLoading || state.isSuccess,
         contentErrorConfig = state.error,
         navigatableAction = ScreenNavigateAction.BACKABLE,
         onBack = { navController.popBackStack() },
         toolBarConfig = ToolbarConfig(
             title = "",
-            actions = listOf(
-                ToolbarAction(
-                    icon = AppIcons.Close,
-                    onClick = { navController.popBackStack() }
+            actions = if (state.error != null) {
+                emptyList()
+            } else {
+                listOf(
+                    ToolbarAction(
+                        icon = AppIcons.Help,
+                        onClick = { viewModel.setEvent(Event.HelpPressed) }),
+                    ToolbarAction(
+                        icon = AppIcons.Close,
+                        onClick = { viewModel.setEvent(Event.Cancel) }
+                    ),
                 )
-            )
+            }
         ),
         stickyBottom = { paddingValues ->
             if (!state.isSuccess) {
@@ -86,6 +117,7 @@ fun DocumentOfferCodeScreen(
                 )
             }
         },
+        loadingText = stringResource(R.string.eaa_issuance_loading_title),
         bodyContent = { paddingValues ->
             when {
                 state.isSuccess -> WalletPinSetSuccessView(
@@ -109,7 +141,8 @@ fun DocumentOfferCodeScreen(
 
 private fun handleNavigationEffect(
     navigationEffect: Effect.Navigation,
-    navController: NavController
+    navController: NavController,
+    context: Context,
 ) {
     when (navigationEffect) {
         is Effect.Navigation.SwitchScreen -> {
@@ -122,6 +155,10 @@ private fun handleNavigationEffect(
 
         is Effect.Navigation.Pop -> {
             navController.popBackStack()
+        }
+
+        is Effect.Navigation.Decline -> {
+            navController.popToDashboardOrFinish(context)
         }
     }
 }

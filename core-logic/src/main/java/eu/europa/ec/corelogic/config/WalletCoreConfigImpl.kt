@@ -29,7 +29,8 @@ import eu.europa.ec.eudi.wallet.transfer.openId4vp.ClientIdScheme
 import eu.europa.ec.eudi.wallet.transfer.openId4vp.EncryptionAlgorithm
 import eu.europa.ec.eudi.wallet.transfer.openId4vp.EncryptionMethod
 import eu.europa.ec.eudi.wallet.transfer.openId4vp.Format
-import eu.europa.ec.resourceslogic.R
+import org.sprind.wallet.corelogic.config.readerTrustAnchors
+import org.sprind.wallet.corelogic.config.requireSignedIssuerMetadata
 import org.sprind.wallet.corelogic.securearea.RwscaCreateKeySettings
 import kotlinx.io.bytestring.ByteString
 import org.multipaz.securearea.AndroidKeystoreCreateKeySettings
@@ -51,6 +52,20 @@ internal class WalletCoreConfigImpl(
 ) : WalletCoreConfig {
 
     private var _config: EudiWalletConfig? = null
+
+    private val signedIssuerMetadataPolicy by lazy { requireSignedIssuerMetadata(context) }
+
+    internal val defaultVciConfig: OpenId4VciManager.Config
+        get() = OpenId4VciManager.Config {
+            withClientAuthenticationType(OpenId4VciManager.ClientAuthenticationType.None(BuildConfig.VCI_ISSUER_CLIENT_ID))
+            withAuthFlowRedirectionURI(BuildConfig.ISSUE_AUTHORIZATION_DEEPLINK)
+            withParUsage(OpenId4VciManager.Config.ParUsage.REQUIRED)
+            withDPopConfig(keyAttestedDPopConfig())
+            withIssuanceMetadataStorage(storage)
+            withIssuerMetadataPolicy(signedIssuerMetadataPolicy)
+            // EUDI added
+            withAuthorizationHandler(ausweisSdkAuthorizationHandler)
+        }
 
     override val config: EudiWalletConfig
         get() {
@@ -88,15 +103,7 @@ internal class WalletCoreConfigImpl(
                         )
                     }
 
-                    configureOpenId4Vci {
-                        withClientAuthenticationType(OpenId4VciManager.ClientAuthenticationType.None(BuildConfig.VCI_ISSUER_CLIENT_ID))
-                        withAuthFlowRedirectionURI(BuildConfig.ISSUE_AUTHORIZATION_DEEPLINK)
-                        withParUsage(OpenId4VciManager.Config.ParUsage.REQUIRED)
-                        withDPopConfig(keyAttestedDPopConfig())
-                        withIssuanceMetadataStorage(storage)
-                        // EUDI added
-                        withAuthorizationHandler(ausweisSdkAuthorizationHandler)
-                    }
+                    configureOpenId4Vci(defaultVciConfig)
 
                     // The revocation policy is passed explicitly because core-lib 0.30 flipped
                     // the default from RevocationPolicy.NoCheck to RevocationPolicy.HardFail,
@@ -104,31 +111,10 @@ internal class WalletCoreConfigImpl(
                     // several of the development CAs below publish none.
                     configureReaderTrustStore(
                         context,
-                        R.raw.pidissuerca02_cz,
-                        R.raw.pidissuerca02_ee,
-                        R.raw.pidissuerca02_eu,
-                        R.raw.pidissuerca02_lu,
-                        R.raw.pidissuerca02_nl,
-                        R.raw.pidissuerca02_pt,
-                        R.raw.pidissuerca02_ut,
-                        // EUDI-added
-                        R.raw.dc4eu,
-                        R.raw.german_pg_cert,
-                        R.raw.wrpac_ca,
-                        R.raw.wrprc_ca,
+                        *readerTrustAnchors,
                         revocationPolicy = RevocationPolicy.NoCheck,
                     )
-                    // core-lib 0.30 introduced relying party registration certificates and
-                    // defaults the policy to Enabled. With it enabled, the OpenID4VP library
-                    // rejects *every* request from an `x509_hash` verifier that carries no
-                    // registration certificate, before the wallet's own (non-blocking) evaluation
-                    // runs - see RegistrationCertificatePolicyEvaluator, which fails such a
-                    // request with MissingRequiredRegistrationCertificate. The openid4vp version
-                    // core-lib 0.28.1 used to had no registration certificate concept at all, so
-                    // leaving the new default in place would reject verifiers the wallet accepted
-                    // before the upgrade. Disabled restores that behaviour. Turning the mechanism
-                    // on needs the ETSI Trusted Lists (`configureEtsiTrust`, `wrprcProviders`).
-                    configureWrpRegistrationPolicy(WrpRegistrationPolicy.Disabled)
+                    configureWrpRegistrationPolicy(WrpRegistrationPolicy.Enabled)
                 }
             }
             return _config!!
@@ -142,6 +128,7 @@ internal class WalletCoreConfigImpl(
                 .withParUsage(OpenId4VciManager.Config.ParUsage.REQUIRED)
                 .withDPopConfig(keyAttestedDPopConfig())
                 .withIssuanceMetadataStorage(storage)
+                .withIssuerMetadataPolicy(signedIssuerMetadataPolicy)
                 .withAuthorizationHandler(authorizationHandler = ausweisSdkAuthorizationHandler)
                 .build(),
             EUDIW_ISSUER_URL to OpenId4VciManager.Config.Builder()
@@ -164,6 +151,7 @@ internal class WalletCoreConfigImpl(
                 .withParUsage(OpenId4VciManager.Config.ParUsage.IF_SUPPORTED)
                 .withDPopConfig(defaultDPopConfig)
                 .withIssuanceMetadataStorage(storage)
+                .withIssuerMetadataPolicy(signedIssuerMetadataPolicy)
                 .build(),
         )
 

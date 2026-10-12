@@ -19,12 +19,12 @@ package eu.europa.ec.uilogic.container
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
+import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.core.view.WindowCompat
 import androidx.fragment.app.FragmentActivity
 import androidx.lifecycle.lifecycleScope
 import androidx.navigation.NavController
@@ -55,8 +55,9 @@ open class EudiComponentActivity : FragmentActivity() {
     internal var pendingDeepLink: Uri? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        // Transparent system bars on every API level; icon contrast is set by ThemeManager.
+        enableEdgeToEdge()
         super.onCreate(savedInstanceState)
-        WindowCompat.setDecorFitsSystemWindows(window, false)
     }
 
     internal fun cacheDeepLink(intent: Intent?) {

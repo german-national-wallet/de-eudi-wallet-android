@@ -52,6 +52,8 @@ import org.mockito.kotlin.any
 import org.mockito.kotlin.doAnswer
 import org.mockito.kotlin.doReturn
 import org.mockito.kotlin.mock
+import org.mockito.kotlin.never
+import org.mockito.kotlin.verify
 import org.mockito.kotlin.whenever
 import org.multipaz.cbor.Tstr
 import org.multipaz.claim.Claim
@@ -71,6 +73,9 @@ import org.multipaz.securearea.AndroidKeystoreKeyUnlockData
 import org.multipaz.securearea.AndroidKeystoreSecureArea
 import org.multipaz.securearea.KeyUnlockData
 import org.multipaz.securearea.SecureArea
+import org.sprind.wallet.analyticslogic.controller.Telemetry
+import org.sprind.wallet.corelogic.presentationerror.PresentationError
+import java.net.URI
 
 /**
  * Covers the two things the controller does between a received request and the response: deciding
@@ -96,6 +101,9 @@ class WalletCorePresentationControllerTest {
     @Mock
     private lateinit var logController: LogController
 
+    @Mock
+    private lateinit var telemetry: Telemetry
+
     private lateinit var closeable: AutoCloseable
 
     /**
@@ -105,11 +113,18 @@ class WalletCorePresentationControllerTest {
      */
     private val registeredListener = CompletableDeferred<TransferEvent.Listener>()
 
+    /** Every listener the controller registered, so a test can answer as the verifier would. */
+    private val rejectionListeners = mutableListOf<TransferEvent.Listener>()
+
+    /** Every listener the controller took back off the wallet. */
+    private val removedListeners = mutableListOf<TransferEvent.Listener>()
+
     private val subject: WalletCorePresentationControllerImpl by lazy {
         WalletCorePresentationControllerImpl(
             eudiWallet = eudiWallet,
             resourceProvider = resourceProvider,
             logController = logController,
+            telemetry = telemetry,
             dispatcher = coroutineRule.testDispatcher,
         )
     }
@@ -118,10 +133,17 @@ class WalletCorePresentationControllerTest {
     fun before() {
         closeable = MockitoAnnotations.openMocks(this)
         whenever(resourceProvider.genericErrorMessage()).thenReturn(mockedGenericErrorMessage)
+        whenever(telemetry.currentTraceId()).thenReturn("test-trace-id")
         doAnswer { invocation ->
-            registeredListener.complete(invocation.getArgument(0))
+            val listener = invocation.getArgument<TransferEvent.Listener>(0)
+            registeredListener.complete(listener)
+            rejectionListeners += listener
             invocation.mock
         }.whenever(eudiWallet).addTransferEventListener(any())
+        doAnswer { invocation ->
+            removedListeners += invocation.getArgument<TransferEvent.Listener>(0)
+            invocation.mock
+        }.whenever(eudiWallet).removeTransferEventListener(any())
         subject.setConfig(PresentationControllerConfig.Ble(initiator = "route"))
     }
 
@@ -275,7 +297,133 @@ class WalletCorePresentationControllerTest {
                 "Expected a failure but got $result",
                 result is SendRequestedDocumentsPartialState.Failure,
             )
+            assertEquals(
+                "test-trace-id",
+                (result as SendRequestedDocumentsPartialState.Failure).traceId,
+            )
             assertEquals(null, processed.generatedFrom)
+        }
+
+    @Test
+    fun `rejecting a remote presentation dispatches the refusal to the verifier`() =
+        coroutineRule.runTest {
+            remotePresentation()
+            answerRejectionWith(TransferEvent.ResponseSent)
+
+            val result = subject.rejectPresentation()
+
+            verify(eudiWallet).rejectRemotePresentation()
+            assertEquals(RejectPresentationPartialState.Delivered, result)
+        }
+
+    @Test
+    fun `a verifier that answers the refusal with a redirect has it reported back`() =
+        // The refusal is what the verifier gets; where it wants the user sent afterwards is a
+        // separate decision, and one the user still has to be given.
+        coroutineRule.runTest {
+            remotePresentation()
+            val redirect = URI.create("https://verifier.example.com/denied")
+            answerRejectionWith(TransferEvent.Redirect(redirect))
+
+            val result = subject.rejectPresentation()
+
+            assertEquals(RejectPresentationPartialState.Redirect(redirect), result)
+        }
+
+    @Test
+    fun `a verifier that fails the refusal is reported as a failure, not as a redirect`() =
+        coroutineRule.runTest {
+            remotePresentation()
+            answerRejectionWith(TransferEvent.Error(IllegalStateException("response_uri refused")))
+
+            val result = subject.rejectPresentation()
+
+            assertTrue(
+                "Expected a failure but got $result",
+                result is RejectPresentationPartialState.Failure,
+            )
+        }
+
+    @Test
+    fun `a verifier that never answers the refusal does not hold the caller`() =
+        // The user has already declined and nothing was disclosed, so an unreachable verifier must
+        // not keep them on the screen waiting for it.
+        coroutineRule.runTest {
+            remotePresentation()
+
+            val result = subject.rejectPresentation()
+
+            assertTrue(
+                "Expected a failure but got $result",
+                result is RejectPresentationPartialState.Failure,
+            )
+        }
+
+    @Test
+    fun `the listener that waits for the answer is taken off the wallet afterwards`() =
+        // It outlives nothing: left registered, it would still be holding a completed deferred the
+        // next presentation's events land on.
+        coroutineRule.runTest {
+            remotePresentation()
+            answerRejectionWith(TransferEvent.ResponseSent)
+
+            subject.rejectPresentation()
+
+            assertEquals(
+                rejectionListeners.size,
+                rejectionListeners.count { removedListeners.contains(it) },
+            )
+        }
+
+    @Test
+    fun `a proximity presentation sends no refusal`() =
+        // ISO 18013-5 has no error response to carry one; `rejectRemotePresentation` would act on
+        // whatever OpenID4VP session happened to be left behind.
+        coroutineRule.runTest {
+            subject.setConfig(PresentationControllerConfig.Ble(initiator = "route"))
+
+            val result = subject.rejectPresentation()
+
+            verify(eudiWallet, never()).rejectRemotePresentation()
+            assertEquals(RejectPresentationPartialState.Delivered, result)
+        }
+
+    /** Puts the controller on the OpenID4VP transport, the only one that can carry a refusal. */
+    private fun remotePresentation() = subject.setConfig(
+        PresentationControllerConfig.OpenId4VP(uri = "openid4vp://request", initiator = "route")
+    )
+
+    /**
+     * Makes the verifier answer [event] the moment the refusal is dispatched, which is what a real
+     * one does through the listener the controller registers for exactly this.
+     */
+    private fun answerRejectionWith(event: TransferEvent) {
+        doAnswer {
+            rejectionListeners.forEach { it.onTransferEvent(event) }
+            Unit
+        }.whenever(eudiWallet).rejectRemotePresentation()
+    }
+
+    @Test
+    fun `TransferEvent Error is mapped to a typed PresentationError`() =
+        coroutineRule.runTest {
+            val collector = launch { subject.events.collect { } }
+            val listener = registeredListener.await()
+
+            listener.onTransferEvent(
+                TransferEvent.Error(RuntimeException("something went wrong"))
+            )
+
+            val errorState = subject.events.first { it is TransferEventPartialState.Error }
+            collector.cancel()
+
+            assertTrue(errorState is TransferEventPartialState.Error)
+            val presentationError = (errorState as TransferEventPartialState.Error).error
+            assertTrue(
+                "Expected Unclassified but got ${presentationError.bucket}",
+                presentationError is PresentationError.Unclassified,
+            )
+            assertEquals("test-trace-id", presentationError.traceId)
         }
 
     /**

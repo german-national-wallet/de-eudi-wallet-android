@@ -31,4 +31,5 @@ internal class EnvironmentConfigImpl : WalletBackendEnvironmentConfig() {
     override val enableDebugMenu: Boolean = true
     override val enableLogcat: Boolean = true
     override val enableLogWriter: Boolean = true
+    override val enableSimulatedEidCard: Boolean = true
 }

@@ -2,63 +2,43 @@
 
 package eu.europa.ec.dashboardfeature.ui.dashboard
 
-import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.res.dimensionResource
-import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
-import eu.europa.ec.commonfeature.util.extractFullNameFromDocumentOrEmpty
 import eu.europa.ec.corelogic.util.CoreActions
-import eu.europa.ec.resourceslogic.R
-import eu.europa.ec.resourceslogic.theme.values.ThemeColors
 import eu.europa.ec.uilogic.component.SystemBroadcastReceiver
 import eu.europa.ec.uilogic.component.content.ContentScreen
 import eu.europa.ec.uilogic.component.content.ScreenNavigateAction
 import eu.europa.ec.uilogic.component.preview.PreviewTheme
 import eu.europa.ec.uilogic.component.preview.ThemeModeWithGermanAndEnglishPreviews
-import eu.europa.ec.uilogic.component.utils.BORDER_STROKE_1
 import eu.europa.ec.uilogic.component.utils.LifecycleEffect
 import eu.europa.ec.uilogic.component.utils.SPACING_EXTRA_MEDIUM
 import eu.europa.ec.uilogic.component.utils.SPACING_MEDIUM
-import eu.europa.ec.uilogic.component.utils.SPACING_SMALL
 import eu.europa.ec.uilogic.extension.getPendingDeepLink
 import eu.europa.ec.uilogic.navigation.helper.handleDeepLinkAction
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.onEach
 import org.sprind.wallet.dashboardfeature.ui.dashboard.StackedCards
 import org.sprind.wallet.dashboardfeature.ui.documentdetail.restartApp
-import org.sprind.wallet.designsystem.typography.CustomTypography
 import org.sprind.wallet.uilogic.component.BottomNavigationBar
 import org.sprind.wallet.uilogic.component.BottomNavigationTab
+import org.sprind.wallet.uilogic.component.PidCredentialCard
 import org.sprind.wallet.uilogic.component.navigateToBottomNavigationTab
 
 @Composable
@@ -182,6 +162,7 @@ fun MainScreen(
                 item {
                     PidOnboardingSection(
                         eidCardType = state.eidCardType,
+                        isSimulatedEidCardEnabled = state.isSimulatedEidCardEnabled,
                         onIssueDocument = {
                             onEventSend(
                                 Event.IssuePreferredPidDocument
@@ -193,15 +174,9 @@ fun MainScreen(
             } else {
                 // Current DashboardScreen behavior - only issued documents
                 item {
-                    IssuedDocumentCard(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(dimensionResource(R.dimen.document_card_height))
-                            .clickable {
-                                onEventSend(Event.CardPressed(state.pidDocument.id))
-                            },
-                        documentType = stringResource(R.string.global_pid_credential_name),
-                        userFullName = extractFullNameFromDocumentOrEmpty(state.pidDocument)
+                    PidCredentialCard(
+                        modifier = Modifier.fillMaxWidth(),
+                        onClick = { onEventSend(Event.CardPressed(state.pidDocument.id)) },
                     )
                 }
             }
@@ -222,62 +197,6 @@ fun MainScreen(
 }
 
 @Composable
-private fun IssuedDocumentCard(modifier: Modifier, documentType: String, userFullName: String) {
-    Card(
-        modifier = modifier
-            .border(
-                width = BORDER_STROKE_1.dp,
-                color = MaterialTheme.colorScheme.outlineVariant,
-                shape = RoundedCornerShape(SPACING_EXTRA_MEDIUM.dp)
-            )
-            .testTag("digitalCard"),
-        colors = CardDefaults.cardColors(
-            containerColor = ThemeColors.primaryPid
-        ),
-        shape = RoundedCornerShape(SPACING_EXTRA_MEDIUM.dp)
-    ) {
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-        ) {
-            Icon(
-                modifier = Modifier
-                    .align(Alignment.TopEnd),
-                painter = painterResource(id = R.drawable.ic_eagle_right),
-                contentDescription = "Eagle",
-                tint = ThemeColors.onPrimaryPid.copy(alpha = 0.15f)
-            )
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(SPACING_MEDIUM.dp),
-                verticalArrangement = Arrangement.spacedBy(SPACING_SMALL.dp)
-            ) {
-                Text(
-                    text = documentType,
-                    style = CustomTypography.titleMediumLarge.copy(color = ThemeColors.onPrimaryPid),
-                )
-
-                Text(
-                    text = userFullName,
-                    style = MaterialTheme.typography.bodyMedium.copy(color = ThemeColors.onPrimaryPid)
-                )
-            }
-
-            Icon(
-                modifier = Modifier
-                    .align(Alignment.BottomEnd)
-                    .padding(SPACING_MEDIUM.dp),
-                painter = painterResource(id = R.drawable.ic_info),
-                contentDescription = "Info",
-                tint = ThemeColors.onPrimaryPid
-            )
-        }
-
-    }
-}
-
-@Composable
 @ThemeModeWithGermanAndEnglishPreviews
 private fun MainScreenPreview() {
     PreviewTheme {
@@ -288,21 +207,6 @@ private fun MainScreenPreview() {
             ),
             onEventSend = {},
             onBottomNavigationTabSelected = {},
-        )
-    }
-}
-
-@Composable
-@ThemeModeWithGermanAndEnglishPreviews
-private fun MainCardPreview() {
-    PreviewTheme {
-        IssuedDocumentCard(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(dimensionResource(R.dimen.document_card_height))
-                .clickable {},
-            documentType = stringResource(R.string.pid_inspection_pid_details_title),
-            userFullName = "Anna Musterfrau"
         )
     }
 }

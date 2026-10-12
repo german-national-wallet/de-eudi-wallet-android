@@ -22,7 +22,7 @@ internal class EnvironmentConfigImpl : WalletBackendEnvironmentConfig() {
         get() = "https://production.wallet-backend.example.invalid"
 
     override val pidIssuerSpec
-        get() = PidIssuerSpec.PREPROD
+        get() = PidIssuerSpec.PRODUCTION
 
     override val otelServiceName: String
         get() = "prod-android"

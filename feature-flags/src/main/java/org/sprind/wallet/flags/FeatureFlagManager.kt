@@ -30,6 +30,12 @@ interface FeatureFlagManager {
     fun reloadFlags()
 }
 
+fun FeatureFlagManager.getNonBlankStringValue(flag: FeatureFlag<String>): String {
+    @Suppress("UNCHECKED_CAST")
+    val raw: Any? = getFlagValue(flag as FeatureFlag<Any?>)
+    return (raw as? String)?.trim()?.takeIf { it.isNotEmpty() } ?: flag.value
+}
+
 /**
  * Implementation of [FeatureFlagManager] that retrieves flag values from storage.
  *
@@ -38,6 +44,7 @@ interface FeatureFlagManager {
  */
 class FeatureFlagManagerImpl(private val featureFlagStorage: FeatureFlagStorage) : FeatureFlagManager {
 
+    @Volatile
     private lateinit var flagOverrides: Map<String, FeatureFlag<*>>
 
     init {

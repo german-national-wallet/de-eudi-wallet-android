@@ -37,4 +37,6 @@ dependencies {
     api(libs.material)
     api(libs.media3.ui)
     api(libs.media3.exoplayer)
+
+    testImplementation(project(LibraryModule.TestLogic.path))
 }

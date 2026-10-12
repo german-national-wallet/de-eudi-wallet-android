@@ -31,6 +31,7 @@ import org.robolectric.RuntimeEnvironment
 import org.robolectric.annotation.Config
 import org.sprind.wallet.businesslogic.controller.revocation.WalletRevocationStore
 import org.sprind.wallet.commonfeature.interactor.MdvmInteractor
+import org.sprind.wallet.corelogic.config.PidConfigurationOverridesProvider
 import org.sprind.wallet.pushnotificationsfeature.interactor.PushNotificationsInteractor
 
 @RunWith(RobolectricTestRunner::class)
@@ -58,5 +59,6 @@ class KoinGraphRegressionTest {
         assertNotNull(koin.get<MdvmInteractor>())
         assertNotNull(koin.get<WalletRevocationStore>())
         assertNotNull(koin.get<PushNotificationsInteractor>())
+        assertNotNull(koin.get<PidConfigurationOverridesProvider>())
     }
 }

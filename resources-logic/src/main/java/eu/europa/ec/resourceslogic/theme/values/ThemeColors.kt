@@ -44,7 +44,7 @@ class ThemeColors {
 
         // Light theme extra colors palette.
         internal const val eudiw_theme_light_legacy_success: Long = 0xFF55953B
-        internal val eudiw_theme_light_warning: Long get() = LightColors.warning
+        internal val eudiw_theme_light_warning: Long get() = LightColors.schemesWarning
         internal const val eudiw_theme_light_pending: Long = 0xFFAB5200
         internal const val eudiw_theme_light_divider: Long = 0xFFD9D9D9
         internal const val eudiw_theme_light_highlight: Long = 0xED546E7A
@@ -54,11 +54,33 @@ class ThemeColors {
 
         // Dark theme extra colors palette.
         internal const val eudiw_theme_dark_legacy_success: Long = 0xFF93D875
-        internal val eudiw_theme_dark_warning: Long get() = DarkColors.warning
+        internal val eudiw_theme_dark_warning: Long get() = DarkColors.schemesWarning
         internal const val eudiw_theme_dark_pending: Long = 0xFFCC8B3F
         internal const val eudiw_theme_dark_divider: Long = 0xFFD9D9D9
         internal const val eudiw_theme_dark_highlight: Long = 0xFFCAC4D0
         internal const val eudiw_theme_dark_default_eaa: Long = 0xFFA5A5B8
+
+        private const val eudiw_theme_light_color_pid: Long = 0xFF02818B
+        private const val eudiw_theme_dark_color_pid: Long = 0xFFA4CCD0
+        private const val eudiw_theme_light_on_color_pid: Long = white
+        private const val eudiw_theme_dark_on_color_pid: Long = black
+        private const val eudiw_theme_light_background_pid_light: Long = white
+        private const val eudiw_theme_dark_background_pid_light: Long = 0xFF1D1D1E
+        private const val eudiw_theme_light_background_pid_medium: Long = 0xFFF4F4F4
+        private const val eudiw_theme_dark_background_pid_medium: Long = 0xFF49454F
+        private const val eudiw_theme_light_success: Long = 0xFFC2FFC4
+        private const val eudiw_theme_dark_success: Long = 0xFF243600
+        private const val eudiw_theme_light_on_success: Long = 0xFF0C4A37
+        private const val eudiw_theme_dark_on_success: Long = 0xFF99D4A2
+        private const val eudiw_theme_light_inverse_primary: Long = 0xFFD0BCFF
+        private const val eudiw_theme_dark_inverse_primary: Long = 0xFF6750A4
+        private const val eudiw_theme_scrim: Long = black
+        private const val eudiw_theme_light_surface_tint: Long = 0xFF6750A4
+        private const val eudiw_theme_dark_surface_tint: Long = 0xFFD0BCFF
+        private const val eudiw_theme_light_surface_bright: Long = 0xFFFEF7FF
+        private const val eudiw_theme_dark_surface_bright: Long = 0xFF3B383E
+        private const val eudiw_theme_light_surface_dim: Long = 0xFFDED8E1
+        private const val eudiw_theme_dark_surface_dim: Long = 0xFF141218
 
         const val eudiw_theme_light_background_preview: Long = 0xFFFFFFFFL // = LightColors.schemesSurface
         const val eudiw_theme_dark_background_preview: Long = 0xFF141218L  // = DarkColors.schemesSurface
@@ -89,12 +111,12 @@ class ThemeColors {
             outline = LightColors.schemesOutline,
             inverseOnSurface = LightColors.schemesInverseOnSurface,
             inverseSurface = LightColors.schemesInverseSurface,
-            inversePrimary = LightColors.schemesInversePrimary,
-            surfaceTint = LightColors.schemesSurfaceTint,
+            inversePrimary = eudiw_theme_light_inverse_primary,
+            surfaceTint = eudiw_theme_light_surface_tint,
             outlineVariant = LightColors.schemesOutlineVariant,
-            scrim = LightColors.schemesScrim,
-            surfaceBright = LightColors.schemesSurfaceBright,
-            surfaceDim = LightColors.schemesSurfaceDim,
+            scrim = eudiw_theme_scrim,
+            surfaceBright = eudiw_theme_light_surface_bright,
+            surfaceDim = eudiw_theme_light_surface_dim,
             surfaceContainer = LightColors.schemesSurfaceContainer,
             surfaceContainerHigh = LightColors.schemesSurfaceContainerHigh,
             surfaceContainerHighest = LightColors.schemesSurfaceContainerHighest,
@@ -128,12 +150,12 @@ class ThemeColors {
             outline = DarkColors.schemesOutline,
             inverseOnSurface = DarkColors.schemesInverseOnSurface,
             inverseSurface = DarkColors.schemesInverseSurface,
-            inversePrimary = DarkColors.schemesInversePrimary,
-            surfaceTint = DarkColors.schemesSurfaceTint,
+            inversePrimary = eudiw_theme_dark_inverse_primary,
+            surfaceTint = eudiw_theme_dark_surface_tint,
             outlineVariant = DarkColors.schemesOutlineVariant,
-            scrim = DarkColors.schemesScrim,
-            surfaceBright = DarkColors.schemesSurfaceBright,
-            surfaceDim = DarkColors.schemesSurfaceDim,
+            scrim = eudiw_theme_scrim,
+            surfaceBright = eudiw_theme_dark_surface_bright,
+            surfaceDim = eudiw_theme_dark_surface_dim,
             surfaceContainer = DarkColors.schemesSurfaceContainer,
             surfaceContainerHigh = DarkColors.schemesSurfaceContainerHigh,
             surfaceContainerHighest = DarkColors.schemesSurfaceContainerHighest,
@@ -155,7 +177,7 @@ class ThemeColors {
             }
 
         val warning: Color
-            get() = Color(designColors.warning)
+            get() = Color(designColors.schemesWarning)
 
         val pending: Color
             get() = if (isInDarkMode) {
@@ -175,16 +197,16 @@ class ThemeColors {
             }
 
         val primaryPid: Color
-            get() = Color(designColors.colorPid)
+            get() = if (isInDarkMode) Color(eudiw_theme_dark_color_pid) else Color(eudiw_theme_light_color_pid)
 
         val onPrimaryPid: Color
-            get() = Color(designColors.onColorPid)
+            get() = if (isInDarkMode) Color(eudiw_theme_dark_on_color_pid) else Color(eudiw_theme_light_on_color_pid)
 
         val backgroundPidLight: Color
-            get() = Color(designColors.backgroundPidLight)
+            get() = if (isInDarkMode) Color(eudiw_theme_dark_background_pid_light) else Color(eudiw_theme_light_background_pid_light)
 
         val backgroundPidMedium: Color
-            get() = Color(designColors.backgroundPidMedium)
+            get() = if (isInDarkMode) Color(eudiw_theme_dark_background_pid_medium) else Color(eudiw_theme_light_background_pid_medium)
 
         val defaultEaa: Color
             get() = if (isInDarkMode) {
@@ -193,11 +215,21 @@ class ThemeColors {
                 Color(eudiw_theme_light_default_eaa)
             }
 
-        val onSuccess: Color get() = Color(designColors.onSuccess)
-        val success: Color get() = Color(designColors.success)
+        val onSuccess: Color
+            get() = if (isInDarkMode) Color(eudiw_theme_dark_on_success) else Color(eudiw_theme_light_on_success)
+        val success: Color
+            get() = if (isInDarkMode) Color(eudiw_theme_dark_success) else Color(eudiw_theme_light_success)
+
+        val onBackgroundVariant: Color
+            get() = Color(designColors.schemesOnBackgroundVariant)
 
         /** Outline of an unfilled `tertiaryContainer` surface, e.g. an empty code-entry cell. */
         val tertiaryOutline: Color get() = Color(designColors.schemesTertiaryOutline)
+
+        /**
+         * Outline of an `errorContainer` surface, e.g. the negative answer in a dialog.
+         */
+        val errorOutline: Color get() = Color(designColors.schemesErrorOutline)
 
         val labelLarge: Color
             get() = Color(designColors.schemesOnBackground)

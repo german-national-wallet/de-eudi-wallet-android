@@ -28,10 +28,10 @@ import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import eu.europa.ec.commonfeature.model.DocumentType
 import eu.europa.ec.commonfeature.ui.request.Event
 import eu.europa.ec.commonfeature.ui.request.RequestScreenStep
 import eu.europa.ec.commonfeature.ui.request.State
-import eu.europa.ec.commonfeature.ui.request.model.DocumentType
 import eu.europa.ec.commonfeature.ui.request.model.RequestDocumentClaim
 import eu.europa.ec.commonfeature.ui.request.model.RequestDocumentItemUi
 import eu.europa.ec.resourceslogic.R
@@ -50,7 +50,6 @@ import eu.europa.ec.uilogic.component.utils.SPACING_EXTRA_LARGE
 import eu.europa.ec.uilogic.component.utils.SPACING_EXTRA_MEDIUM
 import eu.europa.ec.uilogic.component.utils.SPACING_LARGE
 import eu.europa.ec.uilogic.component.utils.SPACING_LARGE_32
-import eu.europa.ec.uilogic.component.utils.SPACING_LARGE_72
 import eu.europa.ec.uilogic.component.utils.SPACING_MEDIUM
 import eu.europa.ec.uilogic.component.utils.SPACING_SMALL
 import eu.europa.ec.uilogic.component.utils.WEIGHT_1

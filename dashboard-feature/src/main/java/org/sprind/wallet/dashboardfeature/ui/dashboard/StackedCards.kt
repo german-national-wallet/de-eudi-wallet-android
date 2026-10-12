@@ -16,18 +16,14 @@
 
 package org.sprind.wallet.dashboardfeature.ui.dashboard
 
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.offset
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.res.dimensionResource
+import androidx.compose.ui.layout.Layout
+import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.zIndex
 import eu.europa.ec.corelogic.extension.EaaCardData
-import eu.europa.ec.resourceslogic.R
 import org.sprind.wallet.uilogic.component.EaaDocumentCard
 
 /**
@@ -47,28 +43,34 @@ fun StackedCards(
     modifier: Modifier = Modifier,
     overlapDp: Dp = 40.dp,
 ) {
-    val cardHeight = dimensionResource(R.dimen.eaa_card_height)
-    val stackHeight = if (cards.isEmpty()) {
-        0.dp
-    } else {
-        (cardHeight - overlapDp) * cards.size + overlapDp
-    }
-    val cardsOffset = cardHeight - overlapDp
+    Layout(
+        modifier = modifier.fillMaxWidth(),
+        content = {
+            cards.forEach { card ->
+                EaaDocumentCard(data = card, onClick = onClick)
+            }
+        },
+    ) { measurables, constraints ->
+        val overlap = overlapDp.roundToPx()
+        val cardConstraints = Constraints(
+            minWidth = constraints.maxWidth,
+            maxWidth = constraints.maxWidth,
+        )
+        val placeables = measurables.map { it.measure(cardConstraints) }
 
-    Box(
-        modifier = modifier
-            .fillMaxWidth()
-            .height(stackHeight)
-    ) {
-        cards.forEachIndexed { index, card ->
-            EaaDocumentCard(
-                modifier = Modifier
-                    .offset(y = cardsOffset * index)
-                    .zIndex(index.toFloat())
-                    .fillMaxWidth(),
-                data = card,
-                onClick = onClick
-            )
+        var next = 0
+        val tops = placeables.map { placeable ->
+            val top = next
+            next += placeable.height - overlap
+            top
+        }
+        val height = placeables.lastOrNull()?.let { tops.last() + it.height } ?: 0
+
+        layout(constraints.maxWidth, height) {
+            // Placed in order, so each card draws over the one it overlaps.
+            placeables.forEachIndexed { index, placeable ->
+                placeable.placeRelative(x = 0, y = tops[index])
+            }
         }
     }
 }

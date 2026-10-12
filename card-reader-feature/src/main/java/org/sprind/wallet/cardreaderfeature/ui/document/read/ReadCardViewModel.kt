@@ -22,31 +22,25 @@ import androidx.core.net.toUri
 import androidx.lifecycle.viewModelScope
 import eu.europa.ec.authenticationlogic.model.WalletInstanceAttestationSpec
 import eu.europa.ec.businesslogic.config.ConfigLogic
-import org.sprind.wallet.uilogic.component.CodeEntryBuffer
-import org.sprind.wallet.uilogic.component.CodeLength
-import org.sprind.wallet.uilogic.component.cleared
-import org.sprind.wallet.businesslogic.config.UserRuntimeConfig
-import org.sprind.wallet.businesslogic.config.isVirtual
 import eu.europa.ec.businesslogic.controller.log.LogController
 import eu.europa.ec.commonfeature.config.IssuanceFlowUiConfig
 import eu.europa.ec.commonfeature.interactor.AddDocumentInteractor
 import eu.europa.ec.commonfeature.interactor.IssuanceEvent
+import eu.europa.ec.commonfeature.model.DocumentType
+import eu.europa.ec.commonfeature.ui.document_details.transformer.DocumentDetailsTransformer
 import eu.europa.ec.commonfeature.ui.issuer_details.model.IssuerInfo
 import eu.europa.ec.corelogic.controller.AttestationState
 import eu.europa.ec.corelogic.controller.IssuanceMethod
+import eu.europa.ec.corelogic.controller.WalletCoreDocumentsController
 import eu.europa.ec.corelogic.handler.reader.CardReaderInteractor
 import eu.europa.ec.corelogic.handler.reader.WorkflowEvent
 import eu.europa.ec.corelogic.interactor.walletattestation.WalletAttestationInteractor
 import eu.europa.ec.corelogic.interactor.walletattestation.WalletAttestationResult
+import eu.europa.ec.corelogic.model.toDocumentIdentifier
 import eu.europa.ec.eudi.openid4vci.CredentialConfigurationIdentifier
 import eu.europa.ec.resourceslogic.R
-import eu.europa.ec.commonfeature.ui.document_details.transformer.DocumentDetailsTransformer
-import eu.europa.ec.corelogic.controller.WalletCoreDocumentsController
-import eu.europa.ec.corelogic.model.toDocumentIdentifier
-import eu.europa.ec.uilogic.component.ListItemMainContentData
-import org.sprind.wallet.commonfeature.ui.transformer.toListItemData
-import org.sprind.wallet.uilogic.component.CredentialAttribute
 import eu.europa.ec.resourceslogic.provider.ResourceProvider
+import eu.europa.ec.uilogic.component.ListItemMainContentData
 import eu.europa.ec.uilogic.component.dialog.GenericErrorDialogConfig
 import eu.europa.ec.uilogic.mvi.MviViewModel
 import eu.europa.ec.uilogic.navigation.DashboardScreens
@@ -61,10 +55,12 @@ import org.koin.android.annotation.KoinViewModel
 import org.koin.core.annotation.InjectedParam
 import org.sprind.wallet.analyticslogic.controller.Telemetry
 import org.sprind.wallet.analyticslogic.controller.TelemetryConstants
+import org.sprind.wallet.businesslogic.config.UserRuntimeConfig
+import org.sprind.wallet.businesslogic.config.isVirtual
 import org.sprind.wallet.cardreaderfeature.domain.CardReaderBackBehavior
 import org.sprind.wallet.cardreaderfeature.domain.CardReaderCloseBehavior
-import org.sprind.wallet.cardreaderfeature.domain.CardReaderFlowType
 import org.sprind.wallet.cardreaderfeature.domain.CardReaderFlowNavigator
+import org.sprind.wallet.cardreaderfeature.domain.CardReaderFlowType
 import org.sprind.wallet.cardreaderfeature.domain.CardReaderRoute
 import org.sprind.wallet.cardreaderfeature.domain.CardScanStatus
 import org.sprind.wallet.cardreaderfeature.domain.NfcAntennaPosition
@@ -74,6 +70,11 @@ import org.sprind.wallet.cardreaderfeature.ui.document.read.Effect.Navigation.Na
 import org.sprind.wallet.cardreaderfeature.ui.document.read.Effect.Navigation.OpenLink
 import org.sprind.wallet.cardreaderfeature.ui.document.read.Effect.Navigation.Pop
 import org.sprind.wallet.cardreaderfeature.ui.document.read.Effect.StartCall
+import org.sprind.wallet.commonfeature.ui.transformer.toListItemData
+import org.sprind.wallet.uilogic.component.CodeEntryBuffer
+import org.sprind.wallet.uilogic.component.CodeLength
+import org.sprind.wallet.uilogic.component.CredentialAttribute
+import org.sprind.wallet.uilogic.component.cleared
 import java.net.URLEncoder
 import java.nio.charset.StandardCharsets
 import kotlin.time.DurationUnit
@@ -131,6 +132,12 @@ class ReadCardViewModel(
         onBackAction = { setEvent(Event.Pop) },
         isLoading = true,
         eidCardType = userRuntimeConfig.eidCardType,
+        onboardingPin = OnboardingPinConfig(
+            pinExplanationLink = resourceProvider.getString(R.string.pid_issuance_onboarding_eid_tert_button_2),
+            hasSetPinAnswer = resourceProvider.getMarkdownString(R.string.pid_issuance_onboarding_eid_prim_button),
+            setPinWithLetterAnswer = resourceProvider.getMarkdownString(R.string.pid_issuance_onboarding_eid_sec_button),
+            noLetterOrForgotPinAnswer = resourceProvider.getMarkdownString(R.string.pid_issuance_onboarding_eid_tert_button_1),
+        ),
     )
 
     override fun handleEvents(event: Event) {
@@ -412,7 +419,8 @@ class ReadCardViewModel(
                             address = "Kommandantenstraße 18\n10969 Berlin",
                             email = "info@bdr.de",
                             privacyPolicy = "bundesdruckerei.de/de/datenschutz",
-                            certificateValidUntil = "23.05.2030"
+                            certificateValidUntil = "23.05.2030",
+                            documentType = DocumentType.PID,
                         ),
                     )
                 }
@@ -609,6 +617,10 @@ class ReadCardViewModel(
                     }
 
                     is IssuanceEvent.Failed -> {
+                        val leaveFailedStep = {
+                            setEvent(Event.DismissError)
+                            setEvent(Event.Pop)
+                        }
                         setState {
                             copy(
                                 isLoading = false,
@@ -618,8 +630,8 @@ class ReadCardViewModel(
                                     errorCode = "ISSUANCE_FAILED",
                                     traceId = telemetry.currentTraceId(),
                                     primaryButtonTextRes = R.string.global_error_prim_button,
-                                    onDismiss = { Event.DismissError },
-                                    onPrimaryButtonClick = { Event.DismissError }
+                                    onDismiss = leaveFailedStep,
+                                    onPrimaryButtonClick = leaveFailedStep,
                                 )
                             )
                         }

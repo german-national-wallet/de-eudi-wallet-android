@@ -51,8 +51,8 @@ import org.sprind.wallet.uilogic.component.ContentIllustrationPlacement
 import org.sprind.wallet.uilogic.component.ContentTemplateBody
 import org.sprind.wallet.uilogic.component.ContentTemplateConfig
 import org.sprind.wallet.uilogic.component.ContentTemplateDefaults
-import org.sprind.wallet.uilogic.component.DocumentCard
 import org.sprind.wallet.uilogic.component.NavigationTopAction
+import org.sprind.wallet.uilogic.component.PidCredentialCard
 import org.sprind.wallet.uilogic.component.ProvideContentTemplateStyle
 import org.sprind.wallet.uilogic.component.TopActionRow
 
@@ -75,7 +75,7 @@ fun IssuanceConsentView(
                 illustrationPlacement = ContentIllustrationPlacement.BELOW_TEXT,
             ),
             title = { Text(text = stringResource(R.string.pid_issuance_digital_id_consent_title)) },
-            illustration = { DocumentCard(modifier = Modifier.fillMaxWidth()) },
+            illustration = { PidCredentialCard(modifier = Modifier.fillMaxWidth()) },
             extraContent = {
                 Column(verticalArrangement = Arrangement.spacedBy(SPACING_EXTRA_MEDIUM.dp)) {
                     TopActionRow(

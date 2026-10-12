@@ -34,9 +34,9 @@ data class PidIssuerSpec(
     companion object {
 
 /*
-Command line used to obtain the pins - the root and intermediate CA is the same for both hostnames:
+Command line used to obtain the pins - the root and intermediate CA is the same for all hostnames:
 
-for HOSTNAME in demo.pid-provider.bundesdruckerei.de preprod.pid-provider.bundesdruckerei.de; do
+for HOSTNAME in demo.pid-provider.bundesdruckerei.de preprod.pid-provider.bundesdruckerei.de pid-provider.bundesdruckerei.de; do
      echo "=== $HOSTNAME ==="
      rm -f /tmp/tls_cert_*
      echo | openssl s_client -connect $HOSTNAME:443 -showcerts 2>/dev/null > /tmp/tls_chain.pem
@@ -65,6 +65,15 @@ C=DE, O=D-Trust GmbH, CN=D-TRUST BR CA 2-23-1 2023
   sha256/qCFzgdYsy2/WiDGJebSIbgJzqSxZ8bAPEkUKn+bgGmc=
 C=DE, O=D-Trust GmbH, CN=D-TRUST BR Root CA 2 2023
   sha256/rHb2OkbnYbWswyWXBckgy38FY9JI2NGA+TSvaAmaFfk=
+
+Output on 2026-10-05:
+=== pid-provider.bundesdruckerei.de ===
+C=DE, ST=Berlin, O=Bundesdruckerei GmbH, CN=pid-provider.bundesdruckerei.de
+  sha256/1Z0LXkKcXLGgi8kxArfmJIGoAkXPNzuvWpJuZbJUaO0=
+C=DE, O=D-Trust GmbH, CN=D-TRUST BR CA 2-23-1 2023
+  sha256/qCFzgdYsy2/WiDGJebSIbgJzqSxZ8bAPEkUKn+bgGmc=
+C=DE, O=D-Trust GmbH, CN=D-TRUST BR Root CA 2 2023
+  sha256/rHb2OkbnYbWswyWXBckgy38FY9JI2NGA+TSvaAmaFfk=
  */
 
         val DEMO = PidIssuerSpec(
@@ -79,6 +88,15 @@ C=DE, O=D-Trust GmbH, CN=D-TRUST BR Root CA 2 2023
 
         val PREPROD = PidIssuerSpec(
             url = "https://preprod.pid-provider.bundesdruckerei.de",
+            okCertificatePinnerSpec = OkCertificatePinnerSpec(
+                pattern = "**.pid-provider.bundesdruckerei.de",
+                // root CA from the chain from above
+                pins = setOf("sha256/rHb2OkbnYbWswyWXBckgy38FY9JI2NGA+TSvaAmaFfk=")
+            )
+        )
+
+        val PRODUCTION = PidIssuerSpec(
+            url = "https://pid-provider.bundesdruckerei.de",
             okCertificatePinnerSpec = OkCertificatePinnerSpec(
                 pattern = "**.pid-provider.bundesdruckerei.de",
                 // root CA from the chain from above

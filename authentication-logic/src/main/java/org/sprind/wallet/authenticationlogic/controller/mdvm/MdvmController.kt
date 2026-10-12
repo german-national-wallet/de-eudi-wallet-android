@@ -17,8 +17,10 @@
 package org.sprind.wallet.authenticationlogic.controller.mdvm
 
 import android.os.Build
+import com.google.gson.JsonParseException
 import eu.europa.ec.businesslogic.BuildConfig
 import eu.europa.ec.businesslogic.config.ConfigLogic
+import eu.europa.ec.businesslogic.controller.log.LogController
 import okio.ByteString
 import okio.ByteString.Companion.encodeUtf8
 import okio.ByteString.Companion.toByteString
@@ -36,6 +38,9 @@ import org.sprind.wallet.networklogic.mdvm.model.error.MdvmErrorType
 import org.sprind.wallet.networklogic.mdvm.model.request.MdvmRegisterRequest
 import org.sprind.wallet.networklogic.mdvm.model.request.MdvmRenewalRequest
 import org.sprind.wallet.networklogic.mdvm.model.response.MdvmChallengeResponse
+import java.io.IOException
+import java.security.GeneralSecurityException
+import java.security.ProviderException
 
 interface MdvmController {
     suspend fun register(): MdvmResult<MdvmRegistration>
@@ -52,7 +57,9 @@ internal class MdvmControllerImpl(
     private val mdvmApiClient: MdvmApiClient,
     private val mdvmKeyManager: MdvmKeyManager,
     private val configLogic: ConfigLogic,
+    private val logController: LogController,
 ) : MdvmController {
+    private val logTag = javaClass.simpleName
 
     private data class ChallengeContext(
         val authChallenge: String,
@@ -83,16 +90,46 @@ internal class MdvmControllerImpl(
         ))
     }
 
-    override suspend fun register(): MdvmResult<MdvmRegistration> {
+    /**
+     * Server errors arrive as [ApiResult.Failure], but local ones (no connectivity, unreachable
+     * host, unparseable response body, KeyStore failures) are thrown; turn those into a
+     * client-side [MdvmError] too. [IllegalStateException] is included as a safety net so that an
+     * inconsistent state during registration shows an error instead of crashing on startup; it is
+     * logged. Anything else is a programming error and still propagates.
+     *
+     * Must stay `inline`: [block] is a non-suspend lambda that calls suspend functions, which only
+     * compiles because it is inlined into the suspending caller.
+     */
+    private inline fun <T> catchingLocalErrors(block: () -> MdvmResult<T>): MdvmResult<T> =
+        try {
+            block()
+        } catch (e: IOException) {
+            localFailure(e)
+        } catch (e: JsonParseException) {
+            localFailure(e)
+        } catch (e: GeneralSecurityException) {
+            localFailure(e)
+        } catch (e: ProviderException) {
+            localFailure(e)
+        } catch (e: IllegalStateException) {
+            localFailure(e)
+        }
+
+    private fun localFailure(exception: Exception): MdvmResult<Nothing> {
+        logController.e(logTag, exception)
+        return ApiResult.Failure(exception.toMdvmError())
+    }
+
+    override suspend fun register(): MdvmResult<MdvmRegistration> = catchingLocalErrors {
         val ctx = when (val result = prepareChallenge()) {
-            is ApiResult.Failure -> return ApiResult.Failure(result.error)
+            is ApiResult.Failure -> return@catchingLocalErrors ApiResult.Failure(result.error)
             is ApiResult.Success -> result.response
         }
         val wiMdvmAuthKeysInfo = mdvmKeyManager.createAuthKeys(ctx.challengeNonce)
         val signingApiClient = mdvmApiClient.signingApi(
             wiMdvmAuthPrvk = wiMdvmAuthKeysInfo.keyPair.private,
         )
-        return signingApiClient.register(
+        signingApiClient.register(
             request = MdvmRegisterRequest(
                 wi_mdvm_auth_pubk = wiMdvmAuthKeysInfo.keyPair.public.encoded.toByteString().base64(),
                 wi_device_class = getDeviceClass(),
@@ -113,9 +150,9 @@ internal class MdvmControllerImpl(
     override suspend fun renewal(
         mdvmWiId: String,
         wiMdvmAuthKeysAlias: String,
-    ): MdvmResult<MdvmRegistration> {
+    ): MdvmResult<MdvmRegistration> = catchingLocalErrors {
         val ctx = when (val result = prepareChallenge()) {
-            is ApiResult.Failure -> return ApiResult.Failure(result.error)
+            is ApiResult.Failure -> return@catchingLocalErrors ApiResult.Failure(result.error)
             is ApiResult.Success -> result.response
         }
         val wiMdvmAuthKeys = mdvmKeyManager.getExistingAuthKeys(wiMdvmAuthKeysAlias)
@@ -123,7 +160,7 @@ internal class MdvmControllerImpl(
             // This shouldn't happen unless we start protecting the key with biometrics and
             // the enrolled biometrics (fingerprints) then change. If and when we do this,
             // we'd have to catch this case and re-do the registration from scratch.
-            return ApiResult.Failure(
+            return@catchingLocalErrors ApiResult.Failure(
                 MdvmError(MdvmErrorType.MDVM_KEY_NOT_FOUND, serverResponse = null)
             )
         val wiMdvmReattestKeysInfo = mdvmKeyManager.createReattestKeys(ctx.challengeNonce)
@@ -132,7 +169,7 @@ internal class MdvmControllerImpl(
             wiMdvmReattestPrvk = wiMdvmReattestKeysInfo.keyPair.private
         )
         try {
-            return doubleSigningApiClient.renewal(
+            doubleSigningApiClient.renewal(
                 request = MdvmRenewalRequest(
                     wi_device_class = getDeviceClass(),
                     wi_android_key_attestation = getWiAndroidKeyAttestation(wiMdvmReattestKeysInfo),

@@ -31,6 +31,7 @@ import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertThrows
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
@@ -102,6 +103,27 @@ class HttpMessageSigningInterceptorTest {
         val d1 = interceptor.computeContentDigest("foo".toByteArray())
         val d2 = interceptor.computeContentDigest("bar".toByteArray())
         assertFalse(d1 == d2)
+    }
+
+    @Test
+    fun `signing failure - is thrown as RequestSigningException so OkHttp delivers it`() {
+        // An RSA key cannot initialise a SHA256withECDSA signer.
+        val rsaKey = KeyPairGenerator.getInstance("RSA").apply { initialize(2048) }
+            .generateKeyPair().private
+        client = OkHttpClient.Builder()
+            .addInterceptor(
+                HttpMessageSigningInterceptor(
+                    signingKey = rsaKey,
+                    clock = fixedClock,
+                    extraHeaderNamesToConsiderForSignature = extraHeaderNamesToConsiderForSignature,
+                    TEST_SIGNATURE_NAME,
+                    TEST_KEY_ID,
+                )
+            )
+            .build()
+
+        assertThrows(RequestSigningException::class.java) { executeDefaultRequest() }
+        assertEquals(0, server.requestCount)
     }
 
     @Test

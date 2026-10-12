@@ -27,7 +27,10 @@ import eu.europa.ec.corelogic.controller.WalletCoreDocumentsController
 import eu.europa.ec.corelogic.controller.WalletCorePartialState
 import eu.europa.ec.corelogic.controller.WalletCorePresentationController
 import eu.europa.ec.corelogic.model.AuthenticationData
+import eu.europa.ec.resourceslogic.provider.ResourceProvider
 import eu.europa.ec.uilogic.BuildConfig
+import org.sprind.wallet.corelogic.presentationerror.PresentationError
+import org.sprind.wallet.corelogic.presentationerror.mapToPresentationError
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.mapNotNull
 
@@ -41,14 +44,14 @@ sealed class PresentationLoadingObserveResponsePartialState {
         val authenticationData: List<AuthenticationData>,
     ) : PresentationLoadingObserveResponsePartialState()
 
-    data class Failure(val error: String) : PresentationLoadingObserveResponsePartialState()
+    data class Failure(val error: PresentationError) : PresentationLoadingObserveResponsePartialState()
     data object Success : PresentationLoadingObserveResponsePartialState()
     data class Redirect(val uri: URI) : PresentationLoadingObserveResponsePartialState()
     data object RequestReadyToBeSent : PresentationLoadingObserveResponsePartialState()
 }
 
 sealed class PresentationLoadingSendRequestedDocumentPartialState {
-    data class Failure(val error: String) : PresentationLoadingSendRequestedDocumentPartialState()
+    data class Failure(val error: PresentationError) : PresentationLoadingSendRequestedDocumentPartialState()
     data object Success : PresentationLoadingSendRequestedDocumentPartialState()
 }
 
@@ -83,8 +86,12 @@ class PresentationLoadingInteractorImpl(
     private val walletCorePresentationController: WalletCorePresentationController,
     private val walletCoreDocumentsController: WalletCoreDocumentsController,
     private val deviceAuthenticationInteractor: DeviceAuthenticationInteractor,
+    private val resourceProvider: ResourceProvider,
     private val logController: LogController,
 ) : PresentationLoadingInteractor {
+
+    private val genericErrorMessage: String
+        get() = resourceProvider.genericErrorMessage()
 
     override val verifierName: String? = walletCorePresentationController.verifierName
 
@@ -121,9 +128,14 @@ class PresentationLoadingInteractorImpl(
     override suspend fun sendRequestedDocuments(): PresentationLoadingSendRequestedDocumentPartialState {
         return when (val result = walletCorePresentationController.sendRequestedDocuments()) {
             is SendRequestedDocumentsPartialState.RequestSent -> PresentationLoadingSendRequestedDocumentPartialState.Success
-            is SendRequestedDocumentsPartialState.Failure -> PresentationLoadingSendRequestedDocumentPartialState.Failure(
-                "SendRequestedDocuments failure[exception: ${result.exception}]"
-            )
+            is SendRequestedDocumentsPartialState.Failure ->
+                PresentationLoadingSendRequestedDocumentPartialState.Failure(
+                    error = mapToPresentationError(
+                        throwable = result.throwable,
+                        traceId = result.traceId,
+                        genericErrorMessage = genericErrorMessage,
+                    ),
+                )
         }
     }
 

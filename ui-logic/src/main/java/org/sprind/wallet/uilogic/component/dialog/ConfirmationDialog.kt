@@ -21,7 +21,9 @@ package org.sprind.wallet.uilogic.component.dialog
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.BasicAlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -37,6 +39,7 @@ import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.DialogProperties
 import eu.europa.ec.resourceslogic.R
@@ -47,16 +50,20 @@ import eu.europa.ec.uilogic.component.preview.ThemeModeWithGermanAndEnglishPrevi
 import eu.europa.ec.uilogic.component.utils.ELEVATION_8
 import eu.europa.ec.uilogic.component.utils.SPACING_MEDIUM
 import eu.europa.ec.uilogic.component.utils.SPACING_SMALL
-import eu.europa.ec.uilogic.component.wrap.ButtonConfig
-import eu.europa.ec.uilogic.component.wrap.ButtonType
-import eu.europa.ec.uilogic.component.wrap.TextConfig
-import eu.europa.ec.uilogic.component.wrap.WrapButton
 import eu.europa.ec.uilogic.component.wrap.WrapIcon
-import eu.europa.ec.uilogic.component.wrap.WrapText
 import org.sprind.wallet.resourceslogic.theme.values.ThemeTextStyles
+import org.sprind.wallet.uilogic.component.ScrollFadeColumn
+import org.sprind.wallet.uilogic.component.wrap.StackedActionButton
+import org.sprind.wallet.uilogic.component.wrap.StackedActionStyle
+
+@Immutable
+data class ConfirmationDialogLink(
+    val text: String,
+    val onClick: () -> Unit,
+)
 
 /**
- * What a [ConfirmationDialog] asks and what its two answers do.
+ * What a [ConfirmationDialog] asks and what its answers do.
  *
  * @property title the question, e.g. "Really cancel?".
  * @property body what the confirming answer costs the user.
@@ -64,6 +71,7 @@ import org.sprind.wallet.resourceslogic.theme.values.ThemeTextStyles
  * @property dismissText the answer that changes nothing and closes the dialog.
  * @property onConfirm runs the destructive action.
  * @property onDismiss closes the dialog, also on a back press or a tap outside it.
+ * @property link an optional third answer that leaves the wallet - see [ConfirmationDialogLink].
  */
 @Immutable
 data class ConfirmationDialogConfig(
@@ -73,6 +81,7 @@ data class ConfirmationDialogConfig(
     val dismissText: String,
     val onConfirm: () -> Unit,
     val onDismiss: () -> Unit,
+    val link: ConfirmationDialogLink? = null,
 )
 
 /**
@@ -80,7 +89,8 @@ data class ConfirmationDialogConfig(
  * way back as the second, calmer answer.
  *
  * The answers are stacked and full width rather than sitting side by side, so a long label wraps
- * instead of squeezing its neighbour, and the destructive one is marked as such by color.
+ * instead of squeezing its neighbour, and the destructive one is marked as such by color. A
+ * [ConfirmationDialogLink] adds a third answer between them, for a way out of the wallet entirely.
  *
  * Accessibility:
  * - the title is exposed as a heading, so a screen reader announces the question first;
@@ -99,21 +109,37 @@ fun ConfirmationDialog(
             dismissOnClickOutside = true,
         ),
     ) {
-        Surface(
-            shape = RoundedCornerShape(DIALOG_CORNER),
-            color = MaterialTheme.colorScheme.background,
-            tonalElevation = ELEVATION_8.dp,
+        ConfirmationDialogContent(config)
+    }
+}
+
+@Composable
+internal fun ConfirmationDialogContent(config: ConfirmationDialogConfig) {
+    Surface(
+        shape = RoundedCornerShape(DIALOG_CORNER),
+        color = MaterialTheme.colorScheme.background,
+        shadowElevation = ELEVATION_8.dp,
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(DIALOG_PADDING),
+            verticalArrangement = Arrangement.spacedBy(SPACING_MEDIUM.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            Column(
+            // Long content scrolls above the pinned buttons, with a fade hinting at the rest.
+            ScrollFadeColumn(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(SPACING_MEDIUM.dp),
+                    .weight(1f, fill = false),
                 verticalArrangement = Arrangement.spacedBy(SPACING_MEDIUM.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
                 WrapIcon(
                     iconData = AppIcons.Info,
-                    modifier = Modifier.clearAndSetSemantics { },
+                    modifier = Modifier
+                        .size(MARK_SIZE)
+                        .clearAndSetSemantics { },
                     customTint = MaterialTheme.colorScheme.onSurface,
                 )
 
@@ -123,7 +149,7 @@ fun ConfirmationDialog(
                         .padding(horizontal = SPACING_SMALL.dp)
                         .semantics { heading() },
                     text = config.title,
-                    style = MaterialTheme.typography.titleMedium,
+                    style = ThemeTextStyles.dialogTitle,
                     color = MaterialTheme.colorScheme.onSurface,
                     textAlign = TextAlign.Center,
                 )
@@ -134,16 +160,28 @@ fun ConfirmationDialog(
                         .padding(horizontal = SPACING_SMALL.dp),
                     text = config.body,
                     style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    color = ThemeColors.onBackgroundVariant,
                     textAlign = TextAlign.Center,
                 )
+            }
 
-                DialogButton(
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(SPACING_SMALL.dp),
+            ) {
+                StackedActionButton(
                     text = config.confirmText,
                     onClick = config.onConfirm,
-                    isDestructive = true,
+                    style = StackedActionStyle.DESTRUCTIVE,
                 )
-                DialogButton(
+                config.link?.let { link ->
+                    StackedActionButton(
+                        text = link.text,
+                        onClick = link.onClick,
+                        trailingIcon = AppIcons.Launch,
+                    )
+                }
+                StackedActionButton(
                     text = config.dismissText,
                     onClick = config.onDismiss,
                 )
@@ -152,38 +190,16 @@ fun ConfirmationDialog(
     }
 }
 
-@Composable
-private fun DialogButton(
-    text: String,
-    onClick: () -> Unit,
-    isDestructive: Boolean = false,
-) {
-    WrapButton(
-        modifier = Modifier.fillMaxWidth(),
-        buttonConfig = ButtonConfig(
-            type = ButtonType.SECONDARY,
-            onClick = onClick,
-            isWarning = isDestructive,
-        ),
-    ) {
-        WrapText(
-            modifier = Modifier.fillMaxWidth(),
-            text = text,
-            textConfig = TextConfig(
-                style = ThemeTextStyles.onSecondaryButton,
-                color = if (isDestructive) {
-                    MaterialTheme.colorScheme.onErrorContainer
-                } else {
-                    ThemeColors.onSecondaryButton
-                },
-                textAlign = TextAlign.Center,
-                maxLines = 2,
-            ),
-        )
-    }
-}
-
 private val DIALOG_CORNER = 28.dp
+
+private val DIALOG_PADDING = PaddingValues(
+    start = SPACING_MEDIUM.dp,
+    top = 22.5.dp,
+    end = SPACING_MEDIUM.dp,
+    bottom = SPACING_MEDIUM.dp,
+)
+
+private val MARK_SIZE = 25.dp
 
 @ThemeModeWithGermanAndEnglishPreviews
 @Composable
@@ -200,4 +216,32 @@ private fun ConfirmationDialogPreview() {
             )
         )
     }
+}
+
+@ThemeModeWithGermanAndEnglishPreviews
+@Composable
+private fun ConfirmationDialogWithLinkPreview() {
+    PreviewTheme {
+        ConfirmationDialog(
+            config = ConfirmationDialogConfig(
+                title = stringResource(R.string.pid_presentation_dialog_rp_rejection_title),
+                body = stringResource(R.string.pid_presentation_dialog_rp_rejection_paragraph),
+                confirmText = stringResource(R.string.pid_presentation_dialog_rp_rejection_prim_button),
+                dismissText = stringResource(R.string.pid_presentation_dialog_rp_rejection_sec_button_2),
+                onConfirm = {},
+                onDismiss = {},
+                link = ConfirmationDialogLink(
+                    text = stringResource(R.string.pid_presentation_dialog_rp_rejection_sec_button),
+                    onClick = {},
+                ),
+            )
+        )
+    }
+}
+
+/** Large font scale so the content overflows: it scrolls and shows the bottom fade. */
+@Preview(name = "Overflowing content", showBackground = true, fontScale = 2f, locale = "de")
+@Composable
+private fun ConfirmationDialogOverflowingPreview() {
+    ConfirmationDialogWithLinkPreview()
 }

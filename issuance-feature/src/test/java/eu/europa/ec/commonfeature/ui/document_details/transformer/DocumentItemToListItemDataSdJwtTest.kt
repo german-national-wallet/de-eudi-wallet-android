@@ -41,9 +41,6 @@ class DocumentItemToListItemDataSdJwtTest {
                     "18: true\n" +
                     "21: true\n" +
                     "65: false", "age_equal_or_over"),
-
-            documentItem(SdJwtKeys.ISSUED_AT, "1741132800", "iat"),
-            documentItem(SdJwtKeys.EXPIRED, "1742342400", "exp"),
         )
 
         val result = detailsItems.toListItemData(
@@ -65,8 +62,6 @@ class DocumentItemToListItemDataSdJwtTest {
                     SdJwtKeys.AGE_EQUAL_OR_OVER,
                     SdJwtKeys.ISSUING_AUTHORITY,
                     SdJwtKeys.ISSUING_COUNTRY,
-                    SdJwtKeys.ISSUED_AT,
-                    SdJwtKeys.EXPIRED,
                 )
             )
         )
@@ -84,8 +79,6 @@ class DocumentItemToListItemDataSdJwtTest {
                     "Alter gleich oder über",
                     "Behörde",
                     "Ausstellender Staat",
-                    "Erstellt am",
-                    "Gültig bis",
                 )
             )
         )
@@ -119,8 +112,6 @@ class DocumentItemToListItemDataSdJwtTest {
         )
         assertTextValue(result[7], "DEUTSCHLAND")
         assertTextValue(result[8], "DEUTSCHLAND")
-        assertTextValue(result[9], "05.03.2025")
-        assertTextValue(result[10], "19.03.2025")
     }
 
     private fun assertTextValue(item: ListItemData, expected: String) {

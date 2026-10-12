@@ -36,6 +36,12 @@ data class ResolvedOffer(
     val issuerLogo: URI?,
     val documents: List<ResolvedOfferDocument>,
     val txCodeLength: Int?,
+    /**
+     * `true` when the offer has no pre-authorized-code grant, meaning issuance
+     * requires the browser-based OAuth authorization-code flow. For this flow,
+     * consent is shown only after authorization completes rather than before.
+     */
+    val isAuthorizationCodeFlow: Boolean,
 )
 
 /**

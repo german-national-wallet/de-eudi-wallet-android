@@ -70,6 +70,7 @@ import org.sprind.wallet.corelogic.platformauth.PlatformAuthInvariant
 import org.sprind.wallet.revocationfeature.router.featureRevocationGraph
 import org.sprind.wallet.networklogic.common.model.ApiResult
 import org.sprind.wallet.onboardingfeature.router.featureOnboardingGraph
+import org.sprind.wallet.onboardingfeature.setup.router.featureSetupGraph
 import org.sprind.wallet.pushnotificationsfeature.dispatcher.FcmMessageDispatcher
 import org.sprind.wallet.pushnotificationsfeature.interactor.PushNotificationsInteractor
 import org.sprind.wallet.pushnotificationsfeature.service.WalletFirebaseMessagingService
@@ -156,6 +157,7 @@ class MainActivity : EudiComponentActivity() {
             Content(intent) {
                 featureStartupGraph(it)
                 featureOnboardingGraph(it)
+                featureSetupGraph(it)
                 featureRevocationGraph(it)
                 featureCommonGraph(it)
                 featureDashboardGraph(it)

@@ -115,6 +115,25 @@ fun Context.openAppSettings() {
     startActivity(intent)
 }
 
+/**
+ * Opens the system's notification settings for this app, where the user grants or revokes the
+ * notification permission.
+ *
+ * Falls back to the app's settings page, which carries the notification settings one level deeper,
+ * on the devices whose OEM shell does not answer the notification-settings action.
+ */
+fun Context.openAppNotificationSettings() {
+    val intent = Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS)
+        .putExtra(Settings.EXTRA_APP_PACKAGE, packageName)
+        .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+    try {
+        startActivity(intent)
+    } catch (e: ActivityNotFoundException) {
+        Timber.w(e, "No notification settings on this device; falling back to the app settings")
+        openAppSettings()
+    }
+}
+
 fun Context.openBleSettings() {
     val intent = Intent(Settings.ACTION_BLUETOOTH_SETTINGS)
     intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)

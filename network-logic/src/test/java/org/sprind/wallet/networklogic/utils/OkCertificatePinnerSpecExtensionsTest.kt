@@ -86,6 +86,6 @@ class OkCertificatePinnerSpecExtensionsTest(private val spec: PidIssuerSpec) {
     companion object {
         @JvmStatic
         @Parameterized.Parameters(name = "{0}")
-        fun specs() = listOf(PidIssuerSpec.DEMO, PidIssuerSpec.PREPROD)
+        fun specs() = listOf(PidIssuerSpec.DEMO, PidIssuerSpec.PREPROD, PidIssuerSpec.PRODUCTION)
     }
 }

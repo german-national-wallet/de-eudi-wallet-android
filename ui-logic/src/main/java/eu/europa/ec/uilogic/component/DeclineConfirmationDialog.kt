@@ -82,7 +82,7 @@ fun DeclineConfirmationDialog(
                     textConfig = TextConfig(
                         maxLines = maxLines,
                         style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        color = ThemeColors.onBackgroundVariant
                     )
                 )
 

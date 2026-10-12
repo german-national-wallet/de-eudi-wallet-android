@@ -25,6 +25,7 @@ import eu.europa.ec.uilogic.navigation.RevocationScreens
 import org.koin.androidx.compose.koinViewModel
 import org.sprind.wallet.revocationfeature.ui.RevocationIntroScreen
 import org.sprind.wallet.revocationfeature.ui.RevocationSaveCodeScreen
+import org.sprind.wallet.revocationfeature.ui.keyinfo.RevocationKeyInfoScreen
 
 fun NavGraphBuilder.featureRevocationGraph(navController: NavController) {
     navigation(
@@ -39,6 +40,11 @@ fun NavGraphBuilder.featureRevocationGraph(navController: NavController) {
         // Save Code
         composable(route = RevocationScreens.SaveCode.screenRoute) {
             RevocationSaveCodeScreen(navController, koinViewModel())
+        }
+
+        // Key Info
+        composable(route = RevocationScreens.KeyInfo.screenRoute) {
+            RevocationKeyInfoScreen(navController, koinViewModel())
         }
     }
 }

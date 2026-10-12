@@ -22,6 +22,7 @@ import android.net.Uri
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.SheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.text.AnnotatedString
 import eu.europa.ec.businesslogic.BuildConfig
 import eu.europa.ec.commonfeature.ui.issuer_details.model.IssuerInfo
 import eu.europa.ec.uilogic.component.content.ContentErrorConfig
@@ -46,6 +47,17 @@ import java.util.Locale
 data class CardReaderReturnTarget(
     val route: CardReaderRoute,
     val flowType: CardReaderFlowType,
+)
+
+/**
+ * Texts of the [CardReaderRoute.ONBOARDING_PIN] question "Have you set your card PIN?". The answers
+ * carry bold parts, so the view model styles them.
+ */
+data class OnboardingPinConfig(
+    val pinExplanationLink: String = "",
+    val hasSetPinAnswer: AnnotatedString = AnnotatedString(""),
+    val setPinWithLetterAnswer: AnnotatedString = AnnotatedString(""),
+    val noLetterOrForgotPinAnswer: AnnotatedString = AnnotatedString(""),
 )
 
 data class State(
@@ -83,6 +95,7 @@ data class State(
     val isNfcEnabled: Boolean = true,
     val nfcAntennaPosition: NfcAntennaPosition = NfcAntennaPosition.MIDDLE,
     val scanStatus: CardScanStatus? = null,
+    val onboardingPin: OnboardingPinConfig = OnboardingPinConfig(),
 ) : ViewState {
     /**
      * Updates the active step and refreshes the route-derived metadata that the

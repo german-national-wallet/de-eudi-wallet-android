@@ -46,7 +46,9 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.platform.SoftwareKeyboardController
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.zIndex
+import eu.europa.ec.resourceslogic.R
 import eu.europa.ec.uilogic.component.AppIcons
 import eu.europa.ec.uilogic.component.IconData
 import eu.europa.ec.uilogic.component.dialog.GenericErrorDialog
@@ -88,6 +90,8 @@ enum class ImePaddingConfig {
 @Composable
 fun ContentScreen(
     isLoading: Boolean = false,
+    hideTopBar: Boolean = false,
+    loadingText: String? = null,
     loadingSubText: String? = null,
     toolBarConfig: ToolbarConfig? = null,
     navigatableAction: ScreenNavigateAction = ScreenNavigateAction.BACKABLE,
@@ -113,16 +117,20 @@ fun ContentScreen(
 
     Scaffold(
         topBar = {
-            if (topBar != null && contentErrorConfig == null) topBar.invoke()
-            else if (hasToolBar) {
-                DefaultToolBar(
-                    navigatableAction = contentErrorConfig?.let {
-                        ScreenNavigateAction.CANCELABLE
-                    } ?: navigatableAction,
-                    onBack = contentErrorConfig?.onCancel ?: onBack,
-                    keyboardController = keyboardController,
-                    toolbarConfig = toolBarConfig,
-                )
+            if (!hideTopBar) {
+                when {
+                    topBar != null && contentErrorConfig == null -> topBar.invoke()
+                    hasToolBar -> {
+                        DefaultToolBar(
+                            navigatableAction = contentErrorConfig?.let {
+                                ScreenNavigateAction.CANCELABLE
+                            } ?: navigatableAction,
+                            onBack = contentErrorConfig?.onCancel ?: onBack,
+                            keyboardController = keyboardController,
+                            toolbarConfig = toolBarConfig,
+                        )
+                    }
+                }
             }
         },
         bottomBar = {
@@ -154,46 +162,16 @@ fun ContentScreen(
                 .imePadding()
         ) {
 
-            when {
-                contentErrorConfig != null -> {
-                    ContentError(
-                        config = contentErrorConfig,
-                        paddingValues = screenPaddings(padding)
-                    )
-                }
-
-                isLoading -> {
-                    LoadingIndicator(subText = loadingSubText)
-                }
-
-                else -> {
-                    Column(modifier = Modifier.fillMaxSize()) {
-
-                        Box(modifier = Modifier.weight(1f)) {
-                            bodyContent(screenPaddings(padding, topSpacing))
-                        }
-
-                        stickyBottom?.let { stickyBottomContent ->
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .zIndex(Z_STICKY),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                stickyBottomContent(
-                                    stickyBottomPaddings(
-                                        contentScreenPaddings = screenPaddings(
-                                            append = padding,
-                                            topSpacing = TopSpacing.None
-                                        ),
-                                        layoutDirection = LocalLayoutDirection.current
-                                    )
-                                )
-                            }
-                        }
-                    }
-                }
-            }
+            ContentScreenBody(
+                padding = padding,
+                topSpacing = topSpacing,
+                isLoading = isLoading,
+                loadingText = loadingText,
+                loadingSubText = loadingSubText,
+                contentErrorConfig = contentErrorConfig,
+                stickyBottom = stickyBottom,
+                bodyContent = bodyContent,
+            )
 
             genericErrorDialogConfig?.let { config ->
                 GenericErrorDialog(config = config)
@@ -204,6 +182,63 @@ fun ContentScreen(
             contentErrorConfig?.let {
                 contentErrorConfig.onCancel()
             } ?: onBack?.invoke()
+        }
+    }
+}
+
+@Composable
+private fun ContentScreenBody(
+    padding: PaddingValues,
+    topSpacing: TopSpacing,
+    isLoading: Boolean,
+    loadingText: String?,
+    loadingSubText: String?,
+    contentErrorConfig: ContentErrorConfig?,
+    stickyBottom: @Composable ((PaddingValues) -> Unit)?,
+    bodyContent: @Composable (PaddingValues) -> Unit,
+) {
+    when {
+        contentErrorConfig != null -> {
+            ContentError(
+                config = contentErrorConfig,
+                paddingValues = screenPaddings(padding)
+            )
+        }
+
+        isLoading -> {
+            if (loadingText != null) {
+                LoadingIndicator(text = loadingText, subText = loadingSubText)
+            } else {
+                LoadingIndicator(subText = loadingSubText)
+            }
+        }
+
+        else -> {
+            Column(modifier = Modifier.fillMaxSize()) {
+
+                Box(modifier = Modifier.weight(1f)) {
+                    bodyContent(screenPaddings(padding, topSpacing))
+                }
+
+                stickyBottom?.let { stickyBottomContent ->
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .zIndex(Z_STICKY),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        stickyBottomContent(
+                            stickyBottomPaddings(
+                                contentScreenPaddings = screenPaddings(
+                                    append = padding,
+                                    topSpacing = TopSpacing.None
+                                ),
+                                layoutDirection = LocalLayoutDirection.current
+                            )
+                        )
+                    }
+                }
+            }
         }
     }
 }
@@ -224,7 +259,8 @@ private fun DefaultToolBar(
         title = {
             Text(
                 text = toolbarConfig?.title.orEmpty(),
-                color = MaterialTheme.colorScheme.primary
+                style = MaterialTheme.typography.headlineSmall,
+                color = MaterialTheme.colorScheme.onBackground,
             )
         },
         navigationIcon = {

@@ -16,8 +16,10 @@
 
 package org.sprind.wallet.authenticationlogic.controller.mdvm
 
+import com.google.gson.JsonSyntaxException
 import eu.europa.ec.businesslogic.config.ConfigLogic
 import eu.europa.ec.businesslogic.config.EnvironmentConfig
+import eu.europa.ec.businesslogic.controller.log.LogController
 import junit.framework.TestCase.assertEquals
 import kotlinx.coroutines.test.runTest
 import okio.ByteString.Companion.encodeUtf8
@@ -30,6 +32,7 @@ import org.mockito.Mock
 import org.mockito.MockitoAnnotations
 import org.mockito.kotlin.any
 import org.mockito.kotlin.argumentCaptor
+import org.mockito.kotlin.eq
 import org.mockito.kotlin.never
 import org.mockito.kotlin.verify
 import org.mockito.kotlin.whenever
@@ -52,7 +55,10 @@ import org.sprind.wallet.networklogic.mdvm.model.request.MdvmRenewalRequest
 import org.sprind.wallet.networklogic.mdvm.model.response.MdvmChallengeResponse
 import org.sprind.wallet.networklogic.mdvm.model.response.MdvmRegisterResponse
 import org.sprind.wallet.networklogic.mdvm.model.response.MdvmRenewalResponse
+import org.sprind.wallet.networklogic.trace.TracedIOException
+import java.net.UnknownHostException
 import java.security.KeyPair
+import java.security.KeyStoreException
 
 class MdvmControllerTest {
 
@@ -81,9 +87,16 @@ class MdvmControllerTest {
     private val wiMdvmReattestKeysAlias = AndroidMdvmKeyManager.WI_MDVM_REATTEST_KEYS_ALIAS
     @Mock private lateinit var environmentConfig: EnvironmentConfig
     @Mock private lateinit var configLogic: ConfigLogic
+    @Mock private lateinit var logController: LogController
+
+    private val clientTraceId = "fake client trace id for test"
+    private val unreachable = TracedIOException(
+        traceId = clientTraceId,
+        cause = UnknownHostException("no dns"),
+    )
 
     private val subject: MdvmControllerImpl by lazy {
-        MdvmControllerImpl(mdvmApiClient, mdvmKeyManager, configLogic)
+        MdvmControllerImpl(mdvmApiClient, mdvmKeyManager, configLogic, logController)
     }
 
     @Before
@@ -104,6 +117,79 @@ class MdvmControllerTest {
         val result = subject.register()
 
         assertEquals(ApiResult.Failure(mdvmError), result)
+    }
+
+    @Test
+    fun `register returns NO_INTERNET Failure with client trace id when backend is unreachable`() =
+        runTest {
+            // thenAnswer, because Mockito rejects a checked exception that the suspend function
+            // does not declare.
+            whenever(mdvmApiClient.challenge()).thenAnswer { throw unreachable }
+
+            val result = subject.register()
+
+            assertEquals(
+                ApiResult.Failure(
+                    MdvmError(MdvmErrorType.NO_INTERNET, serverResponse = null, clientTraceId)
+                ),
+                result,
+            )
+            verify(logController).e(any(), eq(unreachable))
+        }
+
+    @Test
+    fun `register returns UNKNOWN Failure when key creation throws`() = runTest {
+        setupHappyPathForRegister()
+        whenever(mdvmKeyManager.createAuthKeys(any())).thenAnswer { throw KeyStoreException("boom") }
+
+        val result = subject.register()
+
+        assertEquals(
+            ApiResult.Failure(MdvmError(MdvmErrorType.UNKNOWN, serverResponse = null)),
+            result,
+        )
+    }
+
+    @Test
+    fun `register returns UNKNOWN Failure when the response body cannot be parsed`() = runTest {
+        setupHappyPathForRegister()
+        whenever(signingApiClient.register(any(), any(), any()))
+            .thenThrow(JsonSyntaxException("Expected BEGIN_OBJECT but was STRING"))
+
+        val result = subject.register()
+
+        assertEquals(
+            ApiResult.Failure(MdvmError(MdvmErrorType.UNKNOWN, serverResponse = null)),
+            result,
+        )
+    }
+
+    @Test
+    fun `register returns UNKNOWN Failure when an IllegalStateException is thrown`() = runTest {
+        val illegalState = IllegalStateException("inconsistent state")
+        setupHappyPathForRegister()
+        whenever(mdvmKeyManager.createAuthKeys(any())).thenThrow(illegalState)
+
+        val result = subject.register()
+
+        assertEquals(
+            ApiResult.Failure(MdvmError(MdvmErrorType.UNKNOWN, serverResponse = null)),
+            result,
+        )
+        verify(logController).e(any(), eq(illegalState))
+    }
+
+    @Test
+    fun `register propagates other programming errors instead of mapping them`() = runTest {
+        setupHappyPathForRegister()
+        whenever(mdvmKeyManager.createAuthKeys(any())).thenThrow(NullPointerException("bug"))
+
+        try {
+            subject.register()
+            fail("Expected NullPointerException to propagate from register")
+        } catch (expected: NullPointerException) {
+            // pass
+        }
     }
 
     @Test
@@ -312,19 +398,30 @@ class MdvmControllerTest {
     }
 
     @Test
-    fun `renewal deletes reattest keys even when renewal call throws`() = runTest {
+    fun `renewal deletes reattest keys and returns NO_INTERNET when renewal call throws`() = runTest {
         setupHappyPathForRenewal()
         whenever(doubleSigningApiClient.renewal(any(), any(), any(), any()))
-            .thenThrow(RuntimeException("boom"))
+            .thenAnswer { throw unreachable }
 
-        try {
-            subject.renewal(mdvmWiId, wiMdvmAuthKeysAlias)
-            fail("Expected RuntimeException to propagate from renewal call")
-        } catch (expected: RuntimeException) {
-            // pass
-        }
+        val result = subject.renewal(mdvmWiId, wiMdvmAuthKeysAlias)
 
+        assertEquals(
+            ApiResult.Failure(
+                MdvmError(MdvmErrorType.NO_INTERNET, serverResponse = null, clientTraceId)
+            ),
+            result,
+        )
         verify(mdvmKeyManager).deleteReattestKeys()
+    }
+
+    @Test
+    fun `renewal returns NO_INTERNET Failure when challenge request throws`() = runTest {
+        whenever(mdvmApiClient.challenge()).thenAnswer { throw unreachable }
+
+        val result = subject.renewal(mdvmWiId, wiMdvmAuthKeysAlias)
+
+        assertEquals(MdvmErrorType.NO_INTERNET, (result as ApiResult.Failure).error.type)
+        verify(mdvmKeyManager, never()).createReattestKeys(any())
     }
 
     @Test

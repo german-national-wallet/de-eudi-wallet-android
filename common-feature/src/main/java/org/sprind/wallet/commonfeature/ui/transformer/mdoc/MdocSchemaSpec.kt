@@ -127,15 +127,5 @@ val mdocSchema = listOf(
     ) { map, locale, _ ->
         map[MdocKeys.ISSUING_COUNTRY]?.value
             ?.let { Locale("", it).getDisplayCountry(locale).uppercase() }
-    },
-
-    DocumentFieldSpec(
-        key = MdocKeys.ISSUANCE_DATE,
-        labelRes = R.string.pid_issuance_data_consent_label_created_at
-    ) { map, _, _ -> map[MdocKeys.ISSUANCE_DATE]?.value },
-
-    DocumentFieldSpec(
-        key = MdocKeys.EXPIRY_DATE,
-        labelRes = R.string.pid_issuance_data_consent_label_expire_date
-    ) { map, _, _ -> map[MdocKeys.EXPIRY_DATE]?.value },
+    }
 )

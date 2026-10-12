@@ -16,12 +16,14 @@
 
 package eu.europa.ec.startupfeature.ui.splash
 
+import androidx.compose.ui.text.style.TextAlign
 import androidx.lifecycle.viewModelScope
 import eu.europa.ec.businesslogic.controller.log.LogController
 import eu.europa.ec.resourceslogic.R
 import eu.europa.ec.startupfeature.interactor.registration.WalletInitialRegistrationPartialState
 import eu.europa.ec.startupfeature.interactor.registration.WalletRegistrationInteractor
 import eu.europa.ec.startupfeature.interactor.splash.SplashInteractor
+import eu.europa.ec.uilogic.component.AppIcons
 import eu.europa.ec.uilogic.component.dialog.GenericErrorDialogConfig
 import eu.europa.ec.uilogic.mvi.MviViewModel
 import eu.europa.ec.uilogic.mvi.ViewEvent
@@ -109,6 +111,12 @@ class SplashViewModel(
                                 R.string.app_onboarding_wb_internal_error_prim_button
                             )
 
+                            WalletInitialRegistrationPartialState.ErrorCode.NO_INTERNET -> Triple(
+                                R.string.global_no_internet_error_title,
+                                R.string.global_no_internet_error_paragraph,
+                                R.string.global_no_internet_error_prim_button
+                            )
+
                             else -> Triple(
                                 R.string.global_error_title,
                                 R.string.global_error_paragraph,
@@ -116,19 +124,26 @@ class SplashViewModel(
                             )
                         }
 
+                        // The no-internet design shows neither code nor trace id: the request
+                        // never reached the backend, so there is nothing for support to look up.
+                        val isOffline = result.errorCode ==
+                            WalletInitialRegistrationPartialState.ErrorCode.NO_INTERNET
+
                         setState {
                             copy(
                                 errorDialog = GenericErrorDialogConfig(
                                     titleRes = titleRes,
                                     bodyTextRes = bodyTextRes,
-                                    errorCode = result.backendErrorCode,
-                                    traceId = result.traceId,
+                                    errorCode = result.backendErrorCode.takeUnless { isOffline },
+                                    traceId = result.traceId.takeUnless { isOffline },
                                     primaryButtonTextRes = primaryButtonTextRes,
                                     onDismiss = { setEvent(Event.DismissError) },
                                     onPrimaryButtonClick = {
                                         setEvent(Event.DismissError)
                                         initializeWallet() // retry
-                                    }
+                                    },
+                                    iconData = if (isOffline) AppIcons.Warning else AppIcons.InfoFilled,
+                                    bodyTextAlign = if (isOffline) TextAlign.Center else TextAlign.Start,
                                 ),
                             )
                         }

@@ -77,6 +77,12 @@
     <string name="issuance_interrupted_error">The credential issuance was interrupted. Please try again.</string>
 
     <!--
+     Error shown when the credential issuer's signed metadata is missing, untrusted or invalid.
+     Short form for ContentErrorConfig subtitles. [MAX_LENGTH=120]
+    -->
+    <string name="issuance_issuer_not_verified_error">The provider could not be verified. This is not a problem with your wallet. Please try again later.</string>
+
+    <!--
      Fallback title shown in the document offer list when a document has no
      localized name/overline text yet. Used only while issuance metadata is
      incomplete. [MAX_LENGTH=20]

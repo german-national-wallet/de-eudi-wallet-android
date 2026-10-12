@@ -1,7 +1,7 @@
 <resources xmlns:tools="http://schemas.android.com/tools">
 
     <!-- Generic -->
-    <string name="generic_error_message">Oups! Es ist ein Fehler aufgetreten</string>
+    <string name="generic_error_message">Oops! Es ist ein Fehler aufgetreten</string>
     <string name="generic_error_description">Wenn das Problem weiterhin besteht, wenden Sie sich bitte an den Kundenservice.</string>
     <string name="generic_error_button_retry">WIEDERHOLEN</string>
     <string name="generic_network_error_message">You are not connected to the internet</string>
@@ -54,12 +54,15 @@
     <string name="content_description_arrow_forward_icon">Pfeil nach vorne</string>
     <string name="content_description_share_icon">Teilen</string>
     <string name="content_description_key_icon">Schlüssel</string>
+    <string name="content_description_notification_icon">Mitteilungen</string>
+    <string name="settings_overview_app_version">Version: %1$s Build: %2$d</string>
     <string name="content_description_lock_icon">Schloss</string>
     <string name="content_description_open_new_icon">Open new</string>
     <string name="content_description_handle_bar_icon">Handle bar</string>
     <string name="content_description_search_icon">Search</string>
     <string name="content_description_play_arrow_icon">Play arrow</string>
     <string name="content_description_apartment_icon">Apartment</string>
+    <string name="content_description_transfer_icon">Data exchange</string>
     <string name="content_description_card_icon">Card</string>
     <string name="content_description_event_icon">Event</string>
     <string name="content_description_history_icon">History</string>
@@ -184,6 +187,8 @@
     <string name="content_description_faded_phone">Verblasstes Handy</string>
     <string name="content_description_hidden_pin">Versteckter PIN</string>
     <string name="content_description_phone_security">Handysicherheit</string>
+    <string name="content_description_phone_security_shield">Abbildung eines Handys mit einem Sicherheitsschild.</string>
+    <string name="content_description_missing_credential">Abbildung eines Nachweises mit einem Fragezeichen.</string>
     <string name="content_description_card_pin">Digitaler Ausweis mit seinem Code</string>
     <string name="content_description_password_visibility">Passwortsichtbarkeit</string>
     <string name="content_description_blocked">Gesperrt</string>

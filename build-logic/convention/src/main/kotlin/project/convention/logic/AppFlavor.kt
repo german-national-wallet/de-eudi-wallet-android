@@ -81,6 +81,10 @@ fun Project.configureFlavors(
                         "APP_VERSION",
                         fullVersion
                     )
+                    addConfigField(
+                        "APP_VERSION_CODE",
+                        versionCodeProperty
+                    )
                     // Generates a set of constants such as FLAVOR_NAME_DEV, those are useful to
                     // compare the current flavor with a target one, i.e.:
                     // BuildConfig.FLAVOR == BuildConfig.FLAVOR_NAME_DEV

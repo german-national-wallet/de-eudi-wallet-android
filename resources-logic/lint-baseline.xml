@@ -15,17 +15,6 @@
     <issue
         id="VectorRaster"
         message="Limit vector icons sizes to 200×200 to keep icon drawing fast; see https://developer.android.com/studio/write/vector-asset-studio#when for more"
-        errorLine1="    android:width=&quot;1024dp&quot;"
-        errorLine2="                   ~~~~~~">
-        <location
-            file="src/dev/res/drawable/ic_launcher.xml"
-            line="2"
-            column="20"/>
-    </issue>
-
-    <issue
-        id="VectorRaster"
-        message="Limit vector icons sizes to 200×200 to keep icon drawing fast; see https://developer.android.com/studio/write/vector-asset-studio#when for more"
         errorLine1="    android:width=&quot;228dp&quot;"
         errorLine2="                   ~~~~~">
         <location
@@ -74,7 +63,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="125"
+            line="130"
             column="13"/>
     </issue>
 
@@ -85,7 +74,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="126"
+            line="131"
             column="13"/>
     </issue>
 
@@ -96,7 +85,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="127"
+            line="132"
             column="13"/>
     </issue>
 
@@ -107,7 +96,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="128"
+            line="133"
             column="13"/>
     </issue>
 
@@ -118,7 +107,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="129"
+            line="134"
             column="13"/>
     </issue>
 
@@ -129,7 +118,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="130"
+            line="135"
             column="13"/>
     </issue>
 
@@ -140,7 +129,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="131"
+            line="136"
             column="13"/>
     </issue>
 
@@ -151,7 +140,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="132"
+            line="137"
             column="13"/>
     </issue>
 
@@ -162,7 +151,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="133"
+            line="138"
             column="13"/>
     </issue>
 
@@ -173,7 +162,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="139"
+            line="144"
             column="13"/>
     </issue>
 
@@ -184,7 +173,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="140"
+            line="145"
             column="13"/>
     </issue>
 
@@ -195,7 +184,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="141"
+            line="146"
             column="13"/>
     </issue>
 
@@ -206,7 +195,7 @@
         errorLine2="            ~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="143"
+            line="148"
             column="13"/>
     </issue>
 
@@ -217,7 +206,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="162"
+            line="167"
             column="13"/>
     </issue>
 
@@ -228,7 +217,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="163"
+            line="168"
             column="13"/>
     </issue>
 
@@ -239,7 +228,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="194"
+            line="203"
             column="13"/>
     </issue>
 
@@ -250,7 +239,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="197"
+            line="206"
             column="13"/>
     </issue>
 
@@ -261,7 +250,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="198"
+            line="207"
             column="13"/>
     </issue>
 
@@ -272,7 +261,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="209"
+            line="218"
             column="13"/>
     </issue>
 
@@ -283,7 +272,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="210"
+            line="219"
             column="13"/>
     </issue>
 
@@ -294,7 +283,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="211"
+            line="220"
             column="13"/>
     </issue>
 
@@ -305,7 +294,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="212"
+            line="221"
             column="13"/>
     </issue>
 
@@ -316,7 +305,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="213"
+            line="222"
             column="13"/>
     </issue>
 
@@ -327,7 +316,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="214"
+            line="223"
             column="13"/>
     </issue>
 
@@ -338,7 +327,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="215"
+            line="224"
             column="13"/>
     </issue>
 
@@ -349,7 +338,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="216"
+            line="225"
             column="13"/>
     </issue>
 
@@ -360,7 +349,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="244"
+            line="265"
             column="13"/>
     </issue>
 
@@ -371,7 +360,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="245"
+            line="266"
             column="13"/>
     </issue>
 
@@ -382,7 +371,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="246"
+            line="267"
             column="13"/>
     </issue>
 
@@ -393,7 +382,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="247"
+            line="268"
             column="13"/>
     </issue>
 
@@ -404,7 +393,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="248"
+            line="269"
             column="13"/>
     </issue>
 
@@ -415,7 +404,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="249"
+            line="270"
             column="13"/>
     </issue>
 
@@ -426,7 +415,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="250"
+            line="271"
             column="13"/>
     </issue>
 
@@ -437,7 +426,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="251"
+            line="272"
             column="13"/>
     </issue>
 
@@ -448,7 +437,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="252"
+            line="273"
             column="13"/>
     </issue>
 
@@ -459,7 +448,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="253"
+            line="274"
             column="13"/>
     </issue>
 
@@ -470,7 +459,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="254"
+            line="275"
             column="13"/>
     </issue>
 
@@ -481,7 +470,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="255"
+            line="276"
             column="13"/>
     </issue>
 
@@ -492,7 +481,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="256"
+            line="277"
             column="13"/>
     </issue>
 
@@ -503,7 +492,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="257"
+            line="278"
             column="13"/>
     </issue>
 
@@ -514,7 +503,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="258"
+            line="279"
             column="13"/>
     </issue>
 
@@ -525,7 +514,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="259"
+            line="280"
             column="13"/>
     </issue>
 
@@ -536,7 +525,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="260"
+            line="281"
             column="13"/>
     </issue>
 
@@ -547,7 +536,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="261"
+            line="282"
             column="13"/>
     </issue>
 
@@ -558,7 +547,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="271"
+            line="292"
             column="13"/>
     </issue>
 
@@ -569,7 +558,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="272"
+            line="293"
             column="13"/>
     </issue>
 
@@ -580,7 +569,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="273"
+            line="294"
             column="13"/>
     </issue>
 
@@ -591,7 +580,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="274"
+            line="295"
             column="13"/>
     </issue>
 
@@ -602,7 +591,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="275"
+            line="296"
             column="13"/>
     </issue>
 
@@ -613,7 +602,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="276"
+            line="297"
             column="13"/>
     </issue>
 
@@ -624,7 +613,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="279"
+            line="300"
             column="13"/>
     </issue>
 
@@ -635,7 +624,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="280"
+            line="301"
             column="13"/>
     </issue>
 
@@ -646,7 +635,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="281"
+            line="302"
             column="13"/>
     </issue>
 
@@ -657,7 +646,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="288"
+            line="309"
             column="13"/>
     </issue>
 
@@ -668,8 +657,19 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="289"
+            line="310"
             column="13"/>
+    </issue>
+
+    <issue
+        id="Typos"
+        message="&quot;Letzer&quot; is a common misspelling; did you mean &quot;Letzter&quot;?"
+        errorLine1="    &lt;string name=&quot;activities_overview_label_last_month&quot;>Letzer Monat&lt;/string>"
+        errorLine2="                                                        ~~~~~~">
+        <location
+            file="src/main/res/values-de/string_figma.xml"
+            line="160"
+            column="57"/>
     </issue>
 
     <issue
@@ -679,7 +679,7 @@
         errorLine2="                                                                        ~~~~~~">
         <location
             file="src/main/res/values-de/string_figma.xml"
-            line="287"
+            line="362"
             column="73"/>
     </issue>
 
@@ -690,8 +690,19 @@
         errorLine2="                                                           ~~~~~~~~">
         <location
             file="src/main/res/values/string_figma.xml"
-            line="320"
+            line="396"
             column="60"/>
+    </issue>
+
+    <issue
+        id="Typos"
+        message="Repeated word &quot;was&quot; in message: possible typo"
+        errorLine1="    &lt;string name=&quot;eaa_issuance_transaction_code_entry_error_1&quot;>Your code entry was was incorrect. Try again.&lt;/string>"
+        errorLine2="                                                                               ~~~~~~~">
+        <location
+            file="src/main/res/values/string_figma.xml"
+            line="457"
+            column="80"/>
     </issue>
 
     <issue
@@ -701,41 +712,19 @@
         errorLine2="                                                                               ~~~~~~~">
         <location
             file="src/main/res/values/string_figma.xml"
-            line="530"
+            line="626"
             column="80"/>
     </issue>
 
     <issue
         id="Typos"
         message="Repeated word &quot;was&quot; in message: possible typo"
-        errorLine1="    &lt;string name=&quot;eid_setup_transport_pin_entry_error&quot;>Your previous PIN entry was was incorrect. Try again.&lt;/string>"
-        errorLine2="                                                                               ~~~~~~~">
+        errorLine1="    &lt;string name=&quot;pid_issuance_card_pin_entry_error_1&quot;>Your PIN entry was was incorrect. Try again.&lt;/string>"
+        errorLine2="                                                                      ~~~~~~~">
         <location
             file="src/main/res/values/string_figma.xml"
-            line="555"
-            column="80"/>
-    </issue>
-
-    <issue
-        id="Typos"
-        message="&quot;Letzer&quot; is a common misspelling; did you mean &quot;Letzter&quot;?"
-        errorLine1="    &lt;string name=&quot;pid_inspection_pid_overall_activity_label_last_month&quot;>Letzer Monat&lt;/string>"
-        errorLine2="                                                                        ~~~~~~">
-        <location
-            file="src/main/res/values-de/string_figma.xml"
-            line="715"
-            column="73"/>
-    </issue>
-
-    <issue
-        id="Typos"
-        message="Repeated word &quot;was&quot; in message: possible typo"
-        errorLine1="    &lt;string name=&quot;pid_issuance_card_pin_entry_error_1&quot;>Your previous PIN entry was was incorrect. Try again.&lt;/string>"
-        errorLine2="                                                                               ~~~~~~~">
-        <location
-            file="src/main/res/values/string_figma.xml"
-            line="744"
-            column="80"/>
+            line="870"
+            column="71"/>
     </issue>
 
     <issue
@@ -745,7 +734,7 @@
         errorLine2="                                                               ~~~~~~~~">
         <location
             file="src/main/res/values/string_figma.xml"
-            line="756"
+            line="888"
             column="64"/>
     </issue>
 
@@ -756,7 +745,7 @@
         errorLine2="                                                                                  ~~~~~~~">
         <location
             file="src/main/res/values/string_figma.xml"
-            line="818"
+            line="990"
             column="83"/>
     </issue>
 
@@ -767,18 +756,18 @@
         errorLine2="    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/string_figma.xml"
-            line="392"
+            line="487"
             column="5"/>
     </issue>
 
     <issue
         id="PluralsCandidate"
         message="Formatting %d followed by words (&quot;out&quot;): This should probably be a plural rather than a string"
-        errorLine1="    &lt;string name=&quot;pid_presentation_data_consent_headline_credential_dev&quot;>%1$d out of %2$d from %3$s&lt;/string>"
-        errorLine2="    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        errorLine1="    &lt;string name=&quot;pid_presentation_data_consent_headline_credential_dev&quot;>&lt;b>%1$d&lt;/b> out of &lt;b>%2$d&lt;/b> from %3$s&lt;/string>"
+        errorLine2="    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/string_figma.xml"
-            line="877"
+            line="1054"
             column="5"/>
     </issue>
 
@@ -789,73 +778,172 @@
         errorLine2="    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="253"
+            line="274"
             column="5"/>
     </issue>
 
     <issue
-        id="TypographyEllipsis"
-        message="Replace &quot;...&quot; with ellipsis character (…, &amp;#8230;) ?"
-        errorLine1="    &lt;string name=&quot;app_onboarding_launch_title_a11y&quot;>EUDI Wallet DE wird gestartet...&lt;/string>"
-        errorLine2="                                                    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        id="TypographyDashes"
+        message="Replace &quot;-&quot; with an &quot;en dash&quot; character (–, &amp;#8211;) ?"
+        errorLine1="    &lt;string name=&quot;__variable_text_pid_service_provider_var_issuer_certificate_enddate&quot;>27.07.2026 - 28.07.2026&lt;/string>"
+        errorLine2="                                                                                       ~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values-de/string_figma.xml"
-            line="132"
-            column="53"/>
+            line="139"
+            column="88"/>
     </issue>
 
     <issue
-        id="TypographyEllipsis"
-        message="Replace &quot;...&quot; with ellipsis character (…, &amp;#8230;) ?"
-        errorLine1="    &lt;string name=&quot;app_onboarding_launch_title_a11y&quot;>Starting EUDI Wallet DE...&lt;/string>"
-        errorLine2="                                                    ~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        id="TypographyDashes"
+        message="Replace &quot;-&quot; with an &quot;en dash&quot; character (–, &amp;#8211;) ?"
+        errorLine1="    &lt;string name=&quot;pid_issuance_data_consent_text_provider_information&quot;>Supervisory authority for data protection: The State Commissioner for Data Protection and Freedom of Information Georgstraße 122-124 27570 Bremerhaven +49 421 3612010 or +49 471 5962010 office@datenschutz.bremen.de&lt;/string>"
+        errorLine2="                                                                       ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/string_figma.xml"
-            line="132"
+            line="914"
+            column="72"/>
+    </issue>
+
+    <issue
+        id="TypographyDashes"
+        message="Replace &quot;-&quot; with an &quot;en dash&quot; character (–, &amp;#8211;) ?"
+        errorLine1="    &lt;string name=&quot;pid_issuance_data_consent_issuer_paragraph&quot;>Supervisory authority for data protection: The State Commissioner for Data Protection and Freedom of Information Georgstraße 122-124 27570 Bremerhaven +49 421 3612010 or +49 471 5962010 office@datenschutz.bremen.de&lt;/string>"
+        errorLine2="                                                              ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/string_figma.xml"
+            line="926"
+            column="63"/>
+    </issue>
+
+    <issue
+        id="TypographyDashes"
+        message="Replace &quot;-&quot; with an &quot;en dash&quot; character (–, &amp;#8211;) ?"
+        errorLine1="    &lt;string name=&quot;settings_faq_banner_paragraph_2&quot;>We answer within 1-2 days.&lt;/string>"
+        errorLine2="                                                   ~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/string_figma.xml"
+            line="1180"
+            column="52"/>
+    </issue>
+
+    <issue
+        id="TypographyEllipsis"
+        message="Replace &quot;...&quot; with ellipsis character (…, &amp;#8230;) ?"
+        errorLine1="    &lt;string name=&quot;__variable_text_pid_issuer_var_issuer_privacy_policy&quot;>www.bmi.bund.de/DE/servic...&lt;/string>"
+        errorLine2="                                                                        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-de/string_figma.xml"
+            line="135"
+            column="73"/>
+    </issue>
+
+    <issue
+        id="TypographyEllipsis"
+        message="Replace &quot;...&quot; with ellipsis character (…, &amp;#8230;) ?"
+        errorLine1="    &lt;string name=&quot;__variable_text_pid_issuer_var_issuer_privacy_policy&quot;>www.bmi.bund.de/EN/servic...&lt;/string>"
+        errorLine2="                                                                        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/string_figma.xml"
+            line="135"
+            column="73"/>
+    </issue>
+
+    <issue
+        id="TypographyEllipsis"
+        message="Replace &quot;...&quot; with ellipsis character (…, &amp;#8230;) ?"
+        errorLine1="    &lt;string name=&quot;__variable_text_pid_service_provider_var_issuer_privacy_policy&quot;>bundesdruckerei.de/de/date...&lt;/string>"
+        errorLine2="                                                                                  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-de/string_figma.xml"
+            line="143"
+            column="83"/>
+    </issue>
+
+    <issue
+        id="TypographyEllipsis"
+        message="Replace &quot;...&quot; with ellipsis character (…, &amp;#8230;) ?"
+        errorLine1="    &lt;string name=&quot;__variable_text_pid_service_provider_var_issuer_privacy_policy&quot;>bundesdruckerei.de/en/data...&lt;/string>"
+        errorLine2="                                                                                  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/string_figma.xml"
+            line="143"
+            column="83"/>
+    </issue>
+
+    <issue
+        id="TypographyEllipsis"
+        message="Replace &quot;...&quot; with ellipsis character (…, &amp;#8230;) ?"
+        errorLine1="    &lt;string name=&quot;__variable_text_rp_deinebank_var_data_policy_uri&quot;>deinebank.de/de/datenschut...&lt;/string>"
+        errorLine2="                                                                    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-de/string_figma.xml"
+            line="145"
+            column="69"/>
+    </issue>
+
+    <issue
+        id="TypographyEllipsis"
+        message="Replace &quot;...&quot; with ellipsis character (…, &amp;#8230;) ?"
+        errorLine1="    &lt;string name=&quot;__variable_text_rp_deinebank_var_data_policy_uri&quot;>deinebank.de/de/datenschut...&lt;/string>"
+        errorLine2="                                                                    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/string_figma.xml"
+            line="145"
+            column="69"/>
+    </issue>
+
+    <issue
+        id="TypographyEllipsis"
+        message="Replace &quot;...&quot; with ellipsis character (…, &amp;#8230;) ?"
+        errorLine1="    &lt;string name=&quot;app_onboarding_launch_title_a11y&quot;>d-you wird gestartet ...&lt;/string>"
+        errorLine2="                                                    ~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-de/string_figma.xml"
+            line="195"
             column="53"/>
     </issue>
 
     <issue
         id="TypographyEllipsis"
         message="Replace &quot;...&quot; with ellipsis character (…, &amp;#8230;) ?"
-        errorLine1="    &lt;string name=&quot;app_onboarding_pa_set_intro_title_loading&quot;>Prüfen, ob Displaysperre vorhanden ist ...&lt;/string>"
-        errorLine2="                                                             ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        errorLine1="    &lt;string name=&quot;app_onboarding_pa_set_intro_title_loading&quot;>Prüfen, ob Bildschirmsperre vorhanden ist ...&lt;/string>"
+        errorLine2="                                                             ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values-de/string_figma.xml"
-            line="167"
+            line="238"
             column="62"/>
     </issue>
 
     <issue
         id="TypographyEllipsis"
         message="Replace &quot;...&quot; with ellipsis character (…, &amp;#8230;) ?"
-        errorLine1="    &lt;string name=&quot;app_onboarding_pa_set_success_sheet_paragraph&quot;>Lorem ipsum dolor sit amet...&lt;/string>"
-        errorLine2="                                                                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
-        <location
-            file="src/main/res/values/string_figma.xml"
-            line="171"
-            column="66"/>
-    </issue>
-
-    <issue
-        id="TypographyEllipsis"
-        message="Replace &quot;...&quot; with ellipsis character (…, &amp;#8230;) ?"
-        errorLine1="    &lt;string name=&quot;eaa_issuance_launch_title&quot;>EUDI Wallet DE wird gestartet ...&lt;/string>"
-        errorLine2="                                             ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        errorLine1="    &lt;string name=&quot;eaa_issuance_launch_title&quot;>d-you wird gestartet ...&lt;/string>"
+        errorLine2="                                             ~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values-de/string_figma.xml"
-            line="358"
+            line="435"
             column="46"/>
     </issue>
 
     <issue
         id="TypographyEllipsis"
         message="Replace &quot;...&quot; with ellipsis character (…, &amp;#8230;) ?"
-        errorLine1="    &lt;string name=&quot;eaa_issuance_loading_title&quot;>Adding attestation ...&lt;/string>"
-        errorLine2="                                              ~~~~~~~~~~~~~~~~~~~~~~">
+        errorLine1="    &lt;string name=&quot;eaa_issuance_loading_title&quot;>Nachweis wird vorbereitet...&lt;/string>"
+        errorLine2="                                              ~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-de/string_figma.xml"
+            line="436"
+            column="47"/>
+    </issue>
+
+    <issue
+        id="TypographyEllipsis"
+        message="Replace &quot;...&quot; with ellipsis character (…, &amp;#8230;) ?"
+        errorLine1="    &lt;string name=&quot;eaa_issuance_loading_title&quot;>Adding credential ...&lt;/string>"
+        errorLine2="                                              ~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/string_figma.xml"
-            line="359"
+            line="436"
             column="47"/>
     </issue>
 
@@ -866,7 +954,7 @@
         errorLine2="                                                                       ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values-de/string_figma.xml"
-            line="368"
+            line="462"
             column="72"/>
     </issue>
 
@@ -877,118 +965,250 @@
         errorLine2="                                                                       ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/string_figma.xml"
-            line="368"
+            line="462"
             column="72"/>
     </issue>
 
     <issue
         id="TypographyEllipsis"
         message="Replace &quot;...&quot; with ellipsis character (…, &amp;#8230;) ?"
-        errorLine1="    &lt;string name=&quot;eaa_presentation_loading_credential_title&quot;>Nachweis wird vorbereitet...&lt;/string>"
-        errorLine2="                                                             ~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        errorLine1="    &lt;string name=&quot;eaa_presentation_loading_credential_title&quot;>Verifizierung wird vorbereitet...&lt;/string>"
+        errorLine2="                                                             ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values-de/string_figma.xml"
-            line="444"
+            line="539"
             column="62"/>
     </issue>
 
     <issue
         id="TypographyEllipsis"
         message="Replace &quot;...&quot; with ellipsis character (…, &amp;#8230;) ?"
-        errorLine1="    &lt;string name=&quot;global_redirect_info_title&quot;>Wir leiten dich nun weiter...&lt;/string>"
-        errorLine2="                                              ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        errorLine1="    &lt;string name=&quot;global_redirect_info_title&quot;>Du wirst nun weitergeleitet...&lt;/string>"
+        errorLine2="                                              ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values-de/string_figma.xml"
-            line="597"
+            line="713"
             column="47"/>
     </issue>
 
     <issue
         id="TypographyEllipsis"
         message="Replace &quot;...&quot; with ellipsis character (…, &amp;#8230;) ?"
-        errorLine1="    &lt;string name=&quot;pid_presentation_loading_credential_title&quot;>Nachweis wird vorbereitet...&lt;/string>"
-        errorLine2="                                                             ~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        errorLine1="    &lt;string name=&quot;nfc_scanning_system_sheet_nfc_title_progress&quot;>Scanning...&lt;/string>"
+        errorLine2="                                                                ~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/string_figma.xml"
+            line="779"
+            column="65"/>
+    </issue>
+
+    <issue
+        id="TypographyEllipsis"
+        message="Replace &quot;...&quot; with ellipsis character (…, &amp;#8230;) ?"
+        errorLine1="    &lt;string name=&quot;pid_presentation_loading_title_1&quot;>Stay near the receiving device and keep this app open...&lt;/string>"
+        errorLine2="                                                    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/string_figma.xml"
+            line="1105"
+            column="53"/>
+    </issue>
+
+    <issue
+        id="TypographyEllipsis"
+        message="Replace &quot;...&quot; with ellipsis character (…, &amp;#8230;) ?"
+        errorLine1="    &lt;string name=&quot;pid_presentation_loading_title_2&quot;>Deine Daten werden verarbeitet...&lt;/string>"
+        errorLine2="                                                    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values-de/string_figma.xml"
-            line="927"
-            column="62"/>
+            line="1106"
+            column="53"/>
     </issue>
 
     <issue
-        id="TypographyQuotes"
-        message="Replace apostrophe (&apos;) with typographic apostrophe (’, &amp;#8217;) ?"
-        errorLine1="    &lt;string name=&quot;app_onboarding_onboarding_4_prim_button&quot;>Los geht\&apos;s&lt;/string>"
-        errorLine2="                                                                    ~">
+        id="TypographyEllipsis"
+        message="Replace &quot;...&quot; with ellipsis character (…, &amp;#8230;) ?"
+        errorLine1="    &lt;string name=&quot;pid_presentation_loading_credential_title_1&quot;>Bleib in der Nähe des Empfangsgeräts...&lt;/string>"
+        errorLine2="                                                               ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values-de/string_figma.xml"
-            line="146"
-            column="69"/>
+            line="1107"
+            column="64"/>
+    </issue>
+
+    <issue
+        id="TypographyEllipsis"
+        message="Replace &quot;...&quot; with ellipsis character (…, &amp;#8230;) ?"
+        errorLine1="    &lt;string name=&quot;pid_presentation_loading_credential_title_1&quot;>Stay near the receiving device...&lt;/string>"
+        errorLine2="                                                               ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/string_figma.xml"
+            line="1107"
+            column="64"/>
+    </issue>
+
+    <issue
+        id="TypographyEllipsis"
+        message="Replace &quot;...&quot; with ellipsis character (…, &amp;#8230;) ?"
+        errorLine1="    &lt;string name=&quot;pid_presentation_loading_credential_title_2&quot;>Verifizierung wird vorbereitet...&lt;/string>"
+        errorLine2="                                                               ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-de/string_figma.xml"
+            line="1108"
+            column="64"/>
     </issue>
 
     <issue
         id="TypographyQuotes"
         message="Replace apostrophe (&apos;) with typographic apostrophe (’, &amp;#8217;) ?"
-        errorLine1="    &lt;string name=&quot;app_onboarding_pa_set_intro_title&quot;>To protect your data, the app uses your device\&apos;s screen lock.&lt;/string>"
-        errorLine2="                                                                                                    ~">
+        errorLine1="    &lt;string name=&quot;__os_native_dialog_bluetooth_android_button_2&quot;>Don\&apos;t allow&lt;/string>"
+        errorLine2="                                                                     ~">
         <location
             file="src/main/res/values/string_figma.xml"
-            line="166"
-            column="101"/>
+            line="4"
+            column="70"/>
     </issue>
 
     <issue
         id="TypographyQuotes"
         message="Replace apostrophe (&apos;) with typographic apostrophe (’, &amp;#8217;) ?"
-        errorLine1="    &lt;string name=&quot;app_onboarding_pa_set_success_title&quot;>To protect your data, the app uses your device\&apos;s screen lock.&lt;/string>"
-        errorLine2="                                                                                                      ~">
+        errorLine1="    &lt;string name=&quot;__os_native_dialog_camera_android_button_3&quot;>Don\&apos;t allow&lt;/string>"
+        errorLine2="                                                                  ~">
         <location
             file="src/main/res/values/string_figma.xml"
-            line="170"
-            column="103"/>
+            line="8"
+            column="67"/>
     </issue>
 
     <issue
         id="TypographyQuotes"
         message="Replace apostrophe (&apos;) with typographic apostrophe (’, &amp;#8217;) ?"
-        errorLine1="    &lt;string name=&quot;app_onboarding_policy_intro_title&quot;>To protect your data, the app uses your device\&apos;s screen lock.&lt;/string>"
-        errorLine2="                                                                                                    ~">
+        errorLine1="    &lt;string name=&quot;__variable_text_native_dialog_android_button_4&quot;>Don\&apos;t allow&lt;/string>"
+        errorLine2="                                                                      ~">
         <location
             file="src/main/res/values/string_figma.xml"
-            line="181"
-            column="101"/>
+            line="115"
+            column="71"/>
     </issue>
 
     <issue
         id="TypographyQuotes"
         message="Replace apostrophe (&apos;) with typographic apostrophe (’, &amp;#8217;) ?"
-        errorLine1="    &lt;string name=&quot;app_onboarding_push_intro_title&quot;>To protect your data, the app uses your device\&apos;s screen lock.&lt;/string>"
-        errorLine2="                                                                                                  ~">
+        errorLine1="    &lt;string name=&quot;app_onboarding_onboarding_4_prim_button&quot;>Let\&apos;s go&lt;/string>"
+        errorLine2="                                                               ~">
         <location
             file="src/main/res/values/string_figma.xml"
-            line="187"
-            column="99"/>
+            line="214"
+            column="64"/>
     </issue>
 
     <issue
         id="TypographyQuotes"
         message="Replace apostrophe (&apos;) with typographic apostrophe (’, &amp;#8217;) ?"
-        errorLine1="    &lt;string name=&quot;app_onboarding_wallet_revocation_intro_title&quot;>To protect your data, the app uses your device\&apos;s screen lock.&lt;/string>"
-        errorLine2="                                                                                                               ~">
+        errorLine1="    &lt;string name=&quot;app_onboarding_outdated_os_version_paragraph&quot;>Your device doesn\&apos;t meet current security requirements. Please install the required operating system update, then restart the app.&lt;/string>"
+        errorLine2="                                                                                  ~">
         <location
             file="src/main/res/values/string_figma.xml"
-            line="195"
-            column="112"/>
+            line="219"
+            column="83"/>
     </issue>
 
     <issue
         id="TypographyQuotes"
         message="Replace apostrophe (&apos;) with typographic apostrophe (’, &amp;#8217;) ?"
-        errorLine1="    &lt;string name=&quot;app_onboarding_wallet_revocation_save_key_title&quot;>To protect your data, the app uses your device\&apos;s screen lock.&lt;/string>"
-        errorLine2="                                                                                                                  ~">
+        errorLine1="    &lt;string name=&quot;app_onboarding_outdated_patch_level_paragraph&quot;>Your device doesn\&apos;t meet current security requirements. Please install the required operating system update, then restart the app.&lt;/string>"
+        errorLine2="                                                                                   ~">
         <location
             file="src/main/res/values/string_figma.xml"
-            line="205"
-            column="115"/>
+            line="222"
+            column="84"/>
+    </issue>
+
+    <issue
+        id="TypographyQuotes"
+        message="Replace apostrophe (&apos;) with typographic apostrophe (’, &amp;#8217;) ?"
+        errorLine1="    &lt;string name=&quot;app_onboarding_push_intro_list_1&quot;>Your device\&apos;s security is checked continuously to protect the d-you app.&lt;/string>"
+        errorLine2="                                                                ~">
+        <location
+            file="src/main/res/values/string_figma.xml"
+            line="256"
+            column="65"/>
+    </issue>
+
+    <issue
+        id="TypographyQuotes"
+        message="Replace apostrophe (&apos;) with typographic apostrophe (’, &amp;#8217;) ?"
+        errorLine1="    &lt;string name=&quot;app_onboarding_push_intro_list_2&quot;>You\&apos;re only notified if your device isn\&apos;t secure enough for the app, or when other updates are needed.&lt;/string>"
+        errorLine2="                                                    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/string_figma.xml"
+            line="257"
+            column="53"/>
+    </issue>
+
+    <issue
+        id="TypographyQuotes"
+        message="Replace apostrophe (&apos;) with typographic apostrophe (’, &amp;#8217;) ?"
+        errorLine1="    &lt;string name=&quot;app_onboarding_security_violation_paragraph&quot;>Signs of an attack were detected on your device. For security reasons, the app can\&apos;t be used. The app has been reset and all data has been deleted. Contact customer support before setting up the app again.&lt;/string>"
+        errorLine2="                                                                                                                                                  ~">
+        <location
+            file="src/main/res/values/string_figma.xml"
+            line="262"
+            column="147"/>
+    </issue>
+
+    <issue
+        id="TypographyQuotes"
+        message="Replace apostrophe (&apos;) with typographic apostrophe (’, &amp;#8217;) ?"
+        errorLine1="    &lt;string name=&quot;app_onboarding_wallet_revocation_intro_list_2&quot;>You\&apos;ll see the lock key on the next screen. Save it somewhere other than this device.&lt;/string>"
+        errorLine2="                                                                     ~">
+        <location
+            file="src/main/res/values/string_figma.xml"
+            line="267"
+            column="70"/>
+    </issue>
+
+    <issue
+        id="TypographyQuotes"
+        message="Replace apostrophe (&apos;) with typographic apostrophe (’, &amp;#8217;) ?"
+        errorLine1="    &lt;string name=&quot;app_onboarding_wallet_revocation_intro_list_2_dev&quot;>You\&apos;ll see the lock key on the next screen. Save it somewhere other than this device.&lt;/string>"
+        errorLine2="                                                                         ~">
+        <location
+            file="src/main/res/values/string_figma.xml"
+            line="268"
+            column="74"/>
+    </issue>
+
+    <issue
+        id="TypographyQuotes"
+        message="Replace apostrophe (&apos;) with typographic apostrophe (’, &amp;#8217;) ?"
+        errorLine1="    &lt;string name=&quot;app_onboarding_wb_integrity_verification_failed_title&quot;>Your device isn\&apos;t supported&lt;/string>"
+        errorLine2="                                                                                         ~">
+        <location
+            file="src/main/res/values/string_figma.xml"
+            line="285"
+            column="90"/>
+    </issue>
+
+    <issue
+        id="TypographyQuotes"
+        message="Replace apostrophe (&apos;) with typographic apostrophe (’, &amp;#8217;) ?"
+        errorLine1="    &lt;string name=&quot;eaa_inspection_dialog_delete_eaa_paragraph&quot;>You\&apos;ll no longer be able to use your credential.&lt;/string>"
+        errorLine2="                                                                  ~">
+        <location
+            file="src/main/res/values/string_figma.xml"
+            line="293"
+            column="67"/>
+    </issue>
+
+    <issue
+        id="TypographyQuotes"
+        message="Replace apostrophe (&apos;) with typographic apostrophe (’, &amp;#8217;) ?"
+        errorLine1="    &lt;string name=&quot;eaa_inspection_eaa_detailed_data_banner&quot;>To protect your data, don\&apos;t show this to other people.&lt;/string>"
+        errorLine2="                                                                                     ~">
+        <location
+            file="src/main/res/values/string_figma.xml"
+            line="309"
+            column="86"/>
     </issue>
 
     <issue
@@ -998,19 +1218,107 @@
         errorLine2="                                                                         ~">
         <location
             file="src/main/res/values-de/string_figma.xml"
-            line="295"
+            line="370"
             column="74"/>
     </issue>
 
     <issue
         id="TypographyQuotes"
         message="Replace apostrophe (&apos;) with typographic apostrophe (’, &amp;#8217;) ?"
-        errorLine1="    &lt;string name=&quot;eaa_presentation_rwscd_account_unknown_title&quot;>Your account wasn\&apos;t found&lt;/string>"
-        errorLine2="                                                                                  ~">
+        errorLine1="    &lt;string name=&quot;eaa_issuance_issuer_not_trustworthy_paragraph&quot;>This credential can\&apos;t be added. The issuer doesn\&apos;t meet our security requirements.dential. The issuer doesn\&apos;t meet the security requirements.&lt;/string>"
+        errorLine2="                                                                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/string_figma.xml"
-            line="482"
-            column="83"/>
+            line="433"
+            column="66"/>
+    </issue>
+
+    <issue
+        id="TypographyQuotes"
+        message="Replace apostrophe (&apos;) with typographic apostrophe (’, &amp;#8217;) ?"
+        errorLine1="    &lt;string name=&quot;eaa_issuance_no_valid_pid_sec_button&quot;>I\&apos;ll do this later&lt;/string>"
+        errorLine2="                                                          ~">
+        <location
+            file="src/main/res/values/string_figma.xml"
+            line="441"
+            column="59"/>
+    </issue>
+
+    <issue
+        id="TypographyQuotes"
+        message="Replace apostrophe (&apos;) with typographic apostrophe (’, &amp;#8217;) ?"
+        errorLine1="    &lt;string name=&quot;eaa_presentation_dialog_rp_rejection_paragraph&quot;>In this case, your data won\&apos;t be sent to the service. If you want to use anothe verification method, go back to the start.&lt;/string>"
+        errorLine2="                                                                                              ~">
+        <location
+            file="src/main/res/values/string_figma.xml"
+            line="525"
+            column="95"/>
+    </issue>
+
+    <issue
+        id="TypographyQuotes"
+        message="Replace apostrophe (&apos;) with typographic apostrophe (’, &amp;#8217;) ?"
+        errorLine1="    &lt;string name=&quot;eid_setup_card_pin_setup_error&quot;>The two Inputs didn\&apos;t match. Please try again.&lt;/string>"
+        errorLine2="                                                                      ~">
+        <location
+            file="src/main/res/values/string_figma.xml"
+            line="613"
+            column="71"/>
+    </issue>
+
+    <issue
+        id="TypographyQuotes"
+        message="Replace apostrophe (&apos;) with typographic apostrophe (’, &amp;#8217;) ?"
+        errorLine1="    &lt;string name=&quot;eid_setup_continue_issuance_title&quot;>You\&apos;re all set, let\&apos;s add your ID&lt;/string>"
+        errorLine2="                                                     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/string_figma.xml"
+            line="619"
+            column="54"/>
+    </issue>
+
+    <issue
+        id="TypographyQuotes"
+        message="Replace apostrophe (&apos;) with typographic apostrophe (’, &amp;#8217;) ?"
+        errorLine1="    &lt;string name=&quot;eid_setup_puk_intro_paragraph&quot;>Your PUK is the 10-digit code found in your PIN letter. After entering your PUK successfully, you\&apos;ll have three more attempts to enter your one-time PIN.&lt;/string>"
+        errorLine2="                                                                                                                                                   ~">
+        <location
+            file="src/main/res/values/string_figma.xml"
+            line="632"
+            column="148"/>
+    </issue>
+
+    <issue
+        id="TypographyQuotes"
+        message="Replace apostrophe (&apos;) with typographic apostrophe (’, &amp;#8217;) ?"
+        errorLine1="    &lt;string name=&quot;eid_setup_sheet_forgot_pin_paragraph&quot;>If you lost your letter with the 5-digit one-time PIN/transport PIN, or if you set your 6-digit card PIN but forgot it, you can set a new card PIN at a local citizen\&apos;s office.&lt;/string>"
+        errorLine2="                                                                                                                                                                                                                              ~">
+        <location
+            file="src/main/res/values/string_figma.xml"
+            line="638"
+            column="223"/>
+    </issue>
+
+    <issue
+        id="TypographyQuotes"
+        message="Replace apostrophe (&apos;) with typographic apostrophe (’, &amp;#8217;) ?"
+        errorLine1="    &lt;string name=&quot;eid_setup_sheet_pin_letter_paragraph_2&quot;>If you no longer have the letter, contact a citizen\&apos;s office. They can help you obtain a new one.&lt;/string>"
+        errorLine2="                                                                                                              ~">
+        <location
+            file="src/main/res/values/string_figma.xml"
+            line="641"
+            column="111"/>
+    </issue>
+
+    <issue
+        id="TypographyQuotes"
+        message="Replace apostrophe (&apos;) with typographic apostrophe (’, &amp;#8217;) ?"
+        errorLine1="    &lt;string name=&quot;eid_setup_sheet_pin_letter_title&quot;>What\&apos;s the PIN letter?&lt;/string>"
+        errorLine2="                                                         ~">
+        <location
+            file="src/main/res/values/string_figma.xml"
+            line="642"
+            column="58"/>
     </issue>
 
     <issue
@@ -1020,7 +1328,7 @@
         errorLine2="                                                                                                                                                                                                                                             ~">
         <location
             file="src/main/res/values/string_figma.xml"
-            line="547"
+            line="643"
             column="238"/>
     </issue>
 
@@ -1031,30 +1339,30 @@
         errorLine2="                                                                                                                                  ~">
         <location
             file="src/main/res/values/string_figma.xml"
-            line="548"
+            line="644"
             column="131"/>
     </issue>
 
     <issue
         id="TypographyQuotes"
         message="Replace apostrophe (&apos;) with typographic apostrophe (’, &amp;#8217;) ?"
-        errorLine1="    &lt;string name=&quot;eid_setup_sheet_puk_entry_paragraph_1&quot;>The 10-digit PUK (unlock code) can be found in the PIN letter you received from the Bürgeramt (citizens\&apos; office). This letter also contains your transport PIN.&lt;/string>"
-        errorLine2="                                                                                                                                                                 ~">
+        errorLine1="    &lt;string name=&quot;eid_setup_sheet_puk_entry_paragraph_1&quot;>The 10-digit PUK (unlock code) can be found in the PIN letter you received from the citizen\&apos;s office. This letter also contains your transport PIN.&lt;/string>"
+        errorLine2="                                                                                                                                                     ~">
         <location
             file="src/main/res/values/string_figma.xml"
-            line="551"
-            column="162"/>
+            line="647"
+            column="150"/>
     </issue>
 
     <issue
         id="TypographyQuotes"
         message="Replace apostrophe (&apos;) with typographic apostrophe (’, &amp;#8217;) ?"
-        errorLine1="    &lt;string name=&quot;eid_setup_sheet_puk_entry_sec_button&quot;>Find a citizens\&apos; office near you&lt;/string>"
-        errorLine2="                                                                        ~">
+        errorLine1="    &lt;string name=&quot;eid_setup_sheet_puk_entry_sec_button&quot;>Find a citizen\&apos;s office near you&lt;/string>"
+        errorLine2="                                                                       ~">
         <location
             file="src/main/res/values/string_figma.xml"
-            line="553"
-            column="73"/>
+            line="649"
+            column="72"/>
     </issue>
 
     <issue
@@ -1064,19 +1372,162 @@
         errorLine2="                                                                                ~">
         <location
             file="src/main/res/values/string_figma.xml"
-            line="558"
+            line="654"
             column="81"/>
     </issue>
 
     <issue
         id="TypographyQuotes"
         message="Replace apostrophe (&apos;) with typographic apostrophe (’, &amp;#8217;) ?"
-        errorLine1="    &lt;string name=&quot;global_search_office_button&quot;>Search Citizen\&apos;s office&lt;/string>"
+        errorLine1="    &lt;string name=&quot;eid_setup_transport_pin_intro_paragraph&quot;>You\&apos;ll need the 5-digit one-time PIN, known as the Transport PIN, to set your ID card PIN.&lt;/string>"
+        errorLine2="                                                               ~">
+        <location
+            file="src/main/res/values/string_figma.xml"
+            line="656"
+            column="64"/>
+    </issue>
+
+    <issue
+        id="TypographyQuotes"
+        message="Replace apostrophe (&apos;) with typographic apostrophe (’, &amp;#8217;) ?"
+        errorLine1="    &lt;string name=&quot;eid_setup_transport_pin_intro_sec_button&quot;>I\&apos;ve already used my PIN&lt;/string>"
         errorLine2="                                                              ~">
         <location
             file="src/main/res/values/string_figma.xml"
-            line="599"
+            line="658"
             column="63"/>
+    </issue>
+
+    <issue
+        id="TypographyQuotes"
+        message="Replace apostrophe (&apos;) with typographic apostrophe (’, &amp;#8217;) ?"
+        errorLine1="    &lt;string name=&quot;eid_setup_transport_pin_intro_tert_button&quot;>What\&apos;s the PIN letter?&lt;/string>"
+        errorLine2="                                                                  ~">
+        <location
+            file="src/main/res/values/string_figma.xml"
+            line="659"
+            column="67"/>
+    </issue>
+
+    <issue
+        id="TypographyQuotes"
+        message="Replace apostrophe (&apos;) with typographic apostrophe (’, &amp;#8217;) ?"
+        errorLine1="    &lt;string name=&quot;eid_setup_transport_pin_used_paragraph_2&quot;>If you\&apos;ve forgotten your card PIN, contact your local citizen\&apos;s office. They can set a new card PIN right away for you.&lt;/string>"
+        errorLine2="                                                            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/string_figma.xml"
+            line="668"
+            column="61"/>
+    </issue>
+
+    <issue
+        id="TypographyQuotes"
+        message="Replace apostrophe (&apos;) with typographic apostrophe (’, &amp;#8217;) ?"
+        errorLine1="    &lt;string name=&quot;eid_setup_transport_pin_used_title&quot;>I\&apos;ve used this PIN before&lt;/string>"
+        errorLine2="                                                        ~">
+        <location
+            file="src/main/res/values/string_figma.xml"
+            line="669"
+            column="57"/>
+    </issue>
+
+    <issue
+        id="TypographyQuotes"
+        message="Replace apostrophe (&apos;) with typographic apostrophe (’, &amp;#8217;) ?"
+        errorLine1="    &lt;string name=&quot;global_office_button&quot;>Find a nearby Citizen\&apos;s office&lt;/string>"
+        errorLine2="                                                              ~">
+        <location
+            file="src/main/res/values/string_figma.xml"
+            line="707"
+            column="63"/>
+    </issue>
+
+    <issue
+        id="TypographyQuotes"
+        message="Replace apostrophe (&apos;) with typographic apostrophe (’, &amp;#8217;) ?"
+        errorLine1="    &lt;string name=&quot;global_redirect_info_paragraph_2&quot;>You\&apos;re about to leave the d-you app. No responsibility can be accepted for the content of the linked page.&lt;/string>"
+        errorLine2="                                                        ~">
+        <location
+            file="src/main/res/values/string_figma.xml"
+            line="710"
+            column="57"/>
+    </issue>
+
+    <issue
+        id="TypographyQuotes"
+        message="Replace apostrophe (&apos;) with typographic apostrophe (’, &amp;#8217;) ?"
+        errorLine1="    &lt;string name=&quot;global_search_office_button&quot;>Search citizen\&apos;s office&lt;/string>"
+        errorLine2="                                                              ~">
+        <location
+            file="src/main/res/values/string_figma.xml"
+            line="715"
+            column="63"/>
+    </issue>
+
+    <issue
+        id="TypographyQuotes"
+        message="Replace apostrophe (&apos;) with typographic apostrophe (’, &amp;#8217;) ?"
+        errorLine1="    &lt;string name=&quot;nfc_scanning_nfc_tap_banner_android_1&quot;>The middle of your device\&apos;s back must touch your ID&lt;/string>"
+        errorLine2="                                                                                   ~">
+        <location
+            file="src/main/res/values/string_figma.xml"
+            line="737"
+            column="84"/>
+    </issue>
+
+    <issue
+        id="TypographyQuotes"
+        message="Replace apostrophe (&apos;) with typographic apostrophe (’, &amp;#8217;) ?"
+        errorLine1="    &lt;string name=&quot;nfc_scanning_nfc_tap_banner_android_2&quot;>The bottom of your device\&apos;s back must touch your ID&lt;/string>"
+        errorLine2="                                                                                   ~">
+        <location
+            file="src/main/res/values/string_figma.xml"
+            line="738"
+            column="84"/>
+    </issue>
+
+    <issue
+        id="TypographyQuotes"
+        message="Replace apostrophe (&apos;) with typographic apostrophe (’, &amp;#8217;) ?"
+        errorLine1="    &lt;string name=&quot;nfc_scanning_nfc_tap_banner_android_ios&quot;>The top of your device\&apos;s back must touch your ID&lt;/string>"
+        errorLine2="                                                                                  ~">
+        <location
+            file="src/main/res/values/string_figma.xml"
+            line="739"
+            column="83"/>
+    </issue>
+
+    <issue
+        id="TypographyQuotes"
+        message="Replace straight quotes (&quot;) with directional quotes (“”, &amp;#8220; and &amp;#8221;) ?"
+        errorLine1="    &lt;string name=&quot;overview_camera_opt_in_title&quot;>\&quot;d-you\&quot; möchte deine Kamera nutzen&lt;/string>"
+        errorLine2="                                                ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values-de/string_figma.xml"
+            line="785"
+            column="49"/>
+    </issue>
+
+    <issue
+        id="TypographyQuotes"
+        message="Replace straight quotes (&quot;) with directional quotes (“”, &amp;#8220; and &amp;#8221;) ?"
+        errorLine1="    &lt;string name=&quot;overview_camera_opt_in_title&quot;>\&quot;d-you\&quot; would like to access your camera&lt;/string>"
+        errorLine2="                                                ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/string_figma.xml"
+            line="785"
+            column="49"/>
+    </issue>
+
+    <issue
+        id="TypographyQuotes"
+        message="Replace apostrophe (&apos;) with typographic apostrophe (’, &amp;#8217;) ?"
+        errorLine1="    &lt;string name=&quot;overview_no_bluetooth_access_paragraph&quot;>Access to your device\&apos;s Bluetooth is required to establish a secure data connection to the receiving device.&lt;/string>"
+        errorLine2="                                                                                ~">
+        <location
+            file="src/main/res/values/string_figma.xml"
+            line="797"
+            column="81"/>
     </issue>
 
     <issue
@@ -1086,8 +1537,19 @@
         errorLine2="                                                                         ~">
         <location
             file="src/main/res/values-de/string_figma.xml"
-            line="683"
+            line="816"
             column="74"/>
+    </issue>
+
+    <issue
+        id="TypographyQuotes"
+        message="Replace apostrophe (&apos;) with typographic apostrophe (’, &amp;#8217;) ?"
+        errorLine1="    &lt;string name=&quot;pid_inspection_pid_personal_data_banner&quot;>To protect your data, don\&apos;t show this to other people.&lt;/string>"
+        errorLine2="                                                                                     ~">
+        <location
+            file="src/main/res/values/string_figma.xml"
+            line="848"
+            column="86"/>
     </issue>
 
     <issue
@@ -1097,41 +1559,129 @@
         errorLine2="                                                                        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/string_figma.xml"
-            line="727"
+            line="853"
             column="73"/>
     </issue>
 
     <issue
         id="TypographyQuotes"
         message="Replace apostrophe (&apos;) with typographic apostrophe (’, &amp;#8217;) ?"
-        errorLine1="    &lt;string name=&quot;pid_issuance_can_success_paragraph_1&quot;>Important: You can now enter your card PIN one last time. If it is incorrect again, the card PIN will be blocked. If you have not yet set your 6-digit card PIN, you can do so using the 5-digit transport PIN from the PIN letter or on site at the citizens\&apos; office.&lt;/string>"
-        errorLine2="                                                                                                                                                                                                                                                                                                                      ~">
+        errorLine1="    &lt;string name=&quot;pid_issuance_can_success_paragraph_1&quot;>Important: You can now enter your card PIN one last time. If it is incorrect again, the card PIN will be blocked. If you have not yet set your 6-digit card PIN, you can do so using the 5-digit transport PIN from the PIN letter or on site at the citizen\&apos;s office.&lt;/string>"
+        errorLine2="                                                                                                                                                                                                                                                                                                                     ~">
         <location
             file="src/main/res/values/string_figma.xml"
-            line="740"
-            column="311"/>
+            line="866"
+            column="310"/>
     </issue>
 
     <issue
         id="TypographyQuotes"
         message="Replace apostrophe (&apos;) with typographic apostrophe (’, &amp;#8217;) ?"
-        errorLine1="    &lt;string name=&quot;pid_issuance_no_card_available_paragraph&quot;>A Digital ID can only be created using a national identity card or a residence permit.  Travel documents such as passports cannot be used.  Apply for a suitable ID at your citizen\&apos;s office.&lt;/string>"
-        errorLine2="                                                                                                                                                                                                                                                ~">
+        errorLine1="    &lt;string name=&quot;pid_issuance_card_pin_letter_info_paragraph_2&quot;>You set it either when picking up your ID at the citizen\&apos;s office, or with the 5-digit transport PIN from your PIN letter. Haven\&apos;t set it yet? You can do it here, once.&lt;/string>"
+        errorLine2="                                                                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/string_figma.xml"
-            line="795"
-            column="241"/>
+            line="878"
+            column="66"/>
     </issue>
 
     <issue
         id="TypographyQuotes"
         message="Replace apostrophe (&apos;) with typographic apostrophe (’, &amp;#8217;) ?"
-        errorLine1="    &lt;string name=&quot;pid_issuance_no_letter_forgot_pin_paragraph&quot;>If you can no longer find your PIN letter, or if you have forgotten your card PIN, you will need to visit your citizen\&apos;s office to set a new 6-digit card PIN.&lt;/string>"
-        errorLine2="                                                                                                                                                                                      ~">
+        errorLine1="    &lt;string name=&quot;pid_issuance_data_consent_reject_info_paragraph&quot;>In this case, your data won\&apos;t be requested from the service. A Digital ID can\&apos;t be created.&lt;/string>"
+        errorLine2="                                                                   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/string_figma.xml"
-            line="797"
-            column="183"/>
+            line="930"
+            column="68"/>
+    </issue>
+
+    <issue
+        id="TypographyQuotes"
+        message="Replace apostrophe (&apos;) with typographic apostrophe (’, &amp;#8217;) ?"
+        errorLine1="    &lt;string name=&quot;pid_issuance_eid_function_info_paragraph_1&quot;> It\&apos;s the digital identity feature on your ID card - use it to verify yourself securely online or at kiosks, and to create your Digital ID in this wallet.&lt;/string>"
+        errorLine2="                                                                  ~">
+        <location
+            file="src/main/res/values/string_figma.xml"
+            line="960"
+            column="67"/>
+    </issue>
+
+    <issue
+        id="TypographyQuotes"
+        message="Replace apostrophe (&apos;) with typographic apostrophe (’, &amp;#8217;) ?"
+        errorLine1="    &lt;string name=&quot;pid_issuance_eid_function_info_paragraph_2&quot;>To use the online ID function, you\&apos;ll need a personal 6-digit card PIN. Set it up with the 5-digit transport PIN from your PIN letter, or directly at the citizen\&apos;s office.&lt;/string>"
+        errorLine2="                                                              ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/string_figma.xml"
+            line="961"
+            column="63"/>
+    </issue>
+
+    <issue
+        id="TypographyQuotes"
+        message="Replace apostrophe (&apos;) with typographic apostrophe (’, &amp;#8217;) ?"
+        errorLine1="    &lt;string name=&quot;pid_issuance_no_card_available_info_paragraph&quot;>A Digital ID can only be created using a national identity card or a residence permit.  Travel documents such as passports cannot be used.  Apply for a suitable ID at your citizen\&apos;s office.&lt;/string>"
+        errorLine2="                                                                                                                                                                                                                                                     ~">
+        <location
+            file="src/main/res/values/string_figma.xml"
+            line="964"
+            column="246"/>
+    </issue>
+
+    <issue
+        id="TypographyQuotes"
+        message="Replace apostrophe (&apos;) with typographic apostrophe (’, &amp;#8217;) ?"
+        errorLine1="    &lt;string name=&quot;pid_issuance_no_letter_forgot_info_paragraph&quot;>If you can no longer find your PIN letter, or if you have forgotten your card PIN, you will need to visit your citizen\&apos;s office to set a new 6-digit card PIN.&lt;/string>"
+        errorLine2="                                                                                                                                                                                       ~">
+        <location
+            file="src/main/res/values/string_figma.xml"
+            line="966"
+            column="184"/>
+    </issue>
+
+    <issue
+        id="TypographyQuotes"
+        message="Replace apostrophe (&apos;) with typographic apostrophe (’, &amp;#8217;) ?"
+        errorLine1="    &lt;string name=&quot;pid_issuance_onboarding_cards_sec_button&quot;>No, I don\&apos;t have any of those ID documents&lt;/string>"
+        errorLine2="                                                                      ~">
+        <location
+            file="src/main/res/values/string_figma.xml"
+            line="973"
+            column="71"/>
+    </issue>
+
+    <issue
+        id="TypographyQuotes"
+        message="Replace apostrophe (&apos;) with typographic apostrophe (’, &amp;#8217;) ?"
+        errorLine1="    &lt;string name=&quot;pid_issuance_onboarding_eid_prim_button&quot;>Yes, I\&apos;ve &lt;b>set my card PIN&lt;/b> and know it&lt;/string>"
+        errorLine2="                                                                  ~">
+        <location
+            file="src/main/res/values/string_figma.xml"
+            line="977"
+            column="67"/>
+    </issue>
+
+    <issue
+        id="TypographyQuotes"
+        message="Replace apostrophe (&apos;) with typographic apostrophe (’, &amp;#8217;) ?"
+        errorLine1="    &lt;string name=&quot;pid_issuance_onboarding_eid_sec_button&quot;>No, but I\&apos;ll set it now using my &lt;b>PIN letter&lt;/b>&lt;/string>"
+        errorLine2="                                                                    ~">
+        <location
+            file="src/main/res/values/string_figma.xml"
+            line="978"
+            column="69"/>
+    </issue>
+
+    <issue
+        id="TypographyQuotes"
+        message="Replace apostrophe (&apos;) with typographic apostrophe (’, &amp;#8217;) ?"
+        errorLine1="    &lt;string name=&quot;pid_issuance_onboarding_eid_tert_button_1&quot;>I &lt;b>don\&apos;t have a PIN letter&lt;/b>, or I\&apos;ve &lt;b>forgotten my PIN&lt;/b>&lt;/string>"
+        errorLine2="                                                                         ~">
+        <location
+            file="src/main/res/values/string_figma.xml"
+            line="979"
+            column="74"/>
     </issue>
 
     <issue
@@ -1141,30 +1691,19 @@
         errorLine2="                                                                 ~">
         <location
             file="src/main/res/values/string_figma.xml"
-            line="816"
+            line="987"
             column="66"/>
     </issue>
 
     <issue
         id="TypographyQuotes"
         message="Replace apostrophe (&apos;) with typographic apostrophe (’, &amp;#8217;) ?"
-        errorLine1="    &lt;string name=&quot;pid_issuance_process_overview_title&quot;>Here\&apos;s how you create your Digital ID&lt;/string>"
-        errorLine2="                                                            ~">
+        errorLine1="    &lt;string name=&quot;pid_issuance_sheet_puk_entry_paragraph_1&quot;>The 10-digit PUK (unlock code) can be found in the PIN letter you received from the citizen\&apos;s office. This letter also contains your transport PIN.&lt;/string>"
+        errorLine2="                                                                                                                                                        ~">
         <location
             file="src/main/res/values/string_figma.xml"
-            line="817"
-            column="61"/>
-    </issue>
-
-    <issue
-        id="TypographyQuotes"
-        message="Replace apostrophe (&apos;) with typographic apostrophe (’, &amp;#8217;) ?"
-        errorLine1="    &lt;string name=&quot;pid_issuance_sheet_puk_entry_paragraph_1&quot;>The 10-digit PUK (unlock code) can be found in the PIN letter you received from the Bürgeramt (citizens\&apos; office). This letter also contains your transport PIN.&lt;/string>"
-        errorLine2="                                                                                                                                                                    ~">
-        <location
-            file="src/main/res/values/string_figma.xml"
-            line="851"
-            column="165"/>
+            line="1023"
+            column="153"/>
     </issue>
 
     <issue
@@ -1174,30 +1713,74 @@
         errorLine2="                                                                           ~">
         <location
             file="src/main/res/values/string_figma.xml"
-            line="853"
+            line="1025"
             column="76"/>
     </issue>
 
     <issue
         id="TypographyQuotes"
         message="Replace apostrophe (&apos;) with typographic apostrophe (’, &amp;#8217;) ?"
-        errorLine1="    &lt;string name=&quot;pid_presentation_rwscd_account_unknown_title&quot;>Your account wasn\&apos;t found&lt;/string>"
-        errorLine2="                                                                                  ~">
+        errorLine1="    &lt;string name=&quot;pid_issuance_wallet_pin_intro_banner&quot;>For security reasons, it can\&apos;t be replaced by face recognition or fingerprint.&lt;/string>"
+        errorLine2="                                                                                     ~">
         <location
             file="src/main/res/values/string_figma.xml"
-            line="966"
-            column="83"/>
+            line="1035"
+            column="86"/>
     </issue>
 
     <issue
         id="TypographyQuotes"
         message="Replace apostrophe (&apos;) with typographic apostrophe (’, &amp;#8217;) ?"
-        errorLine1="    &lt;string name=&quot;pid_presentation_wallet_pin_last_entry_info_paragraph_1&quot;>You have one last attempt to enter the correct code before your ID is locked. After that, you\&apos;ll need to add your ID again to create a new Wallet code.&lt;/string>"
+        errorLine1="    &lt;string name=&quot;pid_issuance_wallet_pin_intro_paragraph&quot;>Make sure to remember your Digital ID code. You\&apos;ll need it when sharing data from your digital ID with a service (e.g. a bank).&lt;/string>"
+        errorLine2="                                                                                                           ~">
+        <location
+            file="src/main/res/values/string_figma.xml"
+            line="1036"
+            column="108"/>
+    </issue>
+
+    <issue
+        id="TypographyQuotes"
+        message="Replace apostrophe (&apos;) with typographic apostrophe (’, &amp;#8217;) ?"
+        errorLine1="    &lt;string name=&quot;pid_presentation_dialog_rp_rejection_paragraph&quot;>In this case, your data won\&apos;t be sent to the service. If you want to use another verification method, go back to the start.&lt;/string>"
+        errorLine2="                                                                                              ~">
+        <location
+            file="src/main/res/values/string_figma.xml"
+            line="1090"
+            column="95"/>
+    </issue>
+
+    <issue
+        id="TypographyQuotes"
+        message="Replace apostrophe (&apos;) with typographic apostrophe (’, &amp;#8217;) ?"
+        errorLine1="    &lt;string name=&quot;pid_presentation_error_banner&quot;>Stay nearby the receiving device and don\&apos;t close the app.&lt;/string>"
+        errorLine2="                                                                                          ~">
+        <location
+            file="src/main/res/values/string_figma.xml"
+            line="1103"
+            column="91"/>
+    </issue>
+
+    <issue
+        id="TypographyQuotes"
+        message="Replace apostrophe (&apos;) with typographic apostrophe (’, &amp;#8217;) ?"
+        errorLine1="    &lt;string name=&quot;pid_presentation_wallet_pin_last_entry_info_paragraph_1&quot;>You have one last attempt to enter the correct code before your ID is locked. After that, you\&apos;ll need to add your ID again to create a new Digital-ID-Code.&lt;/string>"
         errorLine2="                                                                                                                                                                         ~">
         <location
             file="src/main/res/values/string_figma.xml"
-            line="987"
+            line="1172"
             column="170"/>
+    </issue>
+
+    <issue
+        id="TypographyQuotes"
+        message="Replace apostrophe (&apos;) with typographic apostrophe (’, &amp;#8217;) ?"
+        errorLine1="    &lt;string name=&quot;content_description_citizen_office&quot;>Illustration of a citizen\&apos;s office in a city.&lt;/string>"
+        errorLine2="                                                                                ~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="257"
+            column="81"/>
     </issue>
 
     <issue
@@ -1207,7 +1790,7 @@
         errorLine2="                                                                                                                                                                                                                                                                        ~">
         <location
             file="src/main/res/values/strings.xml"
-            line="265"
+            line="286"
             column="265"/>
     </issue>
 

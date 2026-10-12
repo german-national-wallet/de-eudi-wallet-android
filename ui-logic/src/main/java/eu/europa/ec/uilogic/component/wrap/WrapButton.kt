@@ -155,7 +155,7 @@ private fun WrapSecondaryButton(
         )
     } else {
         if (buttonConfig.isWarning) {
-            MaterialTheme.colorScheme.error
+            ThemeColors.errorOutline
         } else {
             MaterialTheme.colorScheme.outline
         }

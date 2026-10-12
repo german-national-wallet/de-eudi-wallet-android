@@ -20,6 +20,7 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.AnnotatedString
 import eu.europa.ec.resourceslogic.R
 import eu.europa.ec.uilogic.component.AppIcons
 import eu.europa.ec.uilogic.component.wrap.ButtonType
@@ -90,21 +91,21 @@ internal fun CardReaderStickyButtons(
             ButtonNavigationBottom(
                 modifier = Modifier.stickyBottomInsets(padding),
                 topAction = NavigationTopAction(
-                    text = stringResource(R.string.pid_issuance_onboarding_eid_tert_button_2),
+                    text = state.onboardingPin.pinExplanationLink,
                     icon = AppIcons.Help,
                     onClick = { onEventSend(UpdateBottomSheetState(isOpen = true)) },
                 ),
                 buttons = listOf(
                     NavigationCardButton(
-                        text = stringResource(R.string.pid_issuance_onboarding_eid_prim_button),
+                        text = state.onboardingPin.hasSetPinAnswer,
                         onClick = { onEventSend(Event.OnContinueClickProgressSteps) }
                     ),
                     NavigationCardButton(
-                        text = stringResource(R.string.pid_issuance_onboarding_eid_sec_button),
+                        text = state.onboardingPin.setPinWithLetterAnswer,
                         onClick = { onEventSend(Event.TransportPinLetter) }
                     ),
                     NavigationCardButton(
-                        text = stringResource(R.string.pid_issuance_onboarding_eid_tert_button_1),
+                        text = state.onboardingPin.noLetterOrForgotPinAnswer,
                         onClick = { onEventSend(Event.OnNoPinLetterButtonClick) }
                     ),
                 ),
@@ -152,11 +153,11 @@ internal fun CardReaderStickyButtons(
                 ),
                 buttons = listOf(
                     NavigationCardButton(
-                        text = stringResource(R.string.pid_issuance_onboarding_cards_prim_button),
+                        text = AnnotatedString(stringResource(R.string.pid_issuance_onboarding_cards_prim_button)),
                         onClick = { onEventSend(Event.OnContinueClickOnboardingPin) }
                     ),
                     NavigationCardButton(
-                        text = stringResource(R.string.pid_issuance_onboarding_cards_sec_button),
+                        text = AnnotatedString(stringResource(R.string.pid_issuance_onboarding_cards_sec_button)),
                         onClick = { onEventSend(Event.Close) }
                     ),
                 ),

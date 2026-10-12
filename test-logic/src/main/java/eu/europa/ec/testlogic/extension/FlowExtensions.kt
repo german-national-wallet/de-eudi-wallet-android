@@ -16,9 +16,19 @@
 
 package eu.europa.ec.testlogic.extension
 
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.filterIsInstance
+import kotlinx.coroutines.flow.first
 
 fun <T> T.toFlow(): StateFlow<T> =
     MutableStateFlow(this).asStateFlow()
+
+/**
+ * Suspends until this flow emits a value of type [T] and returns it, skipping any other
+ * emissions, e.g. `viewModel.effect.awaitFirstOf<Effect.Navigation.SwitchScreen>()`.
+ */
+suspend inline fun <reified T> Flow<*>.awaitFirstOf(): T =
+    filterIsInstance<T>().first()

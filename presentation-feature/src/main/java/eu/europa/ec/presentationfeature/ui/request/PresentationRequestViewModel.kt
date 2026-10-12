@@ -1,20 +1,18 @@
 package eu.europa.ec.presentationfeature.ui.request
 
+import android.net.Uri
 import androidx.lifecycle.viewModelScope
 import eu.europa.ec.authenticationlogic.jwt.InstantProvider
-import org.sprind.wallet.businesslogic.util.SpanAttributes
+import eu.europa.ec.businesslogic.config.ConfigLogic
 import eu.europa.ec.commonfeature.config.RequestUriConfig
-import eu.europa.ec.commonfeature.interactor.StartPinSessionResult
 import eu.europa.ec.commonfeature.interactor.RwscaPinHandler
-import org.sprind.wallet.authenticationlogic.model.RwscaError
-import org.sprind.wallet.businesslogic.model.UserPin
-import org.sprind.wallet.networklogic.rwsca.model.error.RwscaErrorType
+import eu.europa.ec.commonfeature.interactor.StartPinSessionResult
+import eu.europa.ec.commonfeature.model.DocumentType
 import eu.europa.ec.commonfeature.ui.request.Effect
 import eu.europa.ec.commonfeature.ui.request.Event
 import eu.europa.ec.commonfeature.ui.request.RequestScreenStep
 import eu.europa.ec.commonfeature.ui.request.RequestScreenStep.TemporaryPinBlocked
 import eu.europa.ec.commonfeature.ui.request.RequestViewModel
-import eu.europa.ec.commonfeature.ui.request.model.DocumentType
 import eu.europa.ec.commonfeature.ui.request.model.RequestDocumentClaim
 import eu.europa.ec.commonfeature.ui.request.model.RequestDocumentItemUi
 import eu.europa.ec.corelogic.di.AppCoroutineScope
@@ -22,14 +20,16 @@ import eu.europa.ec.corelogic.di.closePresentationScope
 import eu.europa.ec.presentationfeature.interactor.PresentationDocumentSubmissionPartialState
 import eu.europa.ec.presentationfeature.interactor.PresentationRequestDeleteDocumentPartialState
 import eu.europa.ec.presentationfeature.interactor.PresentationRequestInteractor
+import eu.europa.ec.presentationfeature.interactor.PresentationRejectionPartialState
 import eu.europa.ec.presentationfeature.interactor.PresentationRequestInteractorPartialState
 import eu.europa.ec.presentationfeature.interactor.PresentationRequestProcessPartialState
+import eu.europa.ec.presentationfeature.interactor.RequestRejectionReason
+import org.sprind.wallet.presentationfeature.error.PresentationErrorUiConfig
+import org.sprind.wallet.presentationfeature.error.presentationErrorRoute
 import eu.europa.ec.resourceslogic.R
 import eu.europa.ec.resourceslogic.provider.ResourceProvider
-import eu.europa.ec.uilogic.component.content.ContentErrorConfig
 import eu.europa.ec.uilogic.component.content.ContentHeaderConfig
 import eu.europa.ec.uilogic.component.dialog.GenericErrorDialogConfig
-import org.sprind.wallet.uilogic.component.cleared
 import eu.europa.ec.uilogic.config.NavigationType
 import eu.europa.ec.uilogic.navigation.DashboardScreens
 import eu.europa.ec.uilogic.navigation.IssuanceScreens
@@ -42,6 +42,12 @@ import org.koin.android.annotation.KoinViewModel
 import org.koin.core.annotation.InjectedParam
 import org.sprind.wallet.analyticslogic.controller.Telemetry
 import org.sprind.wallet.analyticslogic.controller.TelemetryConstants
+import org.sprind.wallet.authenticationlogic.model.RwscaError
+import org.sprind.wallet.businesslogic.model.UserPin
+import org.sprind.wallet.businesslogic.util.SpanAttributes
+import org.sprind.wallet.networklogic.rwsca.model.error.RwscaErrorType
+import org.sprind.wallet.uilogic.component.cleared
+import org.sprind.wallet.corelogic.presentationerror.PresentationError
 import java.time.Instant
 import java.time.temporal.ChronoUnit
 import kotlin.time.DurationUnit
@@ -56,6 +62,7 @@ class PresentationRequestViewModel(
     private val instantProvider: InstantProvider,
     private val telemetry: Telemetry,
     private val appCoroutineScope: AppCoroutineScope,
+    private val configLogic: ConfigLogic,
     @InjectedParam private val requestUriConfigRaw: String,
 ) : RequestViewModel(resourceProvider, uiSerializer, instantProvider) {
 
@@ -130,16 +137,7 @@ class PresentationRequestViewModel(
             presentationRequestInteractor.getRequestDocuments().collect { response ->
                 when (response) {
                     is PresentationRequestInteractorPartialState.Failure -> {
-                        setState {
-                            copy(
-                                isLoading = false,
-                                error = ContentErrorConfig(
-                                    onRetry = { setEvent(Event.DoWork) },
-                                    errorSubTitle = response.error,
-                                    onCancel = { setEvent(Event.Pop) }
-                                )
-                            )
-                        }
+                        showRequestLoadError(response.error)
                     }
 
                     is PresentationRequestInteractorPartialState.Success -> {
@@ -162,7 +160,9 @@ class PresentationRequestViewModel(
                                 claimItems = claimItems,
                                 claimItemLabels = claimItemLabels,
                                 onContinueAction = getContinueActionForStep(RequestScreenStep.Initial),
-                                verifierName = response.verifierName
+                                verifierName = response.verifierName,
+                                purpose = response.purpose,
+                                reportUrl = response.reportUri,
                             )
                         }
                     }
@@ -172,15 +172,64 @@ class PresentationRequestViewModel(
                     }
 
                     is PresentationRequestInteractorPartialState.NoData -> {
-                        doNavigation(
-                            NavigationType.PushRoute(
-                                PresentationScreens.PresentationNoDocument.screenRoute
+                        declineUnmatchedRequest { _, _ ->
+                            doNavigation(
+                                NavigationType.PushRoute(
+                                    PresentationScreens.PresentationNoDocument.screenRoute
+                                )
                             )
-                        )
+                        }
+                    }
+
+                    is PresentationRequestInteractorPartialState.Unsatisfiable -> {
+                        declineUnmatchedRequest(::showUnsatisfiableRequestError)
+                    }
+
+                    is PresentationRequestInteractorPartialState.Rejected -> {
+                        rejectOnUsersBehalf(response)
                     }
                 }
             }
         }
+    }
+
+    /** Answers `access_denied` unless already answered, then tears down and shows the screen. */
+    private fun rejectOnUsersBehalf(rejection: PresentationRequestInteractorPartialState.Rejected) {
+        viewModelScope.launch {
+            val outcome = if (rejection.verifierAnswered) {
+                null
+            } else {
+                presentationRequestInteractor.rejectPresentation()
+            }
+
+            telemetry.endSpan(TelemetryConstants.PRESENTATION)
+            stopPresentation()
+
+            doNavigation(
+                NavigationType.PushRoute(
+                    rejectedScreenRoute(
+                        reason = rejection.reason,
+                        reportUri = rejection.supervisoryAuthorityUri,
+                        redirectUri = (outcome as? PresentationRejectionPartialState.Redirect)
+                            ?.uri?.toString(),
+                    )
+                )
+            )
+        }
+        unsubscribe()
+    }
+
+    // The URIs are encoded so their own query strings are not read as route arguments.
+    private fun rejectedScreenRoute(
+        reason: RequestRejectionReason,
+        reportUri: String?,
+        redirectUri: String?,
+    ): String {
+        val paramKey = PresentationScreens.PresentationRequestRejected.ParamKey
+        return PresentationScreens.PresentationRequestRejected.screenRoute
+            .replace("{${paramKey.REJECTION_REASON}}", reason.name)
+            .replace("{${paramKey.REPORT_URI}}", Uri.encode(reportUri.orEmpty()))
+            .replace("{${paramKey.REDIRECT_URI}}", Uri.encode(redirectUri.orEmpty()))
     }
 
     private fun sortByPriority(requestDocuments: List<RequestDocumentItemUi>): List<RequestDocumentClaim> {
@@ -288,20 +337,14 @@ class PresentationRequestViewModel(
                 is PresentationRequestProcessPartialState.Failure -> {
                     rwscaPinHandler.clearPinSession()
                     telemetry.endSpan(TelemetryConstants.PRESENTATION)
-                    setState {
-                        copy(
-                            isLoading = false,
-                            errorDialog = GenericErrorDialogConfig(
-                                titleRes = R.string.global_error_title,
-                                bodyTextRes = R.string.global_error_paragraph,
-                                errorCode = "UNKNOWN",
-                                traceId = telemetry.currentTraceId(),
-                                primaryButtonTextRes = R.string.global_error_prim_button,
-                                onDismiss = { setEvent( Event.DismissError) },
-                                onPrimaryButtonClick = { setEvent(Event.DismissError) }
-                            ),
-                        )
-                    }
+                    // WD-4273: no retry after a failed dispatch to the verifier.
+                    // The PIN session is gone and re-collecting the shared
+                    // transfer events would replay this very failure, so the
+                    // dialog only dismisses.
+                    showPresentationError(
+                        error = it.error,
+                        onRetry = null,
+                    )
                 }
 
                 is PresentationRequestProcessPartialState.Redirect -> {
@@ -413,10 +456,20 @@ class PresentationRequestViewModel(
                         traceId = error.traceId,
                         primaryButtonTextRes = R.string.global_error_prim_button,
                         onDismiss = { setEvent(Event.DismissError) },
-                        onPrimaryButtonClick = { setEvent(Event.DismissError) }
+                        onPrimaryButtonClick = { setEvent(Event.DismissError) },
+                        onSecondaryButtonClick = {},
                     ),
                 )
             }
+        }
+    }
+
+    private fun retrySendRequestedDocuments() {
+        setState {
+            copy(isLoading = true, errorDialog = null)
+        }
+        viewModelScope.launch {
+            sendRequestedDocuments()
         }
     }
 
@@ -429,20 +482,13 @@ class PresentationRequestViewModel(
             is PresentationDocumentSubmissionPartialState.Success -> Unit
 
             is PresentationDocumentSubmissionPartialState.Failure.Unknown -> {
-                setState {
-                    copy(
-                        isLoading = false,
-                        errorDialog = GenericErrorDialogConfig(
-                            titleRes = R.string.global_error_title,
-                            bodyTextRes = R.string.global_error_paragraph,
-                            errorCode = "UNKNOWN",
-                            traceId = telemetry.currentTraceId(),
-                            primaryButtonTextRes = R.string.global_error_prim_button,
-                            onDismiss = { setEvent( Event.DismissError) },
-                            onPrimaryButtonClick = { setEvent(Event.DismissError) }
-                        ),
-                    )
-                }
+                // WD-4273: retry re-submits the documents. The PIN session and
+                // the processRequest() collector are still alive, so a
+                // successful re-send continues to the success screen.
+                showPresentationError(
+                    error = result.error,
+                    onRetry = ::retrySendRequestedDocuments,
+                )
             }
 
             is PresentationDocumentSubmissionPartialState.Failure.AccountLocked -> {
@@ -650,6 +696,62 @@ class PresentationRequestViewModel(
         }
     }
 
+    override fun onRequestDeclined() {
+        unsubscribe()
+
+        if (isPresentationStopped) {
+            leaveForDashboard()
+            return
+        }
+
+        setState { copy(isLoading = true) }
+        viewModelScope.launch {
+            val outcome = presentationRequestInteractor.rejectPresentation()
+            setState { copy(isLoading = false) }
+
+            telemetry.endSpan(TelemetryConstants.PRESENTATION)
+
+            if (outcome is PresentationRejectionPartialState.Redirect) {
+                doNavigation(NavigationType.Deeplink(outcome.uri.toString(), routeToPop = null))
+            }
+            leaveForDashboard()
+        }
+    }
+
+    /**
+     * Answers a request no credential in the wallet can satisfy with `access_denied`,
+     * so the verifier can close its session. The answer is awaited before [then] runs,
+     * because leaving the flow stops the presentation and cancels it.
+     */
+    private fun declineUnmatchedRequest(then: (redirectUri: String?, traceId: String) -> Unit) {
+        unsubscribe()
+        viewModelScope.launch {
+            val outcome = presentationRequestInteractor.rejectPresentation()
+            val traceId = telemetry.currentTraceId()
+            telemetry.endSpan(TelemetryConstants.PRESENTATION)
+            then((outcome as? PresentationRejectionPartialState.Redirect)?.uri?.toString(), traceId)
+        }
+    }
+
+    private fun showUnsatisfiableRequestError(redirectUri: String?, traceId: String) {
+        val leave = {
+            redirectUri?.let { doNavigation(NavigationType.Deeplink(it, routeToPop = null)) }
+            setEvent(Event.Pop)
+        }
+        setState {
+            copy(
+                errorDialog = GenericErrorDialogConfig(
+                    titleRes = R.string.pid_presentation_malformed_presentation_title,
+                    bodyTextRes = R.string.pid_presentation_malformed_presentation_paragraph,
+                    traceId = traceId,
+                    primaryButtonTextRes = R.string.pid_presentation_malformed_presentation_prim_button,
+                    onDismiss = leave,
+                    onPrimaryButtonClick = leave,
+                )
+            )
+        }
+    }
+
     private fun navigateToPresentationLoading() {
         isNavigatingToPresentationContinuation = true
         doNavigation(NavigationType.PushRoute(PresentationScreens.PresentationLoading.screenRoute))
@@ -695,4 +797,74 @@ class PresentationRequestViewModel(
     }
 
     override fun isLastTry(): Boolean = presentationRequestInteractor.isLastPinTry()
+
+    /**
+     * Blocking errors open [PresentationScreens.PresentationError] (WD-4274); any other
+     * [PresentationError] (WD-4272) is shown as the error dialog.
+     *
+     * @param onDismiss Invoked for dismiss actions and when the dialog is dismissed.
+     * @param onRetry Re-runs the failed step, or `null` when it cannot be retried from this
+     *   screen (WD-4273); a retry action is then downgraded to a "Retry later" dismiss.
+     */
+    private fun showPresentationError(
+        error: PresentationError,
+        onRetry: (() -> Unit)?,
+        onDismiss: () -> Unit = { setEvent(Event.DismissError) },
+    ) {
+        val uiConfig = PresentationErrorUiConfig.from(error) { telemetry.currentTraceId() }
+            .let { if (onRetry == null) it.withoutRetry() else it }
+        if (navigateToBlockingErrorScreen(uiConfig)) return
+
+        val errorDialog = uiConfig.toGenericErrorDialogConfig(
+            // withoutRetry() above already removed any RETRY action when onRetry is null.
+            onRetry = onRetry ?: onDismiss,
+            onReportIssue = {
+                setState {
+                    copy(
+                        errorDialog = null,
+                        pendingReportIssueUrl = configLogic.environmentConfig.reportIssueUrl,
+                    )
+                }
+            },
+            onDismiss = onDismiss,
+        )
+        setState { copy(isLoading = false, errorDialog = errorDialog) }
+    }
+
+    /**
+     * Like [showPresentationError], for a failure to fetch the request: there is nothing
+     * to return to, so dismissing leaves the screen, and retry re-fetches the request
+     * when the taxonomy permits it (WD-4273).
+     */
+    private fun showRequestLoadError(error: PresentationError) {
+        showPresentationError(
+            error = error,
+            onRetry = {
+                setEvent(Event.DismissError)
+                setEvent(Event.DoWork)
+            },
+            onDismiss = {
+                setEvent(Event.DismissError)
+                setEvent(Event.Pop)
+            },
+        )
+    }
+
+    /**
+     * Navigates to [PresentationScreens.PresentationError] when [uiConfig] is a
+     * blocking state.
+     *
+     * @return Whether it navigated.
+     */
+    private fun navigateToBlockingErrorScreen(uiConfig: PresentationErrorUiConfig): Boolean {
+        val blockingReason = uiConfig.blockingReason ?: return false
+
+        setState { copy(isLoading = false, errorDialog = null) }
+        doNavigation(
+            NavigationType.PushRoute(
+                presentationErrorRoute(reason = blockingReason, traceId = uiConfig.traceId)
+            )
+        )
+        return true
+    }
 }

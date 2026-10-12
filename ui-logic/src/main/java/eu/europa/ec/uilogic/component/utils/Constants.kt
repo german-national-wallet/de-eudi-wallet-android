@@ -67,6 +67,12 @@ const val DEFAULT_ICON_SIZE = 24
 /** Value 80 */
 const val DEFAULT_BIG_ICON_SIZE = 80
 
+/**
+ * The frame the design draws every list icon in: a glyph on its own canvas, centred in a 28dp
+ * slot. The drawables carry that frame in their viewport, so this is the size an icon is given.
+ */
+const val ICON_SIZE_28 = 28
+
 /** Value 40 */
 const val ICON_SIZE_40 = 40
 

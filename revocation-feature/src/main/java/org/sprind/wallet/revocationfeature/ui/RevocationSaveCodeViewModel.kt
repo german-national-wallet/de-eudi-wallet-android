@@ -21,9 +21,12 @@ import eu.europa.ec.uilogic.mvi.MviViewModel
 import eu.europa.ec.uilogic.mvi.ViewEvent
 import eu.europa.ec.uilogic.mvi.ViewSideEffect
 import eu.europa.ec.uilogic.mvi.ViewState
+import eu.europa.ec.uilogic.navigation.ModuleRoute
 import kotlinx.coroutines.launch
 import org.koin.android.annotation.KoinViewModel
 import org.sprind.wallet.revocationfeature.interactor.RevocationInteractor
+import org.sprind.wallet.uilogic.navigation.NavigationGuard
+import org.sprind.wallet.uilogic.navigation.getDirection
 
 data class State(
     val revocationCode: String?,
@@ -39,6 +42,7 @@ sealed class Effect : ViewSideEffect
 @KoinViewModel
 class RevocationSaveCodeViewModel(
     private val revocationInteractor: RevocationInteractor,
+    private val navigationGuards: List<NavigationGuard>,
 ) : MviViewModel<Event, State, Effect>() {
 
     override fun setInitialState(): State =
@@ -61,6 +65,10 @@ class RevocationSaveCodeViewModel(
             }
         }
     }
+
+    /** The route to continue with once the code is saved: the next setup step, or the dashboard. */
+    fun nextRoute(): String =
+        navigationGuards.getDirection(destination = ModuleRoute.DashboardModule.route)
 
     private fun onUserHasSavedCodeChanged(value: Boolean) {
         revocationInteractor.storeUserConfirmedSavingCode(value = value)

@@ -28,26 +28,18 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.IconButtonDefaults
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.semantics.clearAndSetSemantics
 import eu.europa.ec.resourceslogic.R
 import eu.europa.ec.uilogic.component.AppIcons
 import eu.europa.ec.uilogic.component.IconData
-import eu.europa.ec.uilogic.component.wrap.WrapImage
-import android.content.res.Configuration
-import androidx.compose.foundation.layout.height
 import androidx.compose.ui.Alignment
-import androidx.compose.ui.platform.LocalConfiguration
-import androidx.compose.ui.unit.Dp
-import androidx.compose.ui.unit.min
 import eu.europa.ec.uilogic.component.CancellableTopAppBar
 import eu.europa.ec.uilogic.component.utils.SPACING_MEDIUM
 import eu.europa.ec.uilogic.component.utils.SPACING_SMALL
@@ -56,6 +48,7 @@ import org.sprind.wallet.cardreaderfeature.domain.hasHelpSheet
 import org.sprind.wallet.cardreaderfeature.domain.journeyStep
 import org.sprind.wallet.cardreaderfeature.domain.journeyStepCompleted
 import org.sprind.wallet.cardreaderfeature.domain.showsCloseAction
+import org.sprind.wallet.uilogic.component.ArtworkTopBar
 import org.sprind.wallet.uilogic.component.IssuanceJourneyProgress
 
 @Composable
@@ -90,7 +83,7 @@ internal fun CardReaderToolbar(
     // Some routes replace the toolbar with their own artwork, which the designs draw edge to edge
     // with the back action floating on it, the same shape as ContentScreenWithPidTopBar.
     state.currentRoute.topBarArtwork?.let { artwork ->
-        ArtworkTopBar(artwork = artwork, onBackClick = onBackEvent)
+        ArtworkTopBar(artwork = artwork) { ArtworkBackAction(onBackClick = onBackEvent) }
         return
     }
 
@@ -133,63 +126,22 @@ private val CardReaderRoute.topBarArtwork: IconData?
         else -> null
     }
 
-/**
- * A route's artwork as its toolbar: a square band across the top of the screen, reaching behind the
- * status bar, with the back action on top of it.
- *
- * Accessibility:
- * - the artwork is decorative, and the screen's title and paragraph say what it pictures, so it is
- *   kept out of the accessibility tree;
- * - the back action stays an [IconButton], so it keeps its label and its full touch target even
- *   though it is drawn as a small circle on the artwork.
- */
 @Composable
-private fun ArtworkTopBar(
-    artwork: IconData,
-    onBackClick: () -> Unit,
-) {
-    val configuration = LocalConfiguration.current
-
-    Box(modifier = Modifier.fillMaxWidth()) {
-        WrapImage(
-            iconData = artwork,
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(artworkHeight(configuration))
-                .clearAndSetSemantics { },
-            contentScale = ContentScale.Crop,
-            // A band shorter than the artwork is square gives up its sky, not the ground it stands
-            // on, which is what carries into the text below it.
-            alignment = Alignment.BottomCenter,
+private fun BoxScope.ArtworkBackAction(onBackClick: () -> Unit) {
+    IconButton(
+        modifier = Modifier
+            .align(Alignment.TopStart)
+            .statusBarsPadding()
+            .padding(SPACING_SMALL.dp),
+        onClick = onBackClick,
+        colors = IconButtonDefaults.iconButtonColors(
+            containerColor = MaterialTheme.colorScheme.background,
+            contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
+        ),
+    ) {
+        Icon(
+            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+            contentDescription = stringResource(R.string.content_description_arrow_back_icon),
         )
-        IconButton(
-            modifier = Modifier
-                .statusBarsPadding()
-                .padding(SPACING_SMALL.dp),
-            onClick = onBackClick,
-            colors = IconButtonDefaults.iconButtonColors(
-                containerColor = MaterialTheme.colorScheme.background,
-                contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
-            ),
-        ) {
-            Icon(
-                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                contentDescription = stringResource(R.string.content_description_arrow_back_icon),
-            )
-        }
     }
 }
-
-/**
- * How tall an artwork band is: square, as the designs draw it, unless that would take more of the
- * screen than the designs give it — on a short screen the square would leave the title, the
- * paragraph and the action fighting over what is left, so the band is cropped to a share of the
- * screen instead.
- */
-private fun artworkHeight(configuration: Configuration): Dp = min(
-    configuration.screenWidthDp.dp,
-    configuration.screenHeightDp.dp * ARTWORK_MAX_SCREEN_FRACTION,
-)
-
-/** Just over the share the designs give the band (360dp of a 740dp screen). */
-private const val ARTWORK_MAX_SCREEN_FRACTION = 0.5f

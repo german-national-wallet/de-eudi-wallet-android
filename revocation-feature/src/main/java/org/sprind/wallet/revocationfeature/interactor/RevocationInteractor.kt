@@ -19,6 +19,7 @@ package org.sprind.wallet.revocationfeature.interactor
 import eu.europa.ec.authenticationlogic.controller.storage.WalletRegistrationStorageController
 import eu.europa.ec.uilogic.navigation.ModuleRoute
 import org.sprind.wallet.uilogic.navigation.NavigationGuard
+import org.sprind.wallet.uilogic.navigation.NavigationGuardPriority
 import org.sprind.wallet.revocationfeature.provider.RevocationStorageProvider
 
 interface RevocationInteractor : NavigationGuard {
@@ -32,7 +33,7 @@ interface RevocationInteractor : NavigationGuard {
     fun storeUserConfirmedSavingCode(value: Boolean)
 
     override val priority: Int
-        get() = super.priority - 1
+        get() = NavigationGuardPriority.REVOCATION
 
     override val destination: String
         get() = ModuleRoute.DashboardModule.route

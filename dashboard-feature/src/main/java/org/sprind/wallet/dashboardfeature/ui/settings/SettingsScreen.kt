@@ -18,38 +18,37 @@ package org.sprind.wallet.dashboardfeature.ui.settings
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import eu.europa.ec.resourceslogic.R
-import eu.europa.ec.uilogic.component.AppIcons
-import eu.europa.ec.uilogic.component.ListItemData
-import eu.europa.ec.uilogic.component.ListItemLeadingContentData
-import eu.europa.ec.uilogic.component.ListItemMainContentData
-import eu.europa.ec.uilogic.component.SectionTitle
 import eu.europa.ec.uilogic.component.content.ContentScreen
 import eu.europa.ec.uilogic.component.content.ScreenNavigateAction
 import eu.europa.ec.uilogic.component.preview.PreviewTheme
 import eu.europa.ec.uilogic.component.preview.ThemeModeWithGermanAndEnglishPreviews
 import eu.europa.ec.uilogic.component.utils.SPACING_MEDIUM
-import eu.europa.ec.uilogic.component.wrap.WrapListItem
+import eu.europa.ec.uilogic.extension.openAppNotificationSettings
+import eu.europa.ec.uilogic.extension.shareLogs
+import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.flow.onEach
 import org.sprind.wallet.uilogic.component.BottomNavigationBar
 import org.sprind.wallet.uilogic.component.BottomNavigationTab
+import org.sprind.wallet.uilogic.component.ContentTemplateBody
+import org.sprind.wallet.uilogic.component.ContentTemplateConfig
 import org.sprind.wallet.uilogic.component.navigateToBottomNavigationTab
 
-private const val SETTINGS_LOG_EXPORT = "settings_log_export"
-
-/**
- * The settings tab. Apart from the debug menu it took over from the dashboard's slide menu, its
- * body is still empty — the settings themselves arrive with WD-3959.
- */
 @Composable
 fun SettingsScreen(
     navHostController: NavController,
@@ -60,15 +59,28 @@ fun SettingsScreen(
 
     MainScreen(
         state = state,
-        onExportLogs = { viewModel.setEvent(Event.ExportLogs(context)) },
+        onEventSend = viewModel::setEvent,
         onBottomNavigationTabSelected = navHostController::navigateToBottomNavigationTab,
     )
+
+    LaunchedEffect(Unit) {
+        viewModel.effect.onEach { effect ->
+            when (effect) {
+                is Effect.OpenNotificationSettings -> context.openAppNotificationSettings()
+                is Effect.ShareLogs -> context.shareLogs(effect.fileUris)
+                is Effect.Navigation.SwitchScreen ->
+                    navHostController.navigate(effect.screenRoute)
+
+                is Effect.Navigation.OpenWebPage -> navHostController.navigate(effect.route)
+            }
+        }.collect()
+    }
 }
 
 @Composable
 private fun MainScreen(
     state: State,
-    onExportLogs: () -> Unit,
+    onEventSend: (Event) -> Unit,
     onBottomNavigationTabSelected: (BottomNavigationTab) -> Unit,
 ) {
     ContentScreen(
@@ -82,34 +94,42 @@ private fun MainScreen(
             )
         }
     ) { paddingValues ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues),
-            verticalArrangement = Arrangement.spacedBy(SPACING_MEDIUM.dp),
-        ) {
-            // The debug menu is limited to the flavors carrying one; log export additionally needs
-            // the log files the log writer of those flavors leaves behind.
-            if (state.isDebugMenuEnabled && state.isLogWriterEnabled) {
-                SectionTitle(
-                    modifier = Modifier,
-                    text = stringResource(R.string.dashboard_drawer_title),
+        ContentTemplateBody(
+            modifier = Modifier.padding(paddingValues),
+            templateConfig = ContentTemplateConfig(verticalSpacing = SPACING_MEDIUM.dp),
+            title = {
+                Text(
+                    text = stringResource(R.string.settings_overview_title),
+                    style = MaterialTheme.typography.titleLarge,
                 )
+            },
+            extraContent = {
+                Column(verticalArrangement = Arrangement.spacedBy(SPACING_MEDIUM.dp)) {
+                    state.menuGroups.forEachIndexed { index, group ->
+                        SettingsMenuSection(
+                            group = group,
+                            onEntryClick = { onEventSend(Event.MenuEntryClicked(it)) },
+                        )
 
-                WrapListItem(
-                    item = ListItemData(
-                        itemId = SETTINGS_LOG_EXPORT,
-                        mainContentData = ListItemMainContentData.Text(
-                            text = stringResource(R.string.dashboard_drawer_log_export)
+                        if (index < state.menuGroups.lastIndex) {
+                            HorizontalDivider()
+                        }
+                    }
+
+                    Text(
+                        modifier = Modifier.fillMaxWidth(),
+                        text = stringResource(
+                            R.string.settings_overview_app_version,
+                            state.appVersion,
+                            state.appVersionCode,
                         ),
-                        leadingContentData = ListItemLeadingContentData.Icon(
-                            iconData = AppIcons.Edit
-                        ),
-                    ),
-                    onItemClick = { onExportLogs() },
-                )
-            }
-        }
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onBackground,
+                        textAlign = TextAlign.Center,
+                    )
+                }
+            },
+        )
     }
 }
 
@@ -119,10 +139,11 @@ private fun SettingsScreenPreview() {
     PreviewTheme {
         MainScreen(
             state = State(
-                isDebugMenuEnabled = true,
-                isLogWriterEnabled = true,
+                menuGroups = settingsMenuGroups(isLogExportAvailable = true),
+                appVersion = "0.52.0-Dev",
+                appVersionCode = 875,
             ),
-            onExportLogs = {},
+            onEventSend = {},
             onBottomNavigationTabSelected = {},
         )
     }
@@ -130,14 +151,15 @@ private fun SettingsScreenPreview() {
 
 @Composable
 @ThemeModeWithGermanAndEnglishPreviews
-private fun SettingsScreenWithoutDebugMenuPreview() {
+private fun SettingsScreenWithoutLogExportPreview() {
     PreviewTheme {
         MainScreen(
             state = State(
-                isDebugMenuEnabled = false,
-                isLogWriterEnabled = false,
+                menuGroups = settingsMenuGroups(isLogExportAvailable = false),
+                appVersion = "0.52.0",
+                appVersionCode = 875,
             ),
-            onExportLogs = {},
+            onEventSend = {},
             onBottomNavigationTabSelected = {},
         )
     }

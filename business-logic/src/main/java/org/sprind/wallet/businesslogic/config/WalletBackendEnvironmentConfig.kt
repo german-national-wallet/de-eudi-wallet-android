@@ -51,6 +51,12 @@ abstract class WalletBackendEnvironmentConfig : EnvironmentConfig() {
     override val walletBackendPinnerSpecs: List<OkCertificatePinnerSpec>
         get() = WALLET_BACKEND_PINNER_SPECS
 
+    override val dataProtectionComplaintUrl: String
+        get() = "https://ldi-extern.nrw.de/lip/formlinks/beschwerde"
+
+    override val reportIssueUrl: String
+        get() = "https://eudi-wallet.gov.de"
+
     companion object {
 
         private val LETS_ENCRYPT_ROOT_PINS = setOf(

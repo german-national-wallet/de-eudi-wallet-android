@@ -57,8 +57,13 @@ data class State(
     val onContinueAction: () -> Unit = {},
     val onSecurityInfoClicked: () -> Unit = {},
     val verifierName: String? = null,
+    val purpose: String? = null,
+    val reportUrl: String? = null,
+    /** Report-issue page the user is asked to confirm before leaving the app. */
+    val pendingReportIssueUrl: String? = null,
     val toShowDataDetails: Boolean = false,
     val shouldDisplayConfirmCancelDialog: Boolean = false,
+    val shouldDisplayCloseConfirmationDialog: Boolean = false,
     val shouldDisplayPidDeletionConfirmDialog: Boolean = false,
     val onBackAction: (() -> Unit)? = null,
     val unBlockRemainingTime: String = "",
@@ -67,6 +72,7 @@ data class State(
 sealed class Event : ViewEvent {
     data object DoWork : Event()
     data object DismissError : Event()
+    data object ReportIssueRedirectHandled : Event()
     data object Pop : Event()
     data object StickyButtonPressed : Event()
     data object CredentialDetailsView : Event()
@@ -91,6 +97,13 @@ sealed class Event : ViewEvent {
 
     data object DismissClickOnCancelConfirmationDialog : Event()
     data object ConfirmClickOnCancelConfirmationDialog : Event()
+
+    data object CloseButtonPressed : Event()
+
+    data object DismissClickOnCloseConfirmationDialog : Event()
+    data object ConfirmClickOnCloseConfirmationDialog : Event()
+
+    data object HelpPressed : Event()
 
     data object PidDeletionRequested : Event()
     data object IdDeletionDialogDismissed : Event()
@@ -179,6 +192,16 @@ abstract class RequestViewModel(
      */
     protected open fun onRequestAbandoned() = Unit
 
+    protected open fun onRequestDeclined() {
+        unsubscribe()
+        leaveForDashboard()
+    }
+
+    protected fun leaveForDashboard() {
+        onRequestAbandoned()
+        doNavigation(PushRoute(DashboardScreens.Dashboard.screenRoute))
+    }
+
     open fun updateData(
         updatedItems: List<RequestDocumentItemUi>,
     ) {
@@ -254,6 +277,7 @@ abstract class RequestViewModel(
         when (event) {
             is Event.DoWork -> doWork()
             is Event.DismissError -> setState { copy(error = null, errorDialog = null) }
+            is Event.ReportIssueRedirectHandled -> setState { copy(pendingReportIssueUrl = null) }
             is Event.Pop -> doNavigation(NavigationType.Pop)
             is Event.StickyButtonPressed -> onStickyButtonPressed()
             is Event.CredentialDetailsView -> moveToStep(RequestScreenStep.CredentialPreview)
@@ -269,8 +293,9 @@ abstract class RequestViewModel(
                     RequestScreenStep.CredentialPreview -> RequestScreenStep.Initial
                     else -> null
                 }
-                if (previousStep != null) {
-                    moveToStep(previousStep)
+                when {
+                    previousStep != null -> moveToStep(previousStep)
+                    currentStep == RequestScreenStep.Initial -> setEvent(Event.CloseButtonPressed)
                 }
             }
 
@@ -318,14 +343,25 @@ abstract class RequestViewModel(
 
             Event.ConfirmClickOnCancelConfirmationDialog -> {
                 setState { copy(shouldDisplayConfirmCancelDialog = false) }
-                onRequestAbandoned()
-                doNavigation(PushRoute(DashboardScreens.Dashboard.screenRoute))
+                onRequestDeclined()
             }
 
-            Event.GoToDashboardButtonPressed -> {
-                onRequestAbandoned()
-                doNavigation(PushRoute(DashboardScreens.Dashboard.screenRoute))
+            Event.CloseButtonPressed -> setState { copy(shouldDisplayCloseConfirmationDialog = true) }
+
+            Event.ConfirmClickOnCloseConfirmationDialog -> {
+                setState { copy(shouldDisplayCloseConfirmationDialog = false) }
+                onRequestDeclined()
             }
+
+            Event.DismissClickOnCloseConfirmationDialog -> setState {
+                copy(shouldDisplayCloseConfirmationDialog = false)
+            }
+
+            Event.HelpPressed -> {
+                // TODO: Will open the request's help sheet
+            }
+
+            Event.GoToDashboardButtonPressed -> leaveForDashboard()
 
             Event.DismissClickOnCancelConfirmationDialog -> setState {
                 copy(
@@ -491,7 +527,7 @@ abstract class RequestViewModel(
         }
     }
 
-    private fun unsubscribe() {
+    protected fun unsubscribe() {
         viewModelJob?.cancel()
     }
 

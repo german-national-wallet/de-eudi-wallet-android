@@ -18,10 +18,9 @@ package eu.europa.ec.commonfeature.ui.request.transformer
 
 import eu.europa.ec.businesslogic.controller.log.LogController
 import eu.europa.ec.businesslogic.util.toDateFormatted
-import eu.europa.ec.corelogic.extension.getLocalizedClaimName
+import eu.europa.ec.commonfeature.model.DocumentType
 import eu.europa.ec.commonfeature.ui.request.model.CollapsedUiItem
 import eu.europa.ec.commonfeature.ui.request.model.DocumentPayloadDomain
-import eu.europa.ec.commonfeature.ui.request.model.DocumentType
 import eu.europa.ec.commonfeature.ui.request.model.ExpandedUiItem
 import eu.europa.ec.commonfeature.ui.request.model.RequestDocumentClaim
 import eu.europa.ec.commonfeature.ui.request.model.RequestDocumentItemUi
@@ -30,25 +29,25 @@ import eu.europa.ec.commonfeature.util.generateUniqueFieldId
 import eu.europa.ec.commonfeature.util.keyIsPortrait
 import eu.europa.ec.commonfeature.util.keyIsSignature
 import eu.europa.ec.commonfeature.util.parseKeyValueUi2
+import eu.europa.ec.corelogic.extension.getLocalizedClaimName
 import eu.europa.ec.corelogic.extension.identifier
+import eu.europa.ec.corelogic.extension.toSelectivelyDisclosableClaimPaths
+import eu.europa.ec.corelogic.extension.toNamespacedPath
+import eu.europa.ec.corelogic.model.DisclosedDocumentDomain
 import eu.europa.ec.corelogic.model.DocumentIdentifier
 import eu.europa.ec.corelogic.model.isPid
 import eu.europa.ec.corelogic.model.toDocumentIdentifier
-import eu.europa.ec.corelogic.extension.toClaimPaths
-import eu.europa.ec.corelogic.extension.toNamespacedPath
-import eu.europa.ec.corelogic.model.DisclosedDocumentDomain
 import eu.europa.ec.eudi.sdjwt.vc.ClaimPathElement
 import eu.europa.ec.eudi.wallet.document.DocumentId
 import eu.europa.ec.eudi.wallet.document.IssuedDocument
 import eu.europa.ec.eudi.wallet.document.NameSpace
 import eu.europa.ec.eudi.wallet.document.format.DocumentClaim
+import eu.europa.ec.eudi.wallet.document.format.DocumentFormat
 import eu.europa.ec.eudi.wallet.document.format.MsoMdocClaim
 import eu.europa.ec.eudi.wallet.document.format.MsoMdocFormat
 import eu.europa.ec.eudi.wallet.document.format.SdJwtVcClaim
 import eu.europa.ec.eudi.wallet.document.format.SdJwtVcFormat
 import eu.europa.ec.resourceslogic.R
-import org.multipaz.presentment.CredentialPresentmentSetOptionMemberMatch
-import org.multipaz.request.RequestedClaim
 import eu.europa.ec.resourceslogic.provider.ResourceProvider
 import eu.europa.ec.uilogic.component.AppIcons
 import eu.europa.ec.uilogic.component.ListItemData
@@ -56,6 +55,8 @@ import eu.europa.ec.uilogic.component.ListItemLeadingContentData
 import eu.europa.ec.uilogic.component.ListItemMainContentData
 import eu.europa.ec.uilogic.component.ListItemTrailingContentData
 import eu.europa.ec.uilogic.component.wrap.CheckboxData
+import org.multipaz.presentment.CredentialPresentmentSetOptionMemberMatch
+import org.multipaz.request.RequestedClaim
 import java.lang.Boolean.parseBoolean
 import java.util.Locale
 
@@ -171,12 +172,25 @@ class RequestTransformer {
                 )
             }
 
+            // x and y of the "x of y" headline, both in selectively disclosable leaves: y is
+            // every leaf, x the leaves a requested path covers. A path covers a leaf below it
+            // (`address` covers 5) or the array leaf it points into (`nationalities[0]`).
+            val disclosableLeaves = storageDocument.data.claims
+                .flatMap { it.toSelectivelyDisclosableClaimPaths() }
+                .map { it.value }
+            val requestedPaths = requestedClaims
+                .map { it.toLeafLookupPath(storageDocument.format) }
+                .filter { it.isNotEmpty() }
+
             DocumentPayloadDomain(
                 docName = docName,
                 docId = docId,
                 documentType = documentType,
                 docNamespace = docNamespace,
-                totalClaimsCount = storageDocument.data.claims.sumOf { it.toClaimPaths().size },
+                requestedClaimsCount = disclosableLeaves.count { leaf ->
+                    requestedPaths.any { leaf.startsWith(it) || it.startsWith(leaf) }
+                },
+                totalClaimsCount = disclosableLeaves.size,
                 docClaimsDomain = requestDocumentClaims.sortedBy { it.readableName.lowercase() },
             )
         }
@@ -413,7 +427,7 @@ class RequestTransformer {
                     isExpanded = false
                 ),
                 expandedUiItems = expandedItems,
-                requestedClaimsCount = docPayloadDomain.docClaimsDomain.size,
+                requestedClaimsCount = docPayloadDomain.requestedClaimsCount,
                 totalClaimsCount = docPayloadDomain.totalClaimsCount,
             )
         }
@@ -471,6 +485,12 @@ class RequestTransformer {
         )
     }
 }
+
+private fun RequestedClaim.toLeafLookupPath(format: DocumentFormat): List<String> =
+    if (format is SdJwtVcFormat) toNamespacedPath().normalizedSdJwtPath() else toNamespacedPath()
+
+private fun List<String>.startsWith(prefix: List<String>): Boolean =
+    size >= prefix.size && subList(0, prefix.size) == prefix
 
 fun IssuedDocument.findClaimFromRequestedClaim(requestedClaim: RequestedClaim) =
     findClaimFromPath(requestedClaim.toNamespacedPath())

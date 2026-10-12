@@ -127,6 +127,70 @@ class FeatureFlagManagerTests {
             verify(featureFlagStorage, times(2)).getStoredFlags()
         }
 
+    @Test
+    fun `getNonBlankStringValue returns the override when it is a non-blank string`() {
+        featureFlagManager = FeatureFlagManagerImpl(featureFlagStorage)
+        val flag = FeatureFlag(TEST_FLAG_STRING_KEY, "fallback")
+        assertEquals("green", featureFlagManager.getNonBlankStringValue(flag))
+    }
+
+    @Test
+    fun `getNonBlankStringValue trims the override`() {
+        whenever(featureFlagStorage.getStoredFlags()).thenReturn(singleStringFlag("  pid-mso-mdoc_3  "))
+        featureFlagManager = FeatureFlagManagerImpl(featureFlagStorage)
+        val flag = FeatureFlag(TEST_FLAG_STRING_KEY, "fallback")
+        assertEquals("pid-mso-mdoc_3", featureFlagManager.getNonBlankStringValue(flag))
+    }
+
+    @Test
+    fun `getNonBlankStringValue returns the default when the flag is not overridden`() {
+        featureFlagManager = FeatureFlagManagerImpl(featureFlagStorage)
+        val flag = FeatureFlag("SOMETHING_WEIRD_FOR_TESTING", "fallback")
+        assertEquals("fallback", featureFlagManager.getNonBlankStringValue(flag))
+    }
+
+    @Test
+    fun `getNonBlankStringValue returns the default when the override is empty`() {
+        whenever(featureFlagStorage.getStoredFlags()).thenReturn(singleStringFlag(""))
+        featureFlagManager = FeatureFlagManagerImpl(featureFlagStorage)
+        val flag = FeatureFlag(TEST_FLAG_STRING_KEY, "fallback")
+        assertEquals("fallback", featureFlagManager.getNonBlankStringValue(flag))
+    }
+
+    @Test
+    fun `getNonBlankStringValue returns the default when the override is blank`() {
+        whenever(featureFlagStorage.getStoredFlags()).thenReturn(singleStringFlag("   "))
+        featureFlagManager = FeatureFlagManagerImpl(featureFlagStorage)
+        val flag = FeatureFlag(TEST_FLAG_STRING_KEY, "fallback")
+        assertEquals("fallback", featureFlagManager.getNonBlankStringValue(flag))
+    }
+
+    @Test
+    fun `getNonBlankStringValue returns the default when the override is not a string`() {
+        featureFlagManager = FeatureFlagManagerImpl(featureFlagStorage)
+        val flag = FeatureFlag(TEST_FLAG_INT_KEY, "fallback")
+        assertEquals("fallback", featureFlagManager.getNonBlankStringValue(flag))
+    }
+
+    private fun singleStringFlag(value: String) = """
+        [
+          {
+            "id": "3c2aff2b-a1cc-4a5d-803b-5937963d998f",
+            "features": [
+              {
+                "id": "38ac891e-51e0-4f00-a6ff-87f76ec01601",
+                "key": "$TEST_FLAG_STRING_KEY",
+                "l": false,
+                "version": 1,
+                "type": "STRING",
+                "value": "$value",
+                "strategies": []
+              }
+            ]
+          }
+        ]
+        """.trimIndent()
+
     private val allFlagTypes = """
         [
           {

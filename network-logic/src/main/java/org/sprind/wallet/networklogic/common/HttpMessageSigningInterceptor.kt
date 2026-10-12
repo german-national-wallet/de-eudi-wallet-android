@@ -25,8 +25,11 @@ import okhttp3.Interceptor
 import okhttp3.Response
 import okio.Buffer
 import okio.ByteString.Companion.toByteString
+import java.io.IOException
 import java.lang.String.CASE_INSENSITIVE_ORDER
+import java.security.GeneralSecurityException
 import java.security.PrivateKey
+import java.security.ProviderException
 import java.security.Signature
 import java.util.TreeSet
 import kotlin.time.Clock
@@ -35,6 +38,13 @@ import kotlin.time.toJavaInstant
 private const val HEADER_CONTENT_DIGEST = "Content-Digest"
 private const val HEADER_NAME_SIGNATURE_INPUT = "Signature-Input"
 private const val HEADER_NAME_SIGNATURE = "Signature"
+
+/**
+ * The request could not be signed, e.g. because the KeyStore key was invalidated. It is an
+ * [IOException] because OkHttp only hands those to the caller of an async call; anything else is
+ * rethrown on its dispatcher thread, where nothing can catch it and the app crashes.
+ */
+class RequestSigningException(cause: Throwable) : IOException("Failed to sign the request", cause)
 
 class HttpMessageSigningInterceptor(
     private val signingKey: PrivateKey,
@@ -89,10 +99,16 @@ class HttpMessageSigningInterceptor(
 
         val signatureInput = SignatureInputField(mapOf(signatureName to signatureMetadata)).serialize()
 
-        val signer = Signature.getInstance("SHA256withECDSA")
-        signer.initSign(signingKey)
-        signer.update(base.serialize().encodeToByteArray())
-        val signatureBase64 = signer.sign().toByteString().base64()
+        val signatureBase64 = try {
+            val signer = Signature.getInstance("SHA256withECDSA")
+            signer.initSign(signingKey)
+            signer.update(base.serialize().encodeToByteArray())
+            signer.sign().toByteString().base64()
+        } catch (e: GeneralSecurityException) {
+            throw RequestSigningException(e)
+        } catch (e: ProviderException) {
+            throw RequestSigningException(e)
+        }
 
         val updatedRequest = request.newBuilder()
             .header(HEADER_CONTENT_DIGEST, digest)

@@ -29,6 +29,10 @@ import eu.europa.ec.businesslogic.extension.firstPart
 import eu.europa.ec.businesslogic.extension.toSpanAttributesOrEmpty
 import org.sprind.wallet.businesslogic.util.SpanAttributes
 import eu.europa.ec.uilogic.config.ConfigUILogic
+import org.sprind.wallet.uilogic.navigation.screenEnterTransition
+import org.sprind.wallet.uilogic.navigation.screenExitTransition
+import org.sprind.wallet.uilogic.navigation.screenPopEnterTransition
+import org.sprind.wallet.uilogic.navigation.screenPopExitTransition
 
 interface RouterHost {
     fun getNavController(): NavHostController
@@ -70,7 +74,11 @@ class RouterHostImpl(
 
         NavHost(
             navController = navController,
-            startDestination = ModuleRoute.StartupModule.route
+            startDestination = ModuleRoute.StartupModule.route,
+            enterTransition = screenEnterTransition,
+            exitTransition = screenExitTransition,
+            popEnterTransition = screenPopEnterTransition,
+            popExitTransition = screenPopExitTransition,
         ) {
             builder(navController)
         }

@@ -28,7 +28,7 @@ submodule links**, so clone them by hand into the repository root:
 
 ```sh
 git clone -b develop-0.30.2 https://github.com/german-national-wallet/eudi-lib-android-wallet-core core
-git clone -b develop-0.13.1 https://github.com/german-national-wallet/eudi-lib-jvm-openid4vci-kt openid4vci
+git clone -b develop-0.14.0 https://github.com/german-national-wallet/eudi-lib-jvm-openid4vci-kt openid4vci
 ```
 
 Both are public forks. `settings.gradle.kts` includes them as `:core:wallet-core`
@@ -149,8 +149,9 @@ the force-upgrade screen stays out of the way.
 
 ### Push notifications
 
-`app/google-services.json` is a **placeholder** — project
-`eudi-wallet-placeholder`, no real API key.
+`app/google-services.json` and `app/src/production/google-services.json` are
+**placeholders** — projects `eudi-wallet-placeholder` and
+`eudi-wallet-placeholder-prod`, no real API key.
 
 ### PID issuer and eID card reading
 
@@ -158,13 +159,13 @@ Unlike the above, these point at **real third-party services** and are published
 unchanged, because they are public and their certificate pins are part of the
 security model:
 
-- `PidIssuerSpec.kt` carries the Bundesdruckerei `demo` and `preprod` PID issuer
-  endpoints together with their public SPKI pins. Access requires entitlement
+- `PidIssuerSpec.kt` carries the Bundesdruckerei `demo`, `preprod` and production
+  PID issuer endpoints together with their public SPKI pins. Access requires entitlement
   from the operator.
-- The trust anchors in `resources-logic/src/main/res/raw/*.pem` are public CA
-  certificates, loaded through `R.raw` by `WalletCoreConfigImpl`. They contain no
-  private key material, and publishing them is what lets a reader see which CAs
-  the wallet actually trusts.
+- The trust anchors in `resources-logic/src/<flavor>/res/raw/*.pem` are public CA
+  certificates, loaded through `R.raw` by each flavor's `ReaderTrustAnchors.kt`.
+  They contain no private key material, and publishing them is what lets a reader
+  see which CAs the wallet actually trusts.
 - eID reading goes through the AusweisApp2 SDK against the Governikus eID test
   server. It needs real NFC hardware and an ID card — or `IS_SIMULATOR=true` for
   a simulated card.

@@ -22,25 +22,6 @@ import eu.europa.ec.eudi.wallet.document.format.MsoMdocClaim
 import eu.europa.ec.eudi.wallet.document.format.SdJwtVcClaim
 
 /**
- * Converts a [DocumentClaim] to a list of [ClaimPathDomain]s.
- *
- * This function recursively traverses the claim structure to generate a list of paths,
- * where each path leads to a specific claim.
- * Each path is represented as a list of strings, with each string being an identifier of a claim in the hierarchy.
- *
- * @param parentPath The path of the parent claim, used for recursive calls to build up the full path. Defaults to an empty list.
- * @return A list of [ClaimPathDomain]s representing the paths to each claim in the [DocumentClaim] structure.
- *
- * For [SdJwtVcClaim]s, the function will:
- *  - Append the current claim's identifier to the `parentPath` to form the `currentPath`.
- *  - If the claim has no children or its value is a collection, a single [ClaimPathDomain] is created with the `currentPath`.
- *  - If the claim has children and its value is not a collection, it recursively calls `toClaimPaths` on each child,
- *    passing the `currentPath`, and flattens the resulting lists of paths.
- *
- * For [MsoMdocClaim]s, the function will:
- * - Create a [ClaimPathDomain] with a list containing only the claim's identifier.
- */
-/**
  * The claim's own name.
  *
  * wallet-core up to v0.29.0 had this on [DocumentClaim] itself; since v0.30.0 it is split per
@@ -53,23 +34,34 @@ val DocumentClaim.identifier: String
         is SdJwtVcClaim -> claimName.orEmpty()
     }
 
-fun DocumentClaim.toClaimPaths(
+/**
+ * The paths of the leaf claims the holder can choose to disclose, which is what the "x of y"
+ * consent headline counts.
+ *
+ * An SD-JWT object is walked down to its leaves, an array counts as one leaf, and a leaf counts
+ * when it or anything below it has a Disclosure. Plain claims such as `iat` and `exp` are always
+ * sent and so are left out; `iss`, `vct`, `cnf` and `status` never reach the claim tree. Every
+ * mdoc data element is selectively disclosable; its path includes the namespace.
+ */
+fun DocumentClaim.toSelectivelyDisclosableClaimPaths(
     parentPath: List<String> = emptyList()
 ): List<ClaimPathDomain> {
     return when (this) {
         is SdJwtVcClaim -> {
             val currentPath: List<String> = parentPath + this.identifier
             if (children.isEmpty() || this.value is Collection<*>) {
-                listOf(ClaimPathDomain(currentPath))
+                if (isOrContainsSelectivelyDisclosable()) listOf(ClaimPathDomain(currentPath))
+                else emptyList()
             } else {
                 children.flatMap { child ->
-                    child.toClaimPaths(currentPath)
+                    child.toSelectivelyDisclosableClaimPaths(currentPath)
                 }
             }
         }
 
-        is MsoMdocClaim -> {
-            listOf(ClaimPathDomain(listOf(this.identifier)))
-        }
+        is MsoMdocClaim -> listOf(ClaimPathDomain(listOf(nameSpace, dataElementName)))
     }
 }
+
+private fun SdJwtVcClaim.isOrContainsSelectivelyDisclosable(): Boolean =
+    selectivelyDisclosable || children.any { it.isOrContainsSelectivelyDisclosable() }

@@ -17,6 +17,7 @@
 package org.sprind.wallet.businesslogic.config
 
 import eu.europa.ec.businesslogic.BuildConfig
+import eu.europa.ec.businesslogic.config.ConfigLogic
 
 /**
  * Provide a module to store user decisions during runtime to be dropped on app restart.
@@ -28,9 +29,13 @@ interface UserRuntimeConfig {
     var eidCardType: EidCardType
 }
 
-internal class UserRuntimeConfigImpl : UserRuntimeConfig {
+internal class UserRuntimeConfigImpl(configLogic: ConfigLogic) : UserRuntimeConfig {
+
+    private val simulationEnabled = configLogic.isSimulatedEidCardEnabled
+
     // set to simulated by default, if Simulator is used
     override var eidCardType: EidCardType = if (BuildConfig.IS_SIMULATOR.toBoolean()) EidCardType.VIRTUAL else EidCardType.PHYSICAL
+        get() = if (simulationEnabled) field else EidCardType.PHYSICAL
 }
 
 enum class EidCardType {

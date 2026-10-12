@@ -26,5 +26,21 @@ class FeatureFlag<T>(
             key = "minimum_app_version",
             value = "0.0.0",
         )
+
+        /** Shows the app setup steps (PA check, privacy policy, notifications, success) after onboarding. */
+        val appSetupScreens = FeatureFlag(
+            key = "app_setup_screens_enabled",
+            value = false,
+        )
+
+        fun pidMsoMdocConfigId(fallback: String) = FeatureFlag(
+            key = "credential_configuration_id_mdoc",
+            value = fallback,
+        )
+
+        fun pidSdJwtConfigId(fallback: String) = FeatureFlag(
+            key = "credential_configuration_id_sdjwt",
+            value = fallback,
+        )
     }
 }

@@ -19,19 +19,14 @@ package eu.europa.ec.uilogic.component
 import androidx.annotation.DrawableRes
 import androidx.annotation.StringRes
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Call
-import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
-import androidx.compose.material.icons.filled.Language
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.outlined.Balance
-import androidx.compose.material.icons.outlined.LocationOn
 import androidx.compose.material.icons.outlined.Storefront
-import androidx.compose.material.icons.outlined.VerifiedUser
 import androidx.compose.runtime.Stable
 import androidx.compose.ui.graphics.vector.ImageVector
 import eu.europa.ec.resourceslogic.R
@@ -66,9 +61,9 @@ data class IconData(
 object AppIcons {
 
     val ArrowBack: IconData = IconData(
-        resourceId = null,
+        resourceId = R.drawable.ic_arrow_back,
         contentDescriptionId = R.string.content_description_arrow_back_icon,
-        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+        imageVector = null,
     )
 
     val ArrowRight: IconData = IconData(
@@ -84,9 +79,9 @@ object AppIcons {
     )
 
     val Close: IconData = IconData(
-        resourceId = null,
+        resourceId = R.drawable.ic_close,
         contentDescriptionId = R.string.content_description_close_icon,
-        imageVector = Icons.Filled.Close
+        imageVector = null
     )
 
     val Share: IconData = IconData(
@@ -233,6 +228,18 @@ object AppIcons {
         imageVector = null
     )
 
+    val Transfer: IconData = IconData(
+        resourceId = R.drawable.ic_transfer,
+        contentDescriptionId = R.string.content_description_transfer_icon,
+        imageVector = null,
+    )
+
+    val Launch: IconData = IconData(
+        resourceId = R.drawable.ic_launch,
+        contentDescriptionId = R.string.content_description_open_new_icon,
+        imageVector = null,
+    )
+
     val KeyboardArrowRight: IconData = IconData(
         resourceId = null,
         contentDescriptionId = R.string.content_description_arrow_right_icon,
@@ -357,7 +364,7 @@ object AppIcons {
         imageVector = null
     )
     val Building: IconData = IconData(
-        resourceId = R.drawable.building,
+        resourceId = R.drawable.ic_building,
         contentDescriptionId = R.string.content_description_building_icon,
         imageVector = null
     )
@@ -456,12 +463,6 @@ object AppIcons {
         imageVector = null
     )
 
-    val CardPin = IconData(
-        resourceId = R.drawable.card_pin,
-        contentDescriptionId = R.string.content_description_card_pin,
-        imageVector = null
-    )
-
     val Blocked = IconData(
         resourceId = R.drawable.ic_blocked,
         contentDescriptionId = R.string.content_description_blocked,
@@ -495,20 +496,15 @@ object AppIcons {
         contentDescriptionId = R.string.content_description_institution,
         imageVector = Icons.Outlined.Balance
     )
-    val Location = IconData(
-        resourceId = null,
-        contentDescriptionId = R.string.content_description_location,
-        imageVector = Icons.Outlined.LocationOn
-    )
     val EmailGlobe = IconData(
-        resourceId = null,
+        resourceId = R.drawable.ic_language,
         contentDescriptionId = R.string.content_description_email,
-        imageVector = Icons.Default.Language
+        imageVector = null
     )
     val Shield = IconData(
-        resourceId = null,
+        resourceId = R.drawable.ic_security,
         contentDescriptionId = R.string.content_description_verified_user,
-        imageVector = Icons.Outlined.VerifiedUser
+        imageVector = null
     )
     val Store = IconData(
         resourceId = null,
@@ -552,6 +548,12 @@ object AppIcons {
         imageVector = null,
     )
 
+    val Notification = IconData(
+        resourceId = R.drawable.ic_notification,
+        contentDescriptionId = R.string.content_description_notification_icon,
+        imageVector = null,
+    )
+
     /**
      * The long "continue" arrow the card-shaped navigation buttons carry. It is a monochrome glyph
      * with a baked-in fill, so it has to be drawn through [eu.europa.ec.uilogic.component.wrap.WrapIcon]
@@ -560,6 +562,30 @@ object AppIcons {
     val ArrowRightLong = IconData(
         resourceId = R.drawable.ic_arrow_right_long,
         contentDescriptionId = R.string.content_description_arrow_right_icon,
+        imageVector = null,
+    )
+
+    val ArrowRightSettings = IconData(
+        resourceId = R.drawable.ic_arrow_right_settings,
+        contentDescriptionId = R.string.content_description_arrow_right_icon,
+        imageVector = null,
+    )
+
+    val HelpSettings = IconData(
+        resourceId = R.drawable.ic_help_settings,
+        contentDescriptionId = R.string.content_description_help,
+        imageVector = null,
+    )
+
+    val KeySettings = IconData(
+        resourceId = R.drawable.ic_key_settings,
+        contentDescriptionId = R.string.content_description_key_icon,
+        imageVector = null,
+    )
+
+    val OpenNewSettings = IconData(
+        resourceId = R.drawable.ic_open_new_settings,
+        contentDescriptionId = R.string.content_description_open_new_icon,
         imageVector = null,
     )
 
@@ -613,6 +639,20 @@ object AppIcons {
         imageVector = null,
     )
 
+    /** A phone carrying a shield, shown when the wallet blocked a request to protect the user. */
+    val PhoneSecurityShield = IconData(
+        resourceId = R.drawable.phone_security_shield,
+        contentDescriptionId = R.string.content_description_phone_security_shield,
+        imageVector = null,
+    )
+
+    /** A credential card with a question mark, shown when no credential satisfies a request. */
+    val MissingCredential = IconData(
+        resourceId = R.drawable.missing_credential,
+        contentDescriptionId = R.string.content_description_missing_credential,
+        imageVector = null,
+    )
+
     /** The contactless mark, shown while the device waits for a card to be held against it. */
     val Contactless = IconData(
         resourceId = R.drawable.ic_contactless,
@@ -644,5 +684,17 @@ object AppIcons {
         resourceId = R.drawable.ic_animation_play,
         contentDescriptionId = R.string.a11y_animation_play,
         imageVector = null,
+    )
+
+    val Flag = IconData(
+        resourceId = R.drawable.ic_flag,
+        contentDescriptionId = R.string.eaa_inspection_eaa_issuer_label_country,
+        imageVector = null
+    )
+
+    val CharacterWholeNumber = IconData(
+        resourceId = R.drawable.ic_character_whole_number,
+        contentDescriptionId = R.string.eaa_inspection_eaa_issuer_label_id,
+        imageVector = null
     )
 }

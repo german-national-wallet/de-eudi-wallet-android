@@ -25,7 +25,7 @@ class EudiWalletListenerWrapper(
     private val onConnected: () -> Unit,
     private val onConnecting: () -> Unit,
     private val onDisconnected: () -> Unit,
-    private val onError: (String) -> Unit,
+    private val onError: (Throwable) -> Unit,
     private val onQrEngagementReady: (String) -> Unit,
     private val onRequestReceived: (RequestProcessor.ProcessedRequest, Request) -> Unit,
     private val onResponseSent: () -> Unit,
@@ -37,7 +37,7 @@ class EudiWalletListenerWrapper(
             is TransferEvent.Connected -> onConnected()
             is TransferEvent.Connecting -> onConnecting()
             is TransferEvent.Disconnected -> onDisconnected()
-            is TransferEvent.Error -> onError(event.error.message ?: "")
+            is TransferEvent.Error -> onError(event.error)
             is TransferEvent.QrEngagementReady -> onQrEngagementReady(event.qrCode.content)
             is TransferEvent.RequestReceived -> onRequestReceived(event.processedRequest, event.request)
             is TransferEvent.ResponseSent -> onResponseSent()

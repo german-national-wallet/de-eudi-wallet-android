@@ -63,6 +63,7 @@ data class State(
     val pidDocument: IssuedDocument? = null,
     val eaaDocuments: List<EaaCardData> = emptyList(),
     val eidCardType: EidCardType = EidCardType.PHYSICAL,
+    val isSimulatedEidCardEnabled: Boolean = false,
     val isLoading: Boolean = true,
     val error: ContentErrorConfig? = null,
     val errorDialog: GenericErrorDialogConfig? = null,
@@ -115,6 +116,7 @@ class DashboardViewModel(
         return State(
             appVersion = dashboardInteractor.getAppVersion(),
             eidCardType = userRuntimeConfig.eidCardType,
+            isSimulatedEidCardEnabled = dashboardInteractor.isSimulatedEidCardEnabled(),
         )
     }
 
@@ -257,9 +259,9 @@ class DashboardViewModel(
             }
 
             is Event.ToggleEidCardSimulation -> {
-                val eidCardType = if(event.useVirtualEidCard) EidCardType.VIRTUAL else EidCardType.PHYSICAL
-                userRuntimeConfig.eidCardType = eidCardType
-                setState { copy(eidCardType = eidCardType) }
+                userRuntimeConfig.eidCardType =
+                    if (event.useVirtualEidCard) EidCardType.VIRTUAL else EidCardType.PHYSICAL
+                setState { copy(eidCardType = userRuntimeConfig.eidCardType) }
             }
         }
     }

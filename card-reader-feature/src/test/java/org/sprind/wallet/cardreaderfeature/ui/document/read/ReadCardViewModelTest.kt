@@ -48,6 +48,7 @@ import org.sprind.wallet.cardreaderfeature.domain.CardReaderRoute
 import org.sprind.wallet.cardreaderfeature.domain.CardScanStatus
 import org.sprind.wallet.cardreaderfeature.ui.document.privacy.PrivacyPolicyRoute
 import junit.framework.TestCase.assertFalse
+import androidx.compose.ui.text.AnnotatedString
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.flowOf
@@ -128,6 +129,9 @@ class ReadCardViewModelTest {
     @Before
     fun setUp() {
         closeable = MockitoAnnotations.openMocks(this)
+        whenever(resourceProvider.getMarkdownString(any())).thenReturn(AnnotatedString(""))
+        whenever(resourceProvider.getString(R.string.pid_issuance_onboarding_eid_tert_button_2))
+            .thenReturn("help")
         whenever(resourceProvider.getString(R.string.pid_issuance_sheet_eID_PIN_not_set_title))
             .thenReturn("info")
         whenever(resourceProvider.getString(R.string.pid_presentation_wallet_pin_entry_error_wrong_pin))

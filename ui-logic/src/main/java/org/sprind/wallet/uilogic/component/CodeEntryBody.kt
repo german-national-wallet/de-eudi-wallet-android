@@ -18,7 +18,6 @@ package org.sprind.wallet.uilogic.component
 
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -48,7 +47,7 @@ import org.sprind.wallet.designsystem.typography.CustomTypography
  * own their [ContentScreen], because the flows differ far more in their chrome (one button vs two,
  * cancellable vs backable, bottom sheets) than in their body.
  *
- * @param title the screen's headline, e.g. "Enter the 6-digit transaction code".
+ * @param title the screen's headline, e.g. "Enter the transaction code".
  * @param state the entry state; [CodeEntryState.supportingText] is shown under the cells.
  * @param onCodeChange called after every edit; see [CodeEntryField].
  * @param modifier applied to the template body; pass the [ContentScreen] padding here.
@@ -66,7 +65,7 @@ fun CodeEntryBody(
     onCodeChange: () -> Unit,
     modifier: Modifier = Modifier,
     config: CodeEntryConfig = CodeEntryConfig(),
-    titleTextStyle: TextStyle = MaterialTheme.typography.titleLarge,
+    titleTextStyle: TextStyle = CustomTypography.titleMedium,
     illustration: (@Composable () -> Unit)? = null,
 ) {
     // Based on the ambient style rather than the defaults, so overriding the headline here does not

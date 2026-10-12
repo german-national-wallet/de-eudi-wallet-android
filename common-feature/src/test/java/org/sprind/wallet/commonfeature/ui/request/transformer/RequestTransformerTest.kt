@@ -16,18 +16,30 @@
 
 package org.sprind.wallet.commonfeature.ui.request.transformer
 
+import eu.europa.ec.businesslogic.controller.log.LogController
+import eu.europa.ec.commonfeature.model.DocumentType
 import eu.europa.ec.commonfeature.ui.request.model.DocumentPayloadDomain
-import eu.europa.ec.commonfeature.ui.request.model.DocumentType
 import eu.europa.ec.commonfeature.ui.request.model.ExpandedUiItem
 import eu.europa.ec.commonfeature.ui.request.model.RequestDocumentClaim
 import eu.europa.ec.commonfeature.ui.request.model.RequestDocumentItemUi
 import eu.europa.ec.commonfeature.ui.request.transformer.RequestTransformer
 import eu.europa.ec.commonfeature.util.generateUniqueFieldId
 import eu.europa.ec.corelogic.extension.toNamespacedPath
+import eu.europa.ec.eudi.sdjwt.vc.ClaimPathElement
+import eu.europa.ec.eudi.wallet.document.IssuedDocument
+import eu.europa.ec.eudi.wallet.document.format.DocumentData
+import eu.europa.ec.eudi.wallet.document.format.DocumentFormat
+import eu.europa.ec.eudi.wallet.document.format.MsoMdocClaim
+import eu.europa.ec.eudi.wallet.document.format.MsoMdocData
+import eu.europa.ec.eudi.wallet.document.format.MsoMdocFormat
+import eu.europa.ec.eudi.wallet.document.format.SdJwtVcClaim
+import eu.europa.ec.eudi.wallet.document.format.SdJwtVcData
+import eu.europa.ec.eudi.wallet.document.format.SdJwtVcFormat
 import eu.europa.ec.resourceslogic.R
 import eu.europa.ec.resourceslogic.provider.ResourceProvider
 import eu.europa.ec.uilogic.component.ListItemTrailingContentData
 import eu.europa.ec.uilogic.component.wrap.CheckboxData
+import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonPrimitive
 import org.junit.After
@@ -37,13 +49,22 @@ import org.junit.Before
 import org.junit.Test
 import org.mockito.Mock
 import org.mockito.MockitoAnnotations
+import org.mockito.kotlin.doReturn
+import org.mockito.kotlin.mock
 import org.mockito.kotlin.whenever
+import org.multipaz.claim.JsonClaim
+import org.multipaz.credential.Credential
+import org.multipaz.document.Document
+import org.multipaz.presentment.CredentialMatchSourceOpenID4VP
+import org.multipaz.presentment.CredentialPresentmentSetOptionMemberMatch
 import org.multipaz.request.JsonRequestedClaim
 import org.multipaz.request.MdocRequestedClaim
 import org.multipaz.request.RequestedClaim
+import java.util.Locale
 
 private const val PID_DOCTYPE = "eu.europa.ec.eudi.pid.1"
 private const val PID_VCT = "urn:eudi:pid:de:1"
+private const val DOCUMENT_ID = "document-id"
 
 class RequestTransformerTest {
 
@@ -72,7 +93,8 @@ class RequestTransformerTest {
             docName = "PID",
             docId = "pid-id",
             documentType = DocumentType.PID,
-            requestedClaimNames = listOf("Family name", "Given name"),
+            requestedClaimNames = listOf("Family name", "Address"),
+            requestedClaimsCount = 6,
             totalClaimsCount = 10,
         )
         val eaa = documentPayloadDomain(
@@ -90,13 +112,66 @@ class RequestTransformerTest {
 
         // PID
         assertEquals(2, actual.size)
-        assertEquals(2, actual[0].requestedClaimsCount)
+        assertEquals(6, actual[0].requestedClaimsCount)
         assertEquals(10, actual[0].totalClaimsCount)
         assertEquals(2, actual[0].expandedUiItems.size)
         // EAA
         assertEquals(1, actual[1].requestedClaimsCount)
         assertEquals(4, actual[1].totalClaimsCount)
         assertEquals(1, actual[1].expandedUiItems.size)
+    }
+
+    @Test
+    fun `transformToDomainItems counts requested and total disclosable leaves on the same basis`() {
+        val address = sdJwtClaim(
+            "address", children = listOf(sdJwtClaim("street_address"), sdJwtClaim("locality"))
+        )
+        val document = issuedDocument(
+            format = SdJwtVcFormat(PID_VCT),
+            data = mock<SdJwtVcData> {
+                on { claims } doReturn listOf(
+                    sdJwtClaim("family_name"),
+                    sdJwtClaim("given_name"),
+                    address,
+                    sdJwtClaim("exp", selectivelyDisclosable = false),
+                )
+            },
+        )
+        // `address` overlaps `address.locality`; `exp` is not selectively disclosable.
+        val requested = listOf(
+            listOf("family_name"), listOf("address"), listOf("address", "locality"), listOf("exp"),
+        ).map { JsonRequestedClaim(vctValues = listOf(PID_VCT), claimPath = jsonPath(it)) }
+
+        val payload = transformToDomainItems(document, requested).single()
+
+        assertEquals(3, payload.requestedClaimsCount)
+        assertEquals(4, payload.totalClaimsCount)
+    }
+
+    @Test
+    fun `transformToDomainItems counts mdoc data elements`() {
+        val document = issuedDocument(
+            format = MsoMdocFormat(PID_DOCTYPE),
+            data = mock<MsoMdocData> {
+                on { claims } doReturn listOf("family_name", "given_name").map {
+                    MsoMdocClaim(PID_DOCTYPE, it, "value", byteArrayOf(), null)
+                }
+                on { nameSpaces } doReturn mapOf(PID_DOCTYPE to listOf("family_name", "given_name"))
+            },
+        )
+        val requested = listOf(
+            MdocRequestedClaim(
+                docType = PID_DOCTYPE,
+                namespaceName = PID_DOCTYPE,
+                dataElementName = "family_name",
+                intentToRetain = false,
+            )
+        )
+
+        val payload = transformToDomainItems(document, requested).single()
+
+        assertEquals(1, payload.requestedClaimsCount)
+        assertEquals(2, payload.totalClaimsCount)
     }
 
     @Test
@@ -225,6 +300,7 @@ class RequestTransformerTest {
             docId = docId,
             documentType = DocumentType.PID,
             docNamespace = PID_DOCTYPE, // MSO-MDOC
+            requestedClaimsCount = claims.size,
             totalClaimsCount = claims.size,
             docClaimsDomain = claims,
         )
@@ -260,6 +336,7 @@ class RequestTransformerTest {
             docId = docId,
             documentType = DocumentType.EAA,
             docNamespace = null, // SD-JWT VC
+            requestedClaimsCount = 0,
             totalClaimsCount = 9,
             docClaimsDomain = emptyList(),
         )
@@ -351,6 +428,7 @@ class RequestTransformerTest {
         docId = docId,
         documentType = DocumentType.PID,
         docNamespace = null, // SD-JWT VC
+        requestedClaimsCount = claims.size,
         totalClaimsCount = claims.size,
         docClaimsDomain = claims,
     )
@@ -360,6 +438,7 @@ class RequestTransformerTest {
         docId: String,
         documentType: DocumentType,
         requestedClaimNames: List<String>,
+        requestedClaimsCount: Int = requestedClaimNames.size,
         totalClaimsCount: Int,
     ): DocumentPayloadDomain {
         return DocumentPayloadDomain(
@@ -367,6 +446,7 @@ class RequestTransformerTest {
             docId = docId,
             documentType = documentType,
             docNamespace = "namespace",
+            requestedClaimsCount = requestedClaimsCount,
             totalClaimsCount = totalClaimsCount,
             docClaimsDomain = requestedClaimNames.mapIndexed { index, readableName ->
                 requestDocumentClaim(
@@ -377,6 +457,52 @@ class RequestTransformerTest {
             },
         )
     }
+
+    private fun transformToDomainItems(
+        document: IssuedDocument,
+        requested: List<RequestedClaim>,
+    ): List<DocumentPayloadDomain> = runBlocking {
+        whenever(resourceProvider.getLocale()).thenReturn(Locale.ENGLISH)
+        val walletDocument = mock<Document> { on { identifier } doReturn DOCUMENT_ID }
+        val credential = mock<Credential> { on { this.document } doReturn walletDocument }
+        transformer.transformToDomainItems(
+            storageDocuments = listOf(document),
+            resourceProvider = resourceProvider,
+            requestMatches = listOf(
+                CredentialPresentmentSetOptionMemberMatch(
+                    credential = credential,
+                    claims = requested.associateWith { mock<JsonClaim>() },
+                    source = mock<CredentialMatchSourceOpenID4VP>(),
+                    transactionData = emptyList(),
+                )
+            ),
+            logController = mock<LogController>(),
+        ).getOrThrow()
+    }
+
+    private fun issuedDocument(format: DocumentFormat, data: DocumentData) = mock<IssuedDocument> {
+        on { id } doReturn DOCUMENT_ID
+        on { name } doReturn "PID"
+        on { this.format } doReturn format
+        on { this.data } doReturn data
+        on { issuerMetadata } doReturn null
+        onBlocking { credentialsCount() } doReturn 1
+    }
+
+    private fun sdJwtClaim(
+        name: String,
+        selectivelyDisclosable: Boolean = true,
+        children: List<SdJwtVcClaim> = emptyList(),
+    ) = SdJwtVcClaim(
+        pathElement = ClaimPathElement.Claim(name),
+        value = if (children.isEmpty()) "value" else children.associate { it.claimName to it.value },
+        rawValue = "value",
+        issuerMetadata = null,
+        selectivelyDisclosable = selectivelyDisclosable,
+        children = children,
+    )
+
+    private fun jsonPath(segments: List<String>) = JsonArray(segments.map { JsonPrimitive(it) })
 
     private fun requestDocumentClaim(
         elementIdentifier: String,

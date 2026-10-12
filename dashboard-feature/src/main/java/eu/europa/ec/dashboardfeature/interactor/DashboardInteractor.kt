@@ -51,6 +51,9 @@ sealed class DashboardInteractorGetIssuedDocumentsPartialState {
 
 interface DashboardInteractor {
     fun getAppVersion(): String
+
+    fun isSimulatedEidCardEnabled(): Boolean
+
     fun retrieveLogFileUris(): ArrayList<Uri>
     fun getIssuedDocuments(): Flow<DashboardInteractorGetIssuedDocumentsPartialState>
 
@@ -75,6 +78,8 @@ class DashboardInteractorImpl(
         get() = resourceProvider.genericErrorMessage()
 
     override fun getAppVersion(): String = configLogic.appVersion
+
+    override fun isSimulatedEidCardEnabled(): Boolean = configLogic.isSimulatedEidCardEnabled
 
     override fun retrieveLogFileUris(): ArrayList<Uri> {
         return ArrayList(logController.retrieveLogFileUris())

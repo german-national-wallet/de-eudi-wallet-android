@@ -18,15 +18,19 @@ package eu.europa.ec.presentationfeature.ui.request
 
 import androidx.compose.runtime.Composable
 import androidx.navigation.NavController
+import eu.europa.ec.businesslogic.config.ConfigLogic
 import eu.europa.ec.commonfeature.ui.request.RequestScreen
+import org.koin.compose.koinInject
 
 @Composable
 fun PresentationRequestScreen(
     navController: NavController,
-    viewModel: PresentationRequestViewModel
+    viewModel: PresentationRequestViewModel,
+    configLogic: ConfigLogic = koinInject(),
 ) {
     RequestScreen(
         navController = navController,
-        viewModel = viewModel
+        viewModel = viewModel,
+        fallbackReportUrl = configLogic.environmentConfig.dataProtectionComplaintUrl,
     )
 }

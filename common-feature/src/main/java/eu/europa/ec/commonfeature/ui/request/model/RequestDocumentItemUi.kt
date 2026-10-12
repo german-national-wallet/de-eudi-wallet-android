@@ -16,6 +16,7 @@
 
 package eu.europa.ec.commonfeature.ui.request.model
 
+import eu.europa.ec.commonfeature.model.DocumentType
 import eu.europa.ec.commonfeature.ui.request.transformer.DomainClaim
 import eu.europa.ec.eudi.wallet.document.DocumentId
 import eu.europa.ec.eudi.wallet.document.ElementIdentifier
@@ -46,16 +47,12 @@ data class ExpandedUiItem(
     val uiItem: ListItemData,
 )
 
-enum class DocumentType {
-    PID,
-    EAA,
-}
-
 data class DocumentPayloadDomain(
     val docName: String,
     val docId: DocumentId,
     val documentType: DocumentType,
     val docNamespace: NameSpace?,
+    val requestedClaimsCount: Int,
     val totalClaimsCount: Int,
     val docClaimsDomain: List<RequestDocumentClaim>,
 )

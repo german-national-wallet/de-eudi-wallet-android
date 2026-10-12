@@ -20,8 +20,10 @@ import androidx.compose.ui.text.style.TextAlign
 import eu.europa.ec.resourceslogic.theme.templates.ThemeTextStyle
 import eu.europa.ec.resourceslogic.theme.templates.ThemeTextStyle.Companion.toTextStyle
 import eu.europa.ec.resourceslogic.theme.templates.structures.ThemeFontWeight
+import eu.europa.ec.resourceslogic.theme.templates.structures.ThemeTextAlign
 import eu.europa.ec.resourceslogic.theme.values.ThemeColors
 import eu.europa.ec.resourceslogic.theme.values.ThemeTypography
+import org.sprind.wallet.resourceslogic.generated.eudiDiatypeMedium
 
 class ThemeTextStyles {
 
@@ -35,6 +37,24 @@ class ThemeTextStyles {
             textAlign = TextAlign.Center,
         )
         val key get() = ThemeTypography.key.toTextStyle()
+
+        val labelMediumProminent get() = ThemeTypography.labelMediumProminent.toTextStyle()
+
+        val titleMediumLarge get() = ThemeTypography.titleMediumLarge.toTextStyle()
+
+        /**
+         * Dialog title per Figma "M3/title/medium": 24sp, Medium (500), 28 line height, centered.
+         * Figma uses "EUDI Diatype Semi Extended Medium", which is not bundled; the regular-width
+         * Diatype Medium is used instead. Swap the font here once the semi-extended medium is added.
+         */
+        val dialogTitle get() = ThemeTextStyle(
+            fontFamily = listOf(eudiDiatypeMedium),
+            fontWeight = ThemeFontWeight.W500,
+            fontSize = 24,
+            lineHeight = 28f,
+            letterSpacing = 0f,
+            textAlign = ThemeTextAlign.Center,
+        ).toTextStyle()
 
         val bottomNavigationLabelSelected get() = ThemeTextStyle(
             fontFamily = ThemeTypography.labelLargeProminent.fontFamily,

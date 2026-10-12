@@ -16,15 +16,21 @@
 
 package org.sprind.wallet.uilogic.component
 
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.AnimationVector1D
+import androidx.compose.animation.core.CubicBezierEasing
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentWidth
@@ -50,11 +56,15 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.platform.LocalTextToolbar
 import androidx.compose.ui.res.stringResource
@@ -72,6 +82,7 @@ import eu.europa.ec.uilogic.component.preview.PreviewTheme
 import eu.europa.ec.uilogic.component.preview.ThemeModeWithGermanAndEnglishPreviews
 import eu.europa.ec.uilogic.component.utils.BORDER_STROKE_1
 import eu.europa.ec.uilogic.component.utils.SIZE_LARGE
+import eu.europa.ec.uilogic.component.utils.SIZE_MEDIUM_LARGE
 import eu.europa.ec.uilogic.component.utils.SPACING_EXTRA_MEDIUM
 import eu.europa.ec.uilogic.component.utils.SPACING_EXTRA_SMALL
 import eu.europa.ec.uilogic.component.utils.SPACING_SMALL
@@ -79,8 +90,12 @@ import eu.europa.ec.uilogic.component.wrap.WrapIcon
 import eu.europa.ec.uilogic.component.wrap.WrapIconButton
 import eu.europa.ec.uilogic.extension.applyTestTag
 import eu.europa.ec.uilogic.extension.exposeTestTagsAsResourceId
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import org.sprind.wallet.component.PinDigitsOnlyTransformation
+import kotlin.math.hypot
+import kotlin.time.Duration.Companion.milliseconds
 
 /** Test tag of the single real input widget behind a [CodeEntryField]. */
 const val CODE_ENTRY_FIELD_TEST_TAG = "codeEntryField"
@@ -255,12 +270,13 @@ fun CodeEntryField(
     // Read once here rather than per cell, so the cells still follow a theme radius change.
     val cellShape = MaterialTheme.shapes.allCorneredShapeSmall
 
-    // fillMaxWidth + wrapContentWidth centres the block on screen while letting the column measure
-    // at the cell row's width, which is what keeps the error below width-constrained to the cells.
+    // fillMaxWidth + wrapContentWidth centres the block on screen; the intrinsic width sizes the
+    // column to the cell row, so the error below wraps within the cells instead of widening it.
     Column(
         modifier = modifier
             .fillMaxWidth()
-            .wrapContentWidth(Alignment.CenterHorizontally),
+            .wrapContentWidth(Alignment.CenterHorizontally)
+            .width(IntrinsicSize.Min),
         verticalArrangement = Arrangement.spacedBy(SPACING_SMALL.dp),
     ) {
         Row(
@@ -310,23 +326,39 @@ private fun CodeEntryError(
     text: String,
     modifier: Modifier = Modifier,
 ) {
+    val density = LocalDensity.current
+    // Centres the icon on the first line, also when the message wraps.
+    var firstLineHeight by remember { mutableStateOf(0.dp) }
+
     Row(
         modifier = modifier
             .fillMaxWidth()
+            // A fixed minimum, so the weighted layout around the cells does not move.
+            .heightIn(min = ERROR_ICON_SLOT_SIZE)
             .semantics(mergeDescendants = true) { },
         horizontalArrangement = Arrangement.spacedBy(SPACING_EXTRA_SMALL.dp),
         verticalAlignment = Alignment.Top,
     ) {
-        WrapIcon(
-            iconData = AppIcons.Warning,
-            modifier = Modifier.size(SIZE_LARGE.dp),
-            customTint = MaterialTheme.colorScheme.error,
-        )
+        Box(
+            modifier = Modifier.size(width = ERROR_ICON_SLOT_SIZE, height = firstLineHeight),
+            contentAlignment = Alignment.Center,
+        ) {
+            WrapIcon(
+                iconData = AppIcons.Warning,
+                modifier = Modifier.size(SIZE_MEDIUM_LARGE.dp),
+                customTint = MaterialTheme.colorScheme.error,
+            )
+        }
         Text(
             modifier = Modifier.weight(1f),
             text = text,
             style = MaterialTheme.typography.bodyLarge,
             color = MaterialTheme.colorScheme.error,
+            onTextLayout = { layout ->
+                firstLineHeight = with(density) {
+                    (layout.getLineBottom(0) - layout.getLineTop(0)).toDp()
+                }
+            },
         )
     }
 }
@@ -347,12 +379,16 @@ private fun CodeCells(
         horizontalArrangement = Arrangement.spacedBy(CELL_GAP),
         verticalAlignment = Alignment.CenterVertically,
     ) {
+        // The next cell to receive a digit, i.e. where the (invisible) cursor sits. Past the last
+        // index once the code is complete, so no cell matches and none is drawn as active.
+        val activeIndex = remember(buffer.revision) { buffer.length }
         repeat(buffer.capacity) { index ->
             CodeCell(
                 // Keyed on the revision rather than reading the array directly, which is what makes
                 // an erasable char array observable; see CodeEntryBuffer.revision.
                 digit = remember(buffer.revision) { buffer.digitAt(index) },
                 masked = masked,
+                isActive = index == activeIndex,
                 shape = cellShape,
             )
         }
@@ -364,46 +400,127 @@ private fun CodeCells(
  * a mask glyph; an empty cell stays `tertiaryContainer` behind a `tertiaryOutline` border.
  *
  * Masked cells stay filled on purpose: the user still needs to see how many digits have landed,
- * and the count is not the secret.
+ * and the count is not a secret.
+ *
+ * The empty cell that would receive the next digit — [isActive] — gets a highlighted outline, so
+ * the cell row doubles as a cursor without the invisible field showing one.
  */
 @Composable
 private fun CodeCell(
     digit: Char?,
     masked: Boolean,
+    isActive: Boolean,
     shape: Shape,
     modifier: Modifier = Modifier,
 ) {
     val filled = digit != null
 
+    val fillProgress = remember { Animatable(initialAnimatedValue(filled)) }
+    val dotAlpha = remember { Animatable(initialAnimatedValue(filled)) }
+
+    // previousFilled seed from the live value so first composition doesn't animate,
+    // and each reassigns before calling the suspending, cancellable animate function below — not
+    // after — so a canceled run (fast type-then-delete) can't leave the bookkeeping stale and
+    // desync the next transition's guard, freezing the Animatable wherever the canceled run left it.
+    var previousFilled by remember { mutableStateOf(filled) }
+    LaunchedEffect(filled) {
+        val wasFilled = previousFilled
+        previousFilled = filled
+        if (wasFilled != filled) {
+            animateFillChange(filled, fillProgress, dotAlpha)
+        }
+    }
+
+    val restingBackground = MaterialTheme.colorScheme.tertiaryContainer
+    val cellFillColor = MaterialTheme.colorScheme.primaryContainer
+
+    // The radius needed to fully cover the cell from its center is the distance to a corner, i.e.
+    // half the rectangle's diagonal. Computed once here, from the cell's fixed dp size, rather than
+    // every animation frame inside drawBehind below.
+    val maxFillRadiusPx = with(LocalDensity.current) {
+        hypot(CELL_WIDTH.toPx(), CELL_HEIGHT.toPx()) / 2f
+    }
+
     Box(
         modifier = modifier
             .width(CELL_WIDTH)
             .height(CELL_HEIGHT)
-            .background(
-                color = if (filled) {
-                    MaterialTheme.colorScheme.primaryContainer
-                } else {
-                    MaterialTheme.colorScheme.tertiaryContainer
-                },
-                shape = shape,
-            )
-            // Always in the chain, only the colour changes: dropping a modifier when the cell
-            // fills would restructure the node chain and force a re-layout instead of a redraw.
+            .clip(shape)
+            .drawBehind {
+                // fillProgress is read here, in the draw phase, rather than in CodeCell's own
+                // body, so its updates redraw this cell without recomposing or re-laying
+                // it out.
+                drawRect(color = restingBackground)
+                drawCircle(
+                    color = cellFillColor,
+                    radius = fillProgress.value * maxFillRadiusPx,
+                    center = center,
+                )
+            }
             .border(
-                width = BORDER_STROKE_1.dp,
-                color = if (filled) Color.Transparent else ThemeColors.tertiaryOutline,
+                width = if (isActive) ACTIVE_CELL_BORDER_WIDTH else BORDER_STROKE_1.dp,
+                color = when {
+                    filled -> Color.Transparent
+                    isActive -> ThemeColors.primaryButtonOutline
+                    else -> ThemeColors.tertiaryOutline
+                },
                 shape = shape,
             ),
         contentAlignment = Alignment.Center,
     ) {
         if (digit != null) {
-            Text(
-                text = if (masked) MASK_GLYPH else digit.toString(),
-                style = MaterialTheme.typography.titleLarge,
-                color = MaterialTheme.colorScheme.onPrimaryContainer,
-            )
+            // alpha is a lambda so dotAlpha.value is read in the draw phase (inside
+            // CodeCellDigit's graphicsLayer), not here, so this doesn't recompose every frame.
+            CodeCellDigit(digit = digit, masked = masked, alpha = { dotAlpha.value })
         }
     }
+}
+
+/** `1f` if a cell's animation should start already in its "arrived" state, `0f` otherwise. */
+private fun initialAnimatedValue(active: Boolean): Float = if (active) 1f else 0f
+
+/**
+ * The fill/dot choreography for one cell, split out of [CodeCell] to keep its Cognitive Complexity
+ * down.
+ *
+ * Doesn't touch the outline: becoming filled always coincides with losing `isActive` (typing only
+ * happens into the active cell).
+ */
+private suspend fun animateFillChange(
+    filled: Boolean,
+    fillProgress: Animatable<Float, AnimationVector1D>,
+    dotAlpha: Animatable<Float, AnimationVector1D>,
+) {
+    if (filled) {
+        coroutineScope {
+            launch {
+                fillProgress.animateTo(1f, tween(CELL_FILL_DURATION_MS, easing = CELL_EASING))
+            }
+            launch {
+                delay((CELL_FILL_DURATION_MS * CELL_DOT_DELAY_FRACTION).toLong().milliseconds)
+                dotAlpha.animateTo(1f, tween(CELL_DOT_DURATION_MS, easing = CELL_EASING))
+            }
+        }
+    } else {
+        fillProgress.snapTo(0f)
+        dotAlpha.snapTo(0f)
+    }
+}
+
+/**
+ * The digit, or its mask glyph, inside a filled [CodeCell].
+ *
+ * @param alpha a lambda, not a resolved `Float`, so it's read inside [Modifier.graphicsLayer]'s
+ *   draw-phase block rather than here — keeping the fade-in from recomposing the caller.
+ */
+@Composable
+private fun CodeCellDigit(digit: Char, masked: Boolean, alpha: () -> Float) {
+    Text(
+        modifier = Modifier.graphicsLayer { this.alpha = alpha() },
+        text = if (masked) MASK_GLYPH else digit.toString(),
+        style = MaterialTheme.typography.titleLarge,
+        color = MaterialTheme.colorScheme.onPrimaryContainer,
+    )
 }
 
 /**
@@ -527,8 +644,16 @@ private val CELL_WIDTH = 32.dp
 private val CELL_HEIGHT = 44.dp
 private val CELL_GAP = SPACING_EXTRA_MEDIUM.dp
 private val TOGGLE_SIZE = 44.dp
+private val ERROR_ICON_SLOT_SIZE = 28.dp
 private const val MASK_GLYPH = "•"
 private const val FOCUS_SETTLE_DELAY_MS = 300L
+
+// Per the Figma spec.
+private val CELL_EASING = CubicBezierEasing(0.4f, 0f, 0.2f, 1f)
+private const val CELL_FILL_DURATION_MS = 320
+private const val CELL_DOT_DURATION_MS = 200
+private const val CELL_DOT_DELAY_FRACTION = 0.35f
+private val ACTIVE_CELL_BORDER_WIDTH = 2.dp
 
 // Hoisted so the invisible field's per-keystroke recompositions allocate nothing.
 private val TRANSPARENT_SELECTION_COLORS = TextSelectionColors(

@@ -21,6 +21,7 @@ import android.net.Uri
 import androidx.lifecycle.viewModelScope
 import eu.europa.ec.uilogic.component.content.ContentErrorConfig
 import eu.europa.ec.uilogic.component.content.ContentHeaderConfig
+import eu.europa.ec.uilogic.component.dialog.GenericErrorDialogConfig
 import eu.europa.ec.uilogic.config.NavigationType
 import eu.europa.ec.uilogic.mvi.MviViewModel
 import eu.europa.ec.uilogic.mvi.ViewEvent
@@ -34,6 +35,7 @@ import androidx.core.net.toUri
 
 data class State(
     val error: ContentErrorConfig? = null,
+    val errorDialog: GenericErrorDialogConfig? = null,
     val headerConfig: ContentHeaderConfig,
     val isCancellable: Boolean,
     val notifyOnAuthenticationFailure: Boolean = false
@@ -114,14 +116,14 @@ abstract class LoadingViewModel : MviViewModel<Event, State, Effect>() {
 
             is Event.GoBack -> {
                 setState {
-                    copy(error = null)
+                    copy(error = null, errorDialog = null)
                 }
                 doNavigation(NavigationType.Pop)
             }
 
             is Event.DismissError -> {
                 setState {
-                    copy(error = null)
+                    copy(error = null, errorDialog = null)
                 }
             }
         }

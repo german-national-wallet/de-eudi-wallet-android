@@ -74,6 +74,7 @@ import eu.europa.ec.uilogic.component.content.ToolbarConfig
 import eu.europa.ec.uilogic.component.preview.PreviewTheme
 import eu.europa.ec.uilogic.component.preview.ThemeModeWithGermanAndEnglishPreviews
 import eu.europa.ec.uilogic.component.utils.SIZE_LARGE
+import eu.europa.ec.uilogic.component.utils.SIZE_MEDIUM_LARGE
 import eu.europa.ec.uilogic.component.utils.SPACING_EXTRA_SMALL
 import eu.europa.ec.uilogic.component.utils.SPACING_LARGE_32
 import eu.europa.ec.uilogic.component.utils.SPACING_MEDIUM
@@ -111,12 +112,15 @@ enum class ContentIllustrationPlacement { ABOVE_TITLE, BELOW_TEXT }
  * @property centerContent centres the body in the space it has instead of stacking it from the top,
  *   for the screens that are one short statement rather than something to read down — a success
  *   screen. Content taller than the screen still scrolls from the top.
+ * @property showScrollFade draws a soft shadow along the bottom of the scrolling body while more
+ *   content is hidden below it (e.g. behind sticky buttons); see [ScrollFadeIndicator].
  */
 @Immutable
 data class ContentTemplateConfig(
     val verticalSpacing: Dp = SPACING_LARGE_32.dp,
     val illustrationPlacement: ContentIllustrationPlacement = ContentIllustrationPlacement.ABOVE_TITLE,
     val centerContent: Boolean = false,
+    val showScrollFade: Boolean = false,
 )
 
 /**
@@ -232,52 +236,62 @@ fun ContentTemplateBody(
             // the rest of the content scrolls underneath it.
             progressContent?.invoke(this)
 
-            Column(
+            val scrollState = rememberScrollState()
+            Box(
                 modifier = Modifier
                     .weight(1f)
-                    .fillMaxWidth()
-                    .verticalScroll(rememberScrollState()),
-                verticalArrangement = if (templateConfig.centerContent) {
-                    Arrangement.spacedBy(
-                        space = templateConfig.verticalSpacing,
-                        alignment = Alignment.CenterVertically,
-                    )
-                } else {
-                    Arrangement.spacedBy(templateConfig.verticalSpacing)
-                },
+                    .fillMaxWidth(),
             ) {
-                if (illustration != null && templateConfig.illustrationPlacement == ContentIllustrationPlacement.ABOVE_TITLE) {
-                    CenteredIllustration(illustration)
-                }
-
-                Column(verticalArrangement = Arrangement.spacedBy(SPACING_MEDIUM.dp)) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .semantics(mergeDescendants = true) { heading() },
-                    ) {
-                        ProvideContentTemplateTextStyle(
-                            textStyle = style.titleTextStyle,
-                            color = style.contentColor,
-                            content = title,
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .verticalScroll(scrollState),
+                    verticalArrangement = if (templateConfig.centerContent) {
+                        Arrangement.spacedBy(
+                            space = templateConfig.verticalSpacing,
+                            alignment = Alignment.CenterVertically,
                         )
+                    } else {
+                        Arrangement.spacedBy(templateConfig.verticalSpacing)
+                    },
+                ) {
+                    if (illustration != null && templateConfig.illustrationPlacement == ContentIllustrationPlacement.ABOVE_TITLE) {
+                        CenteredIllustration(illustration)
                     }
-                    body?.let { bodySlot ->
-                        Box(modifier = Modifier.fillMaxWidth()) {
+
+                    Column(verticalArrangement = Arrangement.spacedBy(SPACING_MEDIUM.dp)) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .semantics(mergeDescendants = true) { heading() },
+                        ) {
                             ProvideContentTemplateTextStyle(
-                                textStyle = style.bodyTextStyle,
+                                textStyle = style.titleTextStyle,
                                 color = style.contentColor,
-                                content = bodySlot,
+                                content = title,
                             )
                         }
+                        body?.let { bodySlot ->
+                            Box(modifier = Modifier.fillMaxWidth()) {
+                                ProvideContentTemplateTextStyle(
+                                    textStyle = style.bodyTextStyle,
+                                    color = style.contentColor,
+                                    content = bodySlot,
+                                )
+                            }
+                        }
                     }
+
+                    if (illustration != null && templateConfig.illustrationPlacement == ContentIllustrationPlacement.BELOW_TEXT) {
+                        CenteredIllustration(illustration)
+                    }
+
+                    extraContent?.invoke(this)
                 }
 
-                if (illustration != null && templateConfig.illustrationPlacement == ContentIllustrationPlacement.BELOW_TEXT) {
-                    CenteredIllustration(illustration)
+                if (templateConfig.showScrollFade) {
+                    ScrollFadeIndicator(scrollState)
                 }
-
-                extraContent?.invoke(this)
             }
         }
     }
@@ -390,8 +404,10 @@ fun ContentNotice(
             icon?.let {
                 WrapIcon(
                     iconData = it,
-                    modifier = Modifier.size(SIZE_LARGE.dp),
-                    customTint = MaterialTheme.colorScheme.onSurface,
+                    modifier = Modifier
+                        .padding(top = MARK_TOP_INSET)
+                        .size(SIZE_MEDIUM_LARGE.dp),
+                    customTint = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
             Box(modifier = Modifier.weight(1f)) {
@@ -570,6 +586,8 @@ private fun Modifier.describedForAccessibility(description: String?): Modifier =
 private val ILLUSTRATION_HEIGHT = 184.dp
 private val ILLUSTRATION_CORNER = 24.dp
 private val NOTICE_CORNER = 12.dp
+
+private val MARK_TOP_INSET = 2.dp
 private val STEP_BAR_HEIGHT = 4.dp
 
 private const val STEP_IN_PROGRESS_FRACTION = 0.5f

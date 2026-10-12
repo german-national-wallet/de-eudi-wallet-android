@@ -27,7 +27,12 @@ import eu.europa.ec.uilogic.component.CancellableTopAppBar
 import eu.europa.ec.uilogic.component.content.ContentScreen
 import eu.europa.ec.uilogic.component.utils.SPACING_EXTRA_LARGE
 import eu.europa.ec.uilogic.component.utils.SPACING_SMALL
+import eu.europa.ec.uilogic.component.wrap.ButtonConfig
+import eu.europa.ec.uilogic.component.wrap.ButtonType
+import eu.europa.ec.uilogic.component.wrap.StickyBottomConfig
+import eu.europa.ec.uilogic.component.wrap.StickyBottomType
 import eu.europa.ec.uilogic.component.wrap.WrapImage
+import eu.europa.ec.uilogic.component.wrap.WrapStickyBottomContent
 import eu.europa.ec.uilogic.navigation.DashboardScreens
 import eu.europa.ec.uilogic.navigation.ModuleRoute
 
@@ -40,6 +45,24 @@ fun PresentationNoDocumentScreen(
             CancellableTopAppBar(
                 onCloseClick = { navController.navigateToDashboard() }
             )
+        },
+        stickyBottom = { paddingValues ->
+            WrapStickyBottomContent(
+                stickyBottomModifier = Modifier
+                    .fillMaxWidth()
+                    .padding(paddingValues),
+                stickyBottomConfig = StickyBottomConfig(
+                    showDivider = false,
+                    type = StickyBottomType.OneButton(
+                        config = ButtonConfig(
+                            type = ButtonType.PRIMARY,
+                            onClick = { navController.navigateToDashboard() }
+                        )
+                    )
+                )
+            ) {
+                Text(text = stringResource(R.string.global_to_overview_button))
+            }
         }
     ) { paddingValues ->
         PresentationNoDocumentContent(
@@ -58,7 +81,7 @@ private fun PresentationNoDocumentContent(modifier: Modifier = Modifier) {
     ) {
         Text(
             text = stringResource(
-                R.string.eaa_presentation_credential_not_found_title
+                R.string.eaa_issuance_no_valid_credential_title
             ),
             style = MaterialTheme.typography.titleLarge.copy(
                 color = MaterialTheme.colorScheme.primary,
@@ -88,7 +111,7 @@ private fun PresentationNoDocumentContent(modifier: Modifier = Modifier) {
                     shape = RoundedCornerShape(SPACING_SMALL.dp)
                 )
                 .padding(SPACING_SMALL.dp),
-            text = stringResource(R.string.eaa_presentation_credential_not_found_paragraph),
+            text = stringResource(R.string.eaa_issuance_no_valid_credential_paragraph),
             style = MaterialTheme.typography.bodyLarge.copy(
                 color = MaterialTheme.colorScheme.onBackground,
             )

@@ -23,6 +23,8 @@ import eu.europa.ec.commonfeature.config.RequestUriConfig
 import eu.europa.ec.commonfeature.config.toDomainConfig
 import eu.europa.ec.commonfeature.ui.request.model.RequestDocumentItemUi
 import eu.europa.ec.commonfeature.ui.request.transformer.RequestTransformer
+import eu.europa.ec.corelogic.controller.RejectPresentationPartialState
+import eu.europa.ec.corelogic.controller.RequestedCredentialSet
 import eu.europa.ec.corelogic.controller.SendRequestedDocumentsPartialState
 import eu.europa.ec.corelogic.controller.TransferEventPartialState
 import eu.europa.ec.corelogic.controller.WalletCoreDocumentsController
@@ -30,7 +32,11 @@ import eu.europa.ec.corelogic.controller.WalletCorePartialState
 import eu.europa.ec.corelogic.controller.WalletCorePresentationController
 import eu.europa.ec.corelogic.model.AuthenticationData
 import eu.europa.ec.corelogic.securearea.exception.RwscaServerException
+import eu.europa.ec.eudi.wallet.document.format.MsoMdocFormat
+import eu.europa.ec.eudi.wallet.document.format.SdJwtVcFormat
 import eu.europa.ec.resourceslogic.provider.ResourceProvider
+import org.sprind.wallet.corelogic.presentationerror.PresentationError
+import org.sprind.wallet.corelogic.presentationerror.mapToPresentationError
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
@@ -39,6 +45,10 @@ import kotlinx.coroutines.withTimeoutOrNull
 import org.sprind.wallet.commonfeature.interactor.DocumentDeletionPartialState
 import org.sprind.wallet.commonfeature.interactor.RwscaInteractor
 import org.sprind.wallet.commonfeature.interactor.deletePidDocumentsWithRwscaCleanup
+import org.sprind.wallet.corelogic.model.RelyingPartyRegistrationStatus
+import org.sprind.wallet.corelogic.model.forLocale
+import org.sprind.wallet.corelogic.model.rejectsRequest
+import org.sprind.wallet.corelogic.model.reportUri
 import java.net.URI
 
 sealed class PresentationRequestInteractorPartialState {
@@ -46,6 +56,8 @@ sealed class PresentationRequestInteractorPartialState {
         val verifierName: String?,
         val verifierIsTrusted: Boolean,
         val requestDocuments: List<RequestDocumentItemUi>,
+        val purpose: String? = null,
+        val reportUri: String? = null,
     ) : PresentationRequestInteractorPartialState()
 
     data class NoData(
@@ -53,8 +65,37 @@ sealed class PresentationRequestInteractorPartialState {
         val verifierIsTrusted: Boolean,
     ) : PresentationRequestInteractorPartialState()
 
-    data class Failure(val error: String) : PresentationRequestInteractorPartialState()
+    /** The wallet holds the requested credentials, but not the claims the request needs. */
+    data class Unsatisfiable(
+        val verifierName: String?,
+        val verifierIsTrusted: Boolean,
+    ) : PresentationRequestInteractorPartialState()
+
+    data class Rejected(
+        val verifierName: String?,
+        val reason: RequestRejectionReason,
+        val supervisoryAuthorityUri: String? = null,
+        val verifierAnswered: Boolean = false,
+    ) : PresentationRequestInteractorPartialState()
+
+    data class Failure(val error: PresentationError) : PresentationRequestInteractorPartialState()
     data object Disconnect : PresentationRequestInteractorPartialState()
+}
+
+sealed class PresentationRejectionPartialState {
+
+    data class Redirect(val uri: URI) : PresentationRejectionPartialState()
+
+    data object Delivered : PresentationRejectionPartialState()
+
+    data class Failure(val error: String) : PresentationRejectionPartialState()
+}
+
+enum class RequestRejectionReason {
+    OVER_ASKING,
+
+    /** Any certificate failure alike, so the screen does not reveal which check failed. */
+    NOT_REGISTERED,
 }
 
 sealed class PresentationRequestProcessPartialState {
@@ -62,7 +103,7 @@ sealed class PresentationRequestProcessPartialState {
         val authenticationData: List<AuthenticationData>,
     ) : PresentationRequestProcessPartialState()
 
-    data class Failure(val error: String) : PresentationRequestProcessPartialState()
+    data class Failure(val error: PresentationError) : PresentationRequestProcessPartialState()
     data object Success : PresentationRequestProcessPartialState()
     data class Redirect(val uri: URI) : PresentationRequestProcessPartialState()
     data object RequestReadyToBeSent : PresentationRequestProcessPartialState()
@@ -86,7 +127,7 @@ sealed class PresentationDocumentSubmissionPartialState {
             val traceId: String? = null,
             val backendErrorCode: String = errorCode.name,
         ) : Failure()
-        data object Unknown : Failure()
+        data class Unknown(val error: PresentationError) : Failure()
 
         enum class ServerErrorCode {
             RWSCD_ACCOUNT_UNKNOWN,
@@ -108,6 +149,9 @@ interface PresentationRequestInteractor {
     val initiatorRoute: String
     fun getRequestDocuments(): Flow<PresentationRequestInteractorPartialState>
     fun stopPresentation()
+
+    suspend fun rejectPresentation(): PresentationRejectionPartialState
+
     fun updateRequestedDocuments(items: List<RequestDocumentItemUi>)
     fun setConfig(config: RequestUriConfig)
     fun processRequest(): Flow<PresentationRequestProcessPartialState>
@@ -152,16 +196,31 @@ class PresentationRequestInteractorImpl(
             when (response) {
                 is TransferEventPartialState.RequestReceived -> {
                     when {
+                        // First, so a rejected request never reaches the consent screen.
+                        response.relyingPartyRegistration.rejectsRequest -> {
+                            rejectRequest(
+                                verifierName = response.verifierName,
+                                registration = response.relyingPartyRegistration,
+                            )
+                        }
+
                         // Nothing in the wallet can satisfy the request. Note this is not the
                         // same as "the verifier named no claims": per OpenID4VP §6.4.1 a
                         // Credential Query without `claims` asks for a presentation that
                         // discloses nothing beyond holding the credential, which is a request
                         // the user still has to consent to.
                         response.requestData.isEmpty() -> {
-                            PresentationRequestInteractorPartialState.NoData(
-                                verifierName = response.verifierName,
-                                verifierIsTrusted = response.verifierIsTrusted,
-                            )
+                            if (holdsRequestedCredentials(response.requestedCredentialSets)) {
+                                PresentationRequestInteractorPartialState.Unsatisfiable(
+                                    verifierName = response.verifierName,
+                                    verifierIsTrusted = response.verifierIsTrusted,
+                                )
+                            } else {
+                                PresentationRequestInteractorPartialState.NoData(
+                                    verifierName = response.verifierName,
+                                    verifierIsTrusted = response.verifierIsTrusted,
+                                )
+                            }
                         }
 
                         else -> {
@@ -183,7 +242,12 @@ class PresentationRequestInteractorImpl(
                                     requestDocuments = transformer.transformToUiItems(
                                         documentsDomain = documentsDomain,
                                         resourceProvider = resourceProvider,
-                                    )
+                                    ),
+                                    purpose = (response.relyingPartyRegistration
+                                            as? RelyingPartyRegistrationStatus.WithinRegisteredScope)
+                                        ?.purpose
+                                        ?.forLocale(resourceProvider.getLocale()),
+                                    reportUri = response.relyingPartyRegistration.reportUri,
                                 )
                             } else {
                                 PresentationRequestInteractorPartialState.NoData(
@@ -193,6 +257,13 @@ class PresentationRequestInteractorImpl(
                             }
                         }
                     }
+                }
+
+                is TransferEventPartialState.RelyingPartyNotRegistered -> {
+                    rejectRequest(
+                        verifierName = null,
+                        registration = response.relyingPartyRegistration,
+                    ).copy(verifierAnswered = true)
                 }
 
                 is TransferEventPartialState.Error -> {
@@ -207,13 +278,66 @@ class PresentationRequestInteractorImpl(
             }
         }.safeAsync {
             PresentationRequestInteractorPartialState.Failure(
-                error = it.localizedMessage ?: genericErrorMsg
+                error = PresentationError.Unclassified(
+                    traceId = null,
+                    cause = it,
+                    displayMessage = it.localizedMessage ?: genericErrorMsg,
+                )
             )
         }
+
+    /**
+     * Whether the wallet holds, for every required credential set, all credential types of at
+     * least one option, so that only the requested claims stand in the way.
+     */
+    private fun holdsRequestedCredentials(requestedSets: List<RequestedCredentialSet>?): Boolean {
+        if (requestedSets.isNullOrEmpty()) return false
+        val heldTypes = walletCoreDocumentsController.getAllIssuedDocuments()
+            .map { document ->
+                when (val format = document.format) {
+                    is MsoMdocFormat -> format.docType
+                    is SdJwtVcFormat -> format.vct
+                }
+            }
+            .toSet()
+        return requestedSets.filter { it.required }.all { set ->
+            set.options.any { option ->
+                option.all { acceptedTypes -> acceptedTypes.any { it in heldTypes } }
+            }
+        }
+    }
+
+    /** Must not stop the presentation, that would cancel the flow still delivering this state. */
+    private fun rejectRequest(
+        verifierName: String?,
+        registration: RelyingPartyRegistrationStatus,
+    ): PresentationRequestInteractorPartialState.Rejected =
+        PresentationRequestInteractorPartialState.Rejected(
+            verifierName = verifierName,
+            reason = when (registration) {
+                is RelyingPartyRegistrationStatus.OverAsking -> RequestRejectionReason.OVER_ASKING
+                else -> RequestRejectionReason.NOT_REGISTERED
+            },
+            supervisoryAuthorityUri = registration.reportUri,
+        )
 
     override fun stopPresentation() {
         walletCorePresentationController.stopPresentation()
     }
+
+    override suspend fun rejectPresentation(): PresentationRejectionPartialState =
+        when (val result = walletCorePresentationController.rejectPresentation()) {
+            is RejectPresentationPartialState.Redirect ->
+                PresentationRejectionPartialState.Redirect(uri = result.uri)
+
+            is RejectPresentationPartialState.Delivered ->
+                PresentationRejectionPartialState.Delivered
+
+            is RejectPresentationPartialState.Failure -> {
+                logController.d(logTag) { "rejectPresentation: ${result.error}" }
+                PresentationRejectionPartialState.Failure(error = result.error)
+            }
+        }
 
     override fun updateRequestedDocuments(items: List<RequestDocumentItemUi>) {
         val disclosedDocuments = RequestTransformer().createDisclosedDocuments(items)
@@ -266,7 +390,13 @@ class PresentationRequestInteractorImpl(
                         backendErrorCode = exception.errorCode,
                     )
 
-                    else -> PresentationDocumentSubmissionPartialState.Failure.Unknown
+                    else -> PresentationDocumentSubmissionPartialState.Failure.Unknown(
+                        error = mapToPresentationError(
+                            throwable = result.throwable,
+                            traceId = result.traceId,
+                            genericErrorMessage = genericErrorMsg,
+                        ),
+                    )
                 }
             }
         }

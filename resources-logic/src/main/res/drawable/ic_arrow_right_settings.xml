@@ -1,0 +1,28 @@
+<!--
+  ~ Copyright (c) 2026 European Commission
+  ~
+  ~ Licensed under the Apache License, Version 2.0 (the "License");
+  ~ you may not use this file except in compliance with the License.
+  ~ You may obtain a copy of the License at
+  ~
+  ~      http://www.apache.org/licenses/LICENSE-2.0
+  ~
+  ~ Unless required by applicable law or agreed to in writing, software
+  ~ distributed under the License is distributed on an "AS IS" BASIS,
+  ~ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  ~ See the License for the specific language governing permissions and
+  ~ limitations under the License.
+  -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="28dp"
+    android:height="28dp"
+    android:viewportWidth="28"
+    android:viewportHeight="28">
+  <group
+      android:translateX="4.8125"
+      android:translateY="4.8125">
+    <path
+        android:pathData="M10.3359 3.44531L9.5148 4.2452L13.8674 8.61328H2.29688V9.76172H13.8674L9.5148 14.1103L10.3359 14.9297L16.0781 9.1875L10.3359 3.44531Z"
+        android:fillColor="#1D1D1E"/>
+  </group>
+</vector>

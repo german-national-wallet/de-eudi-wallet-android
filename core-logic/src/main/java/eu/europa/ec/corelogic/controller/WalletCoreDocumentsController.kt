@@ -35,9 +35,11 @@ import eu.europa.ec.corelogic.handler.AusweisSdkAuthorizationHandler
 import eu.europa.ec.corelogic.model.DeferredDocumentDataDomain
 import eu.europa.ec.corelogic.model.DocumentIdentifier
 import eu.europa.ec.corelogic.model.FormatType
+import eu.europa.ec.corelogic.model.ScopedDocumentDomain
 import eu.europa.ec.corelogic.model.isPid
 import eu.europa.ec.corelogic.model.toDocumentIdentifier
-import eu.europa.ec.corelogic.model.ScopedDocumentDomain
+import eu.europa.ec.eudi.openid4vci.AttestationBasedClientAuthenticationSpec
+import eu.europa.ec.eudi.openid4vci.CIAuthorizationServerMetadata
 import eu.europa.ec.eudi.openid4vci.CredentialConfigurationIdentifier
 import eu.europa.ec.eudi.openid4vci.CredentialIssuerMetadata
 import eu.europa.ec.eudi.openid4vci.MsoMdocCredential
@@ -63,8 +65,13 @@ import eu.europa.ec.resourceslogic.provider.ResourceProvider
 import io.ktor.client.HttpClient
 import io.ktor.client.request.post
 import io.ktor.client.statement.bodyAsText
+import io.opentelemetry.api.common.AttributeKey
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.CoroutineExceptionHandler
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.channels.ProducerScope
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.channels.trySendBlocking
@@ -79,18 +86,22 @@ import kotlinx.coroutines.withContext
 import org.json.JSONObject
 import org.multipaz.securearea.AndroidKeystoreCreateKeySettings
 import org.multipaz.securearea.UserAuthenticationType
+import org.sprind.wallet.analyticslogic.controller.Telemetry
+import org.sprind.wallet.analyticslogic.controller.TelemetryConstants
+import org.sprind.wallet.businesslogic.util.SpanAttributes
+import org.sprind.wallet.corelogic.config.PidConfigurationOverridesProvider
 import org.sprind.wallet.corelogic.controller.ReissueDocumentPartialState
+import org.sprind.wallet.corelogic.issuance.isGrantRejection
+import org.sprind.wallet.corelogic.issuance.isIssuerMetadataVerificationFailure
+import org.sprind.wallet.corelogic.securearea.RwscaCreateKeySettings
 import org.sprind.wallet.corelogic.securearea.RwscaSecureArea
 import java.net.URLDecoder
 import java.util.Locale
-import org.sprind.wallet.analyticslogic.controller.Telemetry
-import org.sprind.wallet.analyticslogic.controller.TelemetryConstants
-import org.sprind.wallet.corelogic.securearea.RwscaCreateKeySettings
-import io.opentelemetry.api.common.AttributeKey
-import org.sprind.wallet.businesslogic.util.SpanAttributes
 import kotlin.time.Duration.Companion.seconds
 
 private const val REISSUE_DOCUMENT_LOG_TAG = "reissueDocument: "
+private const val CREDENTIAL_CONFIG_ID_LOG_TAG = "CredentialConfigId"
+private const val ISSUANCE_EVENT_LOG_TAG = "IssuanceEvent"
 
 enum class IssuanceMethod {
     OPENID4VCI
@@ -133,13 +144,27 @@ sealed class IssueDocumentsPartialState {
         val nonIssuedDocuments: Map<String, String>,
     ) : IssueDocumentsPartialState()
 
-    data class Failure(val errorMessage: String) : IssueDocumentsPartialState()
+    data class Failure(
+        val errorMessage: String,
+        /** The token endpoint rejected the grant, i.e. the transaction code was wrong. */
+        val isGrantRejection: Boolean = false,
+        /** The issuer's signed metadata could not be verified; [errorMessage] says so. */
+        val isIssuerNotVerified: Boolean = false,
+    ) : IssueDocumentsPartialState()
     data class UserAuthRequired(
         val crypto: BiometricCrypto,
         val resultHandler: DeviceAuthenticationResult,
     ) : IssueDocumentsPartialState()
 
     data class RefreshTokenReceived(val refreshToken: String) : IssueDocumentsPartialState()
+
+    /**
+     * The authorization-code flow completed browser authorization and is
+     * paused just before credential creation/submission, waiting for
+     * [WalletCoreDocumentsController.continueIssuanceAfterConsent]. Never
+     * emitted for pre-authorized offers.
+     */
+    data object AwaitingConsent : IssueDocumentsPartialState()
 }
 
 sealed class DeleteDocumentPartialState {
@@ -293,6 +318,15 @@ interface WalletCoreDocumentsController {
     fun resumeOpenId4VciWithAuthorization(uri: String)
 
     /**
+     * Resumes an authorization-code-flow issuance that is paused at
+     * [IssueDocumentsPartialState.AwaitingConsent], after the user has
+     * confirmed consent.
+     *
+     * No-op if no issuance is currently awaiting consent.
+     */
+    suspend fun continueIssuanceAfterConsent()
+
+    /**
      * Clears in-memory OpenID4VCI state for the PID issuer.
      *
      * Call this after terminal PID deletion, once the rWSCA account and local PID documents are
@@ -303,15 +337,6 @@ interface WalletCoreDocumentsController {
 
     suspend fun getScopedDocuments(locale: Locale): FetchScopedDocumentsPartialState
 
-    /**
-     * Resolves the preferred PID configuration IDs to issue, based on what the
-     * PID issuer actually advertises. Preference order is defined by
-     * [WalletCoreDocumentsController.PID_FORMAT_FAMILIES] (beta before stable).
-     *
-     * Returns the non-empty set of preferred configuration IDs, or
-     * [ResolvePreferredPidConfigurationsPartialState.NoPidConfigurationsAdvertised]
-     * if the issuer advertises no recognized PID configuration at all.
-     */
     suspend fun resolvePreferredPidConfigurations():
         ResolvePreferredPidConfigurationsPartialState
 
@@ -319,7 +344,6 @@ interface WalletCoreDocumentsController {
         // The configuration IDs that we expect PID Provider to use for mdoc/SD-JWT versions of
         // PID - we decided in WD-2263 to recognize PIDs from these rather than from their
         // respective doctype (mdoc) or VCT (SD-JWT). These values may change over time.
-        // TODO: Consider turning these values into Feature Flags?
         val PID_CONFIGURATION_ID_MDOC = CredentialConfigurationIdentifier("pid-mso-mdoc")
         val PID_CONFIGURATION_ID_MDOC_2_BETA = CredentialConfigurationIdentifier("pid-mso-mdoc_2-beta")
         val PID_CONFIGURATION_ID_SD_JWT = CredentialConfigurationIdentifier("pid-sd-jwt")
@@ -352,19 +376,27 @@ interface WalletCoreDocumentsController {
         val PIDS_ALL_CONFIGURATION_IDS: Set<CredentialConfigurationIdentifier> =
             PID_FORMAT_FAMILIES.flatMap { it.configurationIds }.toSet()
 
-        /**
-         * Picks, for each PID format family, the highest-preference configuration ID
-         * that the issuer actually advertises in [advertised]. Returns the union of
-         * the picks. Ordering inside [PidFormatFamily.configurationIds] = preference
-         * order (newest/beta first). If the issuer advertises nothing for a family,
-         * that family contributes nothing.
-         */
         internal fun resolvePreferredPidConfigurationIds(
             advertised: Set<CredentialConfigurationIdentifier>,
+            mdocOverride: CredentialConfigurationIdentifier? = null,
+            sdJwtOverride: CredentialConfigurationIdentifier? = null,
         ): Set<CredentialConfigurationIdentifier> =
-            PID_FORMAT_FAMILIES
-                .mapNotNull { family -> family.configurationIds.firstOrNull { it in advertised } }
+            listOf(PID_MSO_MDOC_FAMILY to mdocOverride, PID_SD_JWT_FAMILY to sdJwtOverride)
+                .mapNotNull { (family, override) ->
+                    override ?: family.configurationIds.firstOrNull { it in advertised }
+                }
                 .toSet()
+
+        internal fun isPidOffer(
+            configurationId: CredentialConfigurationIdentifier,
+            formatType: FormatType?,
+            issuerId: String,
+            knownPidConfigurationIds: Set<CredentialConfigurationIdentifier>,
+            pidIssuerUrl: String,
+        ): Boolean =
+            configurationId in knownPidConfigurationIds ||
+                (formatType?.toDocumentIdentifier()?.isPid == true &&
+                    issuerId.trimEnd('/') == pidIssuerUrl.trimEnd('/'))
     }
 }
 
@@ -379,6 +411,7 @@ class WalletCoreDocumentsControllerImpl(
     private val logController: LogController,
     private val ktorHttpClientFactory: (() -> HttpClient)?,
     private val telemetry: Telemetry,
+    private val pidConfigurationOverridesProvider: PidConfigurationOverridesProvider,
     private val dispatcher: CoroutineDispatcher = Dispatchers.IO,
 ) : WalletCoreDocumentsController {
     /**
@@ -420,14 +453,72 @@ class WalletCoreDocumentsControllerImpl(
     @Volatile
     private var cachedOffer: Pair<String, Offer>? = null
 
+    /**
+     * Holds the "resume" side of a held [IssueEvent.DocumentRequiresCreateSettings]
+     * for the authorization-code flow's consent gate.
+     *
+     * For an offer whose grant requires browser authorization (as opposed to
+     * pre-authorized issuance), the app starts issuance immediately on offer
+     * resolve so the browser opens without waiting for a consent tap. Once
+     * the browser returns, [issuanceCallback] intercepts the *first*
+     * [IssueEvent.DocumentRequiresCreateSettings] instead of auto-resuming
+     * it, stashing the resume action here and emitting
+     * [IssueDocumentsPartialState.AwaitingConsent] so the UI can show consent
+     * only now, after authorization. [continueIssuanceAfterConsent] invokes
+     * it once the user confirms.
+     *
+     * Single-entry: only one issuance flow is active at a time.
+     */
+    @Volatile
+    private var pendingConsentResume: (suspend () -> Unit)? = null
+
     private val _issuanceState = MutableSharedFlow<IssueDocumentsPartialState>(replay = 1)
     override val issuanceState: SharedFlow<IssueDocumentsPartialState> = _issuanceState
+
+    /**
+     * Scope for handling [IssueEvent]s that need suspending work.
+     *
+     * Deliberately not the issuance [callbackFlow]'s [ProducerScope]: in the
+     * authorization-code flow the UI stops collecting that flow at the consent
+     * gate ([IssueDocumentsPartialState.AwaitingConsent]), which cancels the
+     * producer scope. Events that arrive after consent (e.g.
+     * [IssueEvent.DocumentRequiresUserAuth]) would then be launched into a
+     * cancelled scope and silently dropped, leaving the issuance suspended.
+     *
+     * Because a [SupervisorJob] does not propagate child failures, handlers must be
+     * started via [launchIssuanceEventHandler], which turns exceptions into an
+     * [IssueDocumentsPartialState.Failure] (as the producer scope's `safeAsync` did
+     * before). The [CoroutineExceptionHandler] is only a backstop so that an
+     * unexpected failure is logged instead of crashing the app.
+     */
+    private val issuanceEventScope = CoroutineScope(
+        SupervisorJob() + dispatcher + CoroutineExceptionHandler { _, throwable ->
+            logController.e(ISSUANCE_EVENT_LOG_TAG, throwable)
+        }
+    )
 
     private val genericErrorMessage
         get() = resourceProvider.genericErrorMessage()
 
     private val documentErrorMessage
         get() = resourceProvider.getString(R.string.issuance_generic_error)
+
+    private fun Throwable.issuanceErrorMessage(fallback: String): String =
+        if (isIssuerMetadataVerificationFailure()) {
+            resourceProvider.getString(R.string.issuance_issuer_not_verified_error)
+        } else {
+            fallback
+        }
+
+    private fun Throwable.toIssueDocumentsFailure(fallback: String) = IssueDocumentsPartialState.Failure(
+        errorMessage = issuanceErrorMessage(fallback),
+        isGrantRejection = isGrantRejection(),
+        isIssuerNotVerified = isIssuerMetadataVerificationFailure(),
+    )
+
+    private fun IssueDocumentsPartialState.Failure.toIssueDocumentFailure() = IssueDocumentPartialState.Failure(
+        errorMessage = if (isIssuerNotVerified) errorMessage else documentErrorMessage
+    )
 
     private val openId4VciManagersDelegate = lazy {
         walletCoreConfig.vciConfig.keys.associateWithTo(mutableMapOf()) { issuerUrl ->
@@ -451,6 +542,7 @@ class WalletCoreDocumentsControllerImpl(
         return withContext(dispatcher) {
             runCatching {
 
+                val knownPidConfigurationIds = knownPidConfigurationIds()
                 val metadata: Map<String, CredentialIssuerMetadata> =
                     openId4VciManagers.mapValues { (issuerUrl, manager) ->
                         manager.getIssuerMetadata(issuerUrl).getOrThrow()
@@ -465,7 +557,7 @@ class WalletCoreDocumentsControllerImpl(
                                 fallback = id.value
                             )
 
-                            val isPid = PIDS_ALL_CONFIGURATION_IDS.contains(id)
+                            val isPid = id in knownPidConfigurationIds
 
                             val formatType = when (config) {
                                 is MsoMdocCredential -> config.docType
@@ -500,13 +592,25 @@ class WalletCoreDocumentsControllerImpl(
         ResolvePreferredPidConfigurationsPartialState =
         withContext(dispatcher) {
             runCatching {
-                val manager = getManagerForIssuer(pidIssuerUrl)
-                val metadata = manager.getIssuerMetadata(pidIssuerUrl).getOrThrow()
-                val advertised = metadata.credentialConfigurationsSupported.keys
-                val preferred =
-                    WalletCoreDocumentsController.resolvePreferredPidConfigurationIds(advertised)
-                logController.d("WalletCoreDocumentsController") {
-                    "PID config preference: advertised=${advertised.sortedBy { it.value }}, " +
+                val (mdocOverride, sdJwtOverride) = pidConfigurationOverrides()
+                // Both formats pinned by FeatureHub: nothing to pick from the issuer metadata.
+                val advertised = if (mdocOverride != null && sdJwtOverride != null) {
+                    emptySet()
+                } else {
+                    getManagerForIssuer(pidIssuerUrl)
+                        .getIssuerMetadata(pidIssuerUrl)
+                        .getOrThrow()
+                        .credentialConfigurationsSupported
+                        .keys
+                }
+                val preferred = WalletCoreDocumentsController.resolvePreferredPidConfigurationIds(
+                    advertised = advertised,
+                    mdocOverride = mdocOverride,
+                    sdJwtOverride = sdJwtOverride,
+                )
+                logController.d(CREDENTIAL_CONFIG_ID_LOG_TAG) {
+                    "PID config preference: overrides=[$mdocOverride, $sdJwtOverride], " +
+                        "advertised=${advertised.sortedBy { it.value }}, " +
                         "selected=${preferred.sortedBy { it.value }}"
                 }
                 if (preferred.isEmpty()) {
@@ -520,6 +624,15 @@ class WalletCoreDocumentsControllerImpl(
                 )
             }
         }
+
+    private fun pidConfigurationOverrides(): Pair<CredentialConfigurationIdentifier?, CredentialConfigurationIdentifier?> {
+        val overrides = pidConfigurationOverridesProvider.overrides()
+        return overrides.mdoc?.let(::CredentialConfigurationIdentifier) to
+            overrides.sdJwt?.let(::CredentialConfigurationIdentifier)
+    }
+
+    private fun knownPidConfigurationIds(): Set<CredentialConfigurationIdentifier> =
+        PIDS_ALL_CONFIGURATION_IDS + pidConfigurationOverrides().toList().filterNotNull()
 
     override fun getAllDocumentsByType(documentIdentifiers: List<DocumentIdentifier>): List<IssuedDocument> =
         getAllDocuments()
@@ -557,11 +670,7 @@ class WalletCoreDocumentsControllerImpl(
             IssuanceMethod.OPENID4VCI -> {
                 issueDocumentWithOpenId4VCI(configId, issuerId).collect { response ->
                     when (response) {
-                        is IssueDocumentsPartialState.Failure -> emit(
-                            IssueDocumentPartialState.Failure(
-                                errorMessage = documentErrorMessage
-                            )
-                        )
+                        is IssueDocumentsPartialState.Failure -> emit(response.toIssueDocumentFailure())
 
                         is IssueDocumentsPartialState.Success -> emit(
                             IssueDocumentPartialState.Success(
@@ -591,12 +700,16 @@ class WalletCoreDocumentsControllerImpl(
                         is IssueDocumentsPartialState.RefreshTokenReceived -> {
                             hardwareKeyStorageController.saveRefreshToken(response.refreshToken)
                         }
+
+                        // Only emitted for the authorization-code flow's consent gate,
+                        // which this call site never arms (requiresConsentGate = false).
+                        is IssueDocumentsPartialState.AwaitingConsent -> Unit
                     }
                 }
             }
         }
     }.safeAsync {
-        IssueDocumentPartialState.Failure(errorMessage = documentErrorMessage)
+        IssueDocumentPartialState.Failure(errorMessage = it.issuanceErrorMessage(documentErrorMessage))
     }
 
 
@@ -614,11 +727,7 @@ class WalletCoreDocumentsControllerImpl(
                     walletInstanceAttestationSpec = walletInstanceAttestationSpec
                 ).collect { response ->
                     when (response) {
-                        is IssueDocumentsPartialState.Failure -> emit(
-                            IssueDocumentPartialState.Failure(
-                                errorMessage = documentErrorMessage
-                            )
-                        )
+                        is IssueDocumentsPartialState.Failure -> emit(response.toIssueDocumentFailure())
 
                         is IssueDocumentsPartialState.Success -> {
                             // It's impossible to have empty response.documentsIds in this case
@@ -663,12 +772,16 @@ class WalletCoreDocumentsControllerImpl(
                         is IssueDocumentsPartialState.RefreshTokenReceived -> {
                             hardwareKeyStorageController.saveRefreshToken(response.refreshToken)
                         }
+
+                        // Only emitted for the authorization-code flow's consent gate,
+                        // which this call site never arms (requiresConsentGate = false).
+                        is IssueDocumentsPartialState.AwaitingConsent -> Unit
                     }
                 }
             }
         }
     }.safeAsync {
-        IssueDocumentPartialState.Failure(errorMessage = documentErrorMessage)
+        IssueDocumentPartialState.Failure(errorMessage = it.issuanceErrorMessage(documentErrorMessage))
     }
 
     override fun issueDocumentAttested(
@@ -728,9 +841,7 @@ class WalletCoreDocumentsControllerImpl(
             }
             awaitClose()
         }.safeAsync {
-            IssueDocumentsPartialState.Failure(
-                errorMessage = documentErrorMessage
-            )
+            it.toIssueDocumentsFailure(documentErrorMessage)
         }
 
     /**
@@ -746,12 +857,21 @@ class WalletCoreDocumentsControllerImpl(
             .credentialIssuerIdentifier
             .toString()
 
-        val manager = getManagerForIssuer(issuerId)
+        val manager = getManagerForIssuer(
+            httpsUrl = issuerId,
+            authorizationServerMetadata = offer.credentialOffer.authorizationServerMetadata,
+        )
         pendingAuthorizationIssuerUrl = issuerId
+
+        // Offers without a pre-authorized-code grant require the browser-based
+        // authorization-code flow. For those, the consent gate withholds the
+        // first DocumentRequiresCreateSettings resume until the user confirms
+        // consent (which is now shown only after authorization completes).
+        val requiresConsentGate = offer.credentialOffer.grants?.preAuthorizedCode() == null
 
         manager.issueDocumentByOffer(
             offer = offer,
-            onIssueEvent = issuanceCallback(),
+            onIssueEvent = issuanceCallback(requiresConsentGate),
             txCode = txCode,
         )
     }
@@ -885,7 +1005,9 @@ class WalletCoreDocumentsControllerImpl(
                     is OfferResult.Failure -> {
                         trySendBlocking(
                             ResolveDocumentOfferPartialState.Failure(
-                                result.cause.localizedMessage ?: genericErrorMessage
+                                result.cause.issuanceErrorMessage(
+                                    result.cause.localizedMessage ?: genericErrorMessage
+                                )
                             )
                         )
                     }
@@ -902,7 +1024,7 @@ class WalletCoreDocumentsControllerImpl(
             awaitClose()
         }.safeAsync {
             ResolveDocumentOfferPartialState.Failure(
-                errorMessage = it.localizedMessage ?: genericErrorMessage
+                errorMessage = it.issuanceErrorMessage(it.localizedMessage ?: genericErrorMessage)
             )
         }
 
@@ -925,8 +1047,9 @@ class WalletCoreDocumentsControllerImpl(
                                 trySendBlocking(
                                     IssueDeferredDocumentPartialState.Failed(
                                         documentId = deferredIssuanceResult.documentId,
-                                        errorMessage = deferredIssuanceResult.cause.localizedMessage
-                                            ?: documentErrorMessage
+                                        errorMessage = deferredIssuanceResult.cause.issuanceErrorMessage(
+                                            deferredIssuanceResult.cause.localizedMessage ?: documentErrorMessage
+                                        )
                                     )
                                 )
                             }
@@ -969,7 +1092,7 @@ class WalletCoreDocumentsControllerImpl(
         }.safeAsync {
             IssueDeferredDocumentPartialState.Failed(
                 documentId = document.id,
-                errorMessage = it.localizedMessage ?: genericErrorMessage
+                errorMessage = it.issuanceErrorMessage(it.localizedMessage ?: genericErrorMessage)
             )
         }
 
@@ -1144,6 +1267,16 @@ class WalletCoreDocumentsControllerImpl(
         }
     }
 
+    override suspend fun continueIssuanceAfterConsent() {
+        // Clears the stale AwaitingConsent value replayed by _issuanceState so
+        // a caller awaiting the next (terminal) state doesn't immediately
+        // re-match it instead of waiting for the real outcome.
+        _issuanceState.resetReplayCache()
+        val resume = pendingConsentResume
+        pendingConsentResume = null
+        resume?.invoke()
+    }
+
     private fun emitResumeFailure() {
         val state = IssueDocumentsPartialState.Failure(
             errorMessage = resourceProvider.getString(R.string.issuance_interrupted_error)
@@ -1190,18 +1323,15 @@ class WalletCoreDocumentsControllerImpl(
             val manager = getManagerForIssuer(issuerId)
             pendingAuthorizationIssuerUrl = issuerId
 
-            manager.issueDocumentByConfigurationIdentifier(
+            manager.issueDocumentByConfigurationIdentifiers(
                 issuerUrl = issuerId,
-                credentialConfigurationId = configId,
+                credentialConfigurationIds = listOf(configId),
                 onIssueEvent = issuanceCallback()
             )
 
             awaitClose()
-
         }.safeAsync {
-            IssueDocumentsPartialState.Failure(
-                errorMessage = documentErrorMessage
-            )
+            it.toIssueDocumentsFailure(documentErrorMessage)
         }
 
     private fun issueDocumentWithOpenId4VCIAttested(
@@ -1215,6 +1345,9 @@ class WalletCoreDocumentsControllerImpl(
             val manager = getManagerForIssuer(issuerId)
             pendingAuthorizationIssuerUrl = issuerId
 
+            logController.d(CREDENTIAL_CONFIG_ID_LOG_TAG) {
+                "Issuing configIds=$configIds from issuer=$issuerId"
+            }
             manager.issueDocumentByConfigurationIdentifiersAttested(
                 issuerUrl = issuerId,
                 credentialConfigurationIds = configIds,
@@ -1226,17 +1359,18 @@ class WalletCoreDocumentsControllerImpl(
 
             awaitClose()
         }.safeAsync {
-            IssueDocumentsPartialState.Failure(
-                errorMessage = documentErrorMessage
-            )
+            it.toIssueDocumentsFailure(documentErrorMessage)
         }
 
-    private fun ProducerScope<IssueDocumentsPartialState>.issuanceCallback(): OpenId4VciManager.OnIssueEvent {
+    private fun ProducerScope<IssueDocumentsPartialState>.issuanceCallback(
+        requiresConsentGate: Boolean = false,
+    ): OpenId4VciManager.OnIssueEvent {
 
         var totalDocumentsToBeIssued = 0
         val nonIssuedDocuments: MutableMap<FormatType, String> = mutableMapOf()
         val deferredDocuments: MutableMap<DocumentId, FormatType> = mutableMapOf()
         val issuedDocuments: MutableMap<DocumentId, FormatType> = mutableMapOf()
+        var consentGatePending = requiresConsentGate
 
         val listener = OpenId4VciManager.OnIssueEvent { event ->
             when (event) {
@@ -1245,32 +1379,53 @@ class WalletCoreDocumentsControllerImpl(
                 }
 
                 is IssueEvent.DocumentRequiresCreateSettings -> {
-                    launch {
-                        // BEGIN EUDI-changed
-                        handleDocumentRequiresCreateSettings(event)
-                        // END EUDI-changed
+                    if (consentGatePending) {
+                        // Authorization just completed. Withhold the resume until the
+                        // user confirms consent instead of auto-resuming immediately;
+                        // only the first document's event gates — subsequent ones (for
+                        // multi-document offers) auto-resume normally below.
+                        consentGatePending = false
+                        pendingConsentResume = suspend {
+                            // BEGIN EUDI-changed
+                            handleDocumentRequiresCreateSettings(event)
+                            // END EUDI-changed
+                        }
+                        val state = IssueDocumentsPartialState.AwaitingConsent
+                        trySendBlocking(state)
+                        _issuanceState.tryEmit(state)
+                    } else {
+                        // See issuanceEventScope: the producer scope may already be
+                        // cancelled for the remaining documents of a consent-gated offer.
+                        launchIssuanceEventHandler(cancelIssuance = { event.cancelIssuance() }) {
+                            // BEGIN EUDI-changed
+                            handleDocumentRequiresCreateSettings(event)
+                            // END EUDI-changed
+                        }
                     }
                 }
 
                 is IssueEvent.DocumentRequiresUserAuth -> {
-                    launch {
+                    // See issuanceEventScope: after the consent gate the producer scope is
+                    // cancelled, so a plain launch {} here would never run.
+                    launchIssuanceEventHandler(cancelIssuance = { event.cancel(null) }) {
                         // BEGIN EUDI-changed
                         handleDocumentRequiresUserAuth(event) { crypto, resultHandler ->
-                            trySendBlocking(
-                                IssueDocumentsPartialState.UserAuthRequired(
-                                    crypto = crypto,
-                                    resultHandler = resultHandler,
-                                )
+                            val state = IssueDocumentsPartialState.UserAuthRequired(
+                                crypto = crypto,
+                                resultHandler = resultHandler,
                             )
+                            trySendBlocking(state)
+                            // Also publish on the persistent state: the authorization-code
+                            // flow awaits the post-consent outcome on issuanceState, not on
+                            // this (by then closed) callbackFlow channel.
+                            _issuanceState.tryEmit(state)
                         }
                         // END EUDI-changed
                     }
                 }
 
                 is IssueEvent.Failure -> {
-                    val state = IssueDocumentsPartialState.Failure(
-                        errorMessage = documentErrorMessage
-                    )
+                    val state = event.cause.toIssueDocumentsFailure(documentErrorMessage)
                     trySendBlocking(state)
                     _issuanceState.tryEmit(state)
                 }
@@ -1328,11 +1483,59 @@ class WalletCoreDocumentsControllerImpl(
         return listener
     }
 
+    /**
+     * Runs [block] on [issuanceEventScope]. A failure is reported as an
+     * [IssueDocumentsPartialState.Failure] on both this flow and [issuanceState]
+     * (the authorization-code flow awaits the outcome there after consent), and
+     * wallet-core is unblocked via [cancelIssuance] instead of staying suspended.
+     */
+    private fun ProducerScope<IssueDocumentsPartialState>.launchIssuanceEventHandler(
+        cancelIssuance: () -> Unit,
+        block: suspend () -> Unit,
+    ) {
+        issuanceEventScope.launch {
+            try {
+                block()
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                logController.e(ISSUANCE_EVENT_LOG_TAG, e)
+                val state = e.toIssueDocumentsFailure(documentErrorMessage)
+                trySendBlocking(state)
+                _issuanceState.tryEmit(state)
+                runCatching(cancelIssuance).onFailure {
+                    logController.e(ISSUANCE_EVENT_LOG_TAG, it)
+                }
+            }
+        }
+    }
+
+    private fun IssueEvent.DocumentRequiresCreateSettings.cancelIssuance() = when (this) {
+        is IssueEvent.DocumentRequiresCreateSettings.MandatoryReusePolicy -> cancel(null)
+        is IssueEvent.DocumentRequiresCreateSettings.OptionalReusePolicy -> cancel(null)
+    }
+
     private suspend fun handleDocumentRequiresCreateSettings(
         event: IssueEvent.DocumentRequiresCreateSettings,
     ) {
-        val configurationIdentifier = event.offeredDocument.configurationIdentifier
-        val isPid = PIDS_ALL_CONFIGURATION_IDS.contains(configurationIdentifier)
+        val offeredDocument = event.offeredDocument
+        val formatType = when (val format = offeredDocument.documentFormat) {
+            is MsoMdocFormat -> format.docType
+            is SdJwtVcFormat -> format.vct
+            null -> null
+        }
+        val issuerId = offeredDocument.offer.credentialOffer.credentialIssuerIdentifier.toString()
+        val isPid = WalletCoreDocumentsController.isPidOffer(
+            configurationId = offeredDocument.configurationIdentifier,
+            formatType = formatType,
+            issuerId = issuerId,
+            knownPidConfigurationIds = knownPidConfigurationIds(),
+            pidIssuerUrl = pidIssuerUrl,
+        )
+        logController.d(CREDENTIAL_CONFIG_ID_LOG_TAG) {
+            "Creating keys for configId=${offeredDocument.configurationIdentifier}, " +
+                "formatType=$formatType, issuer=$issuerId, isPid=$isPid"
+        }
 
         // The key material settings are chosen the same way whoever decides the credential
         // policy: PID keys live in the Rwsc*SecureArea, everything else uses the wallet's
@@ -1466,15 +1669,28 @@ class WalletCoreDocumentsControllerImpl(
         }
 
     /**
-     * Returns the cached [OpenId4VciManager] for [httpsUrl], or creates and caches one on demand.
+     * Resolves the [OpenId4VciManager] for [httpsUrl], using the authorization
+     * server metadata from the credential offer to decide whether Wallet
+     * Instance Attestation (WIA) client authentication is required.
      *
-     * The manager configuration is always derived through [configForIssuer] so issuer-specific
-     * overrides stay in one place.
+     * When the AS advertises `attest_jwt_client_auth` in
+     * `token_endpoint_auth_methods_supported`, an `AttestationBased`
+     * configuration is used; otherwise a `None` configuration is used.
+     *
+     * The manager configuration is always derived through [configForIssuer] so
+     * issuer-specific overrides stay in one place.
      */
-    private fun getManagerForIssuer(httpsUrl: String): OpenId4VciManager {
+    private fun getManagerForIssuer(
+        httpsUrl: String,
+        authorizationServerMetadata: CIAuthorizationServerMetadata? = null,
+    ): OpenId4VciManager {
         openId4VciManagers[httpsUrl]?.let { return it }
 
-        val config = configForIssuer(walletCoreConfig.vciConfig, httpsUrl)
+        val config = configForIssuer(
+            configs = walletCoreConfig.vciConfig,
+            httpsUrl = httpsUrl,
+            authorizationServerMetadata = authorizationServerMetadata,
+        )
 
         return openId4VciManagers.getOrPut(httpsUrl) {
             eudiWallet.createOpenId4VciManager(
@@ -1487,26 +1703,22 @@ class WalletCoreDocumentsControllerImpl(
     /**
      * Resolves the [OpenId4VciManager.Config] to use for [httpsUrl].
      *
-     * It first looks for an exact issuer match. If none exists, it falls back to a configuration
-     * without client authentication and adapts it to the requested issuer. PID issuer keep the
-     * [authorizationHandler], while non-PID issuers clear it.
+     * It first looks for an exact issuer match. If none exists, it falls back
+     * to a configuration selected by [fallbackConfig] — which inspects the
+     * authorization server metadata (when available) to decide whether Wallet
+     * Instance Attestation client authentication is required. PID issuers keep
+     * the [authorizationHandler], while non-PID issuers clear it.
      *
-     * @throws IllegalArgumentException when no exact or fallback issuer configuration is available.
+     * @throws IllegalArgumentException when no exact or fallback issuer
+     *   configuration is available.
      */
     private fun configForIssuer(
         configs: Map<String, OpenId4VciManager.Config>,
-        httpsUrl: String
+        httpsUrl: String,
+        authorizationServerMetadata: CIAuthorizationServerMetadata? = null,
     ): OpenId4VciManager.Config {
         val issuerConfig = configs[httpsUrl]
-            ?: configs.values
-                .firstOrNull { it.clientAuthenticationType is OpenId4VciManager.ClientAuthenticationType.None }
-                ?.copy(
-                    authFlowRedirectionURI = BuildConfig.ISSUE_AUTHORIZATION_DEEPLINK,
-                    parUsage = OpenId4VciManager.Config.ParUsage.IF_SUPPORTED,
-                )
-            ?: throw IllegalArgumentException(
-                "No OpenID4VCI configuration found for issuer '$httpsUrl' and no fallback issuer without client authentication is configured."
-            )
+            ?: fallbackConfig(configs, httpsUrl, authorizationServerMetadata)
 
         return if (httpsUrl == pidIssuerUrl) {
             issuerConfig.copy(authorizationHandler = authorizationHandler)
@@ -1531,5 +1743,44 @@ class WalletCoreDocumentsControllerImpl(
                 ),
             )
         }
+    }
+
+    /**
+     * Selects a fallback [OpenId4VciManager.Config] for an issuer that has no
+     * exact match in [configs].
+     *
+     * When [authorizationServerMetadata] advertises
+     * `attest_jwt_client_auth` in `token_endpoint_auth_methods_supported`, an
+     * `AttestationBased` configuration is used as the template (so a WIA is
+     * sent at the PAR and token endpoints). Otherwise a `None` configuration
+     * is used.
+     *
+     * @throws IllegalArgumentException when no suitable template configuration
+     *   is available.
+     */
+    private fun fallbackConfig(
+        configs: Map<String, OpenId4VciManager.Config>,
+        httpsUrl: String,
+        authorizationServerMetadata: CIAuthorizationServerMetadata?,
+    ): OpenId4VciManager.Config {
+        val requiresWia = authorizationServerMetadata?.tokenEndpointAuthMethods
+            ?.any { it.value == AttestationBasedClientAuthenticationSpec.ATTESTATION_JWT_CLIENT_AUTHENTICATION_METHOD }
+            ?: false
+        val template = if (requiresWia) {
+            configs.values.firstOrNull {
+                it.clientAuthenticationType is OpenId4VciManager.ClientAuthenticationType.AttestationBased
+            }
+        } else {
+            configs.values.firstOrNull {
+                it.clientAuthenticationType is OpenId4VciManager.ClientAuthenticationType.None
+            }
+        } ?: throw IllegalArgumentException(
+            "No OpenID4VCI configuration found for issuer '$httpsUrl' " +
+                "and no suitable fallback config is available."
+        )
+        return template.copy(
+            authFlowRedirectionURI = BuildConfig.ISSUE_AUTHORIZATION_DEEPLINK,
+            parUsage = OpenId4VciManager.Config.ParUsage.IF_SUPPORTED,
+        )
     }
 }

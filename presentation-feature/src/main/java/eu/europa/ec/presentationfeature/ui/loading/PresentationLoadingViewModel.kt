@@ -34,6 +34,10 @@ import eu.europa.ec.resourceslogic.R
 import eu.europa.ec.resourceslogic.provider.ResourceProvider
 import eu.europa.ec.uilogic.component.content.ContentErrorConfig
 import eu.europa.ec.uilogic.component.content.ContentHeaderConfig
+import org.sprind.wallet.analyticslogic.controller.Telemetry
+import org.sprind.wallet.corelogic.presentationerror.PresentationError
+import org.sprind.wallet.presentationfeature.error.PresentationErrorUiConfig
+import org.sprind.wallet.presentationfeature.error.presentationErrorRoute
 import eu.europa.ec.uilogic.config.NavigationType
 import eu.europa.ec.uilogic.config.NavigationType.PushRoute
 import eu.europa.ec.uilogic.navigation.DashboardScreens
@@ -59,6 +63,7 @@ class PresentationLoadingViewModel(
     private val resourceProvider: ResourceProvider,
     private val interactor: PresentationLoadingInteractor,
     private val logController: LogController,
+    private val telemetry: Telemetry,
 ) : LoadingViewModel() {
     private var handledTerminalState = false
 
@@ -197,25 +202,56 @@ class PresentationLoadingViewModel(
             }
 
             is PresentationLoadingSendRequestedDocumentPartialState.Failure -> {
-                setState {
-                    copy(
-                        error = ContentErrorConfig(
-                            onRetry = { setEvent(event) },
-                            errorSubTitle = result.error,
-                            onCancel = {
-                                setEvent(Event.DismissError)
-                                doNavigation(
-                                    NavigationType.PopTo(
-                                        getPreviousScreen()
-                                    )
-                                )
-                            }
+                showPresentationError(
+                    error = result.error,
+                    onRetry = { setEvent(event) },
+                    onCancel = {
+                        setEvent(Event.DismissError)
+                        doNavigation(
+                            NavigationType.PopTo(
+                                getPreviousScreen()
+                            )
                         )
-                    )
-                }
+                    },
+                )
             }
         }
     }
+
+    /**
+     * Blocking errors open [PresentationScreens.PresentationError] (WD-4274); any other
+     * [PresentationError] (WD-4272) is shown as the error dialog over the loading screen,
+     * with retry gated by the taxonomy (WD-4273). Dismissing it leaves the loading screen.
+     */
+    private fun showPresentationError(
+        error: PresentationError,
+        onRetry: () -> Unit,
+        onCancel: () -> Unit,
+    ) {
+        val uiConfig = PresentationErrorUiConfig.from(error) { telemetry.currentTraceId() }
+        val blockingReason = uiConfig.blockingReason
+
+        if (blockingReason != null) {
+            doNavigation(
+                PushRoute(
+                    presentationErrorRoute(reason = blockingReason, traceId = uiConfig.traceId)
+                )
+            )
+            return
+        }
+
+        val errorDialog = uiConfig.toGenericErrorDialogConfig(
+            onRetry = {
+                setState { copy(errorDialog = null) }
+                onRetry()
+            },
+            // Non-blocking presentation errors never offer reporting; leaving is the fallback.
+            onReportIssue = onCancel,
+            onDismiss = onCancel,
+        )
+        setState { copy(errorDialog = errorDialog) }
+    }
+
     private fun openAuthenticationPrompt(
         context: Context,
         popEffect: Effect,
@@ -325,7 +361,7 @@ class PresentationLoadingViewModel(
         context: Context,
         notifyOnAuthenticationFailure: Boolean,
         redirectUri: URI? = null,
-        failure: String? = null,
+        failure: PresentationError? = null,
     ) {
         // observeSentDocumentsRequest() can surface more than one terminal state (e.g. a
         // ResponseSent Success followed by a Redirect); only the first one drives the flow.
@@ -335,7 +371,7 @@ class PresentationLoadingViewModel(
         // A failed presentation presented nothing, so there is no batch to refresh: just tear the
         // presentation down and go back.
         if (failure != null) {
-            logController.d(logTag) { failure }
+            logController.d(logTag) { failure.displayMessage }
             cleanUpPresentation()
             doNavigation(NavigationType.PopTo(getPreviousScreen()))
             return

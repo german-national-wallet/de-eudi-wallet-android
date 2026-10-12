@@ -19,10 +19,14 @@ package org.sprind.wallet.onboardingfeature.interactor
 import eu.europa.ec.uilogic.navigation.ModuleRoute
 import org.sprind.wallet.onboardingfeature.provider.OnboardingStorageProvider
 import org.sprind.wallet.uilogic.navigation.NavigationGuard
+import org.sprind.wallet.uilogic.navigation.NavigationGuardPriority
 
 interface OnboardingInteractor : NavigationGuard {
     fun hasUserCompletedOnboarding():  Boolean
     fun storeUserCompletedOnboarding(value: Boolean)
+
+    override val priority: Int
+        get() = NavigationGuardPriority.ONBOARDING
 
     override val destination: String
         get() = ModuleRoute.DashboardModule.route

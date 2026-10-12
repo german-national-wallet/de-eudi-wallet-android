@@ -21,21 +21,24 @@ import org.sprind.wallet.networklogic.common.model.ApiResult
 import org.sprind.wallet.networklogic.mdvm.model.error.MdvmErrorResponse
 import org.sprind.wallet.networklogic.mdvm.model.error.MdvmErrorType
 import org.sprind.wallet.networklogic.mdvm.model.error.toMdvmErrorType
+import org.sprind.wallet.networklogic.trace.traceId
 
 /**
  * Application-level representation of an error that occurred during an MDVM operation.
  *
  * [type] identifies the error. [serverResponse] carries the full server response for server-side
  * errors and is null for client-side errors (i.e. when [MdvmErrorType.errorSource] is
- * [NetEntity.CLIENT]).
+ * [NetEntity.CLIENT]). [clientTraceId] is the client-generated trace id of a request that never
+ * got a response, e.g. because the backend could not be reached.
  */
 data class MdvmError(
     val type: MdvmErrorType,
     val serverResponse: MdvmErrorResponse?,
+    val clientTraceId: String? = null,
 ) {
     init { require(type.errorSource.isServer == (serverResponse != null)) }
     val code: String get() = type.code
-    val traceId: String? get() = serverResponse?.traceId
+    val traceId: String? get() = serverResponse?.traceId ?: clientTraceId
 }
 
 typealias MdvmResult<T> = ApiResult<T, MdvmError>
@@ -43,3 +46,7 @@ typealias MdvmResult<T> = ApiResult<T, MdvmError>
 /** Converts this server error response to an application-level [MdvmError]. */
 fun MdvmErrorResponse.toMdvmError(): MdvmError =
     MdvmError(toMdvmErrorType(), serverResponse = this)
+
+/** Converts a local failure (e.g. no connectivity) to an application-level [MdvmError]. */
+fun Throwable.toMdvmError(): MdvmError =
+    MdvmError(toMdvmErrorType(), serverResponse = null, clientTraceId = traceId())

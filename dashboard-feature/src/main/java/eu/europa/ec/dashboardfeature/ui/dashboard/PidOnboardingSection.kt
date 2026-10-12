@@ -73,6 +73,7 @@ const val PID_SIMULATED_EID_CARD_TOGGLE = "pidSimulatedEidCardToggle"
 @Composable
 internal fun PidOnboardingSection(
     eidCardType: EidCardType,
+    isSimulatedEidCardEnabled: Boolean,
     onIssueDocument: () -> Unit,
     onToggleEidCard: (Boolean) -> Unit,
 ) {
@@ -137,12 +138,14 @@ internal fun PidOnboardingSection(
                                 .fillMaxWidth()
                                 .background(color = ThemeColors.backgroundPidMedium),
                     ) {
-                        SimulatedEidCardToggle(
-                            SwitchData(
-                                checked = eidCardType.isVirtual,
-                                onCheckedChange = onToggleEidCard
+                        if (isSimulatedEidCardEnabled) {
+                            SimulatedEidCardToggle(
+                                SwitchData(
+                                    checked = eidCardType.isVirtual,
+                                    onCheckedChange = onToggleEidCard
+                                )
                             )
-                        )
+                        }
                         AddDocumentStartAction {
                             onIssueDocument()
                         }
@@ -238,6 +241,7 @@ private fun PidOnboardingSectionPreview() {
     PreviewTheme {
         PidOnboardingSection(
             eidCardType = EidCardType.PHYSICAL,
+            isSimulatedEidCardEnabled = true,
             onIssueDocument = {},
         ) { }
     }

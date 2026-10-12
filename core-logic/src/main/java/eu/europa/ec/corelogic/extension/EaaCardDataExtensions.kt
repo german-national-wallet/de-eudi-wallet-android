@@ -28,7 +28,7 @@ import java.util.Locale
  * Far-future sentinel used to filter out implausible validity dates (e.g. issuers
  * that return year-9999-style values to mean "never expires"). Validity instants
  * at or after ~year 5138 are treated as "no real expiry" and dropped to null so
- * the EAA card hides the validity badge instead of showing a meaningless date.
+ * callers show nothing rather than a meaningless date.
  */
 private val MAX_PLAUSIBLE_VALIDITY: Instant =
     Instant.ofEpochSecond(100_000_000_000L)
@@ -67,10 +67,12 @@ suspend fun IssuedDocument.toEaaCardData(locale: Locale): EaaCardData {
  * Maps an [Offer.OfferedDocument] to [EaaCardData] for display on the issuance
  * offer screen.
  *
- * Resolves the localized credential display name from the configuration metadata
- * (falling back to the format-specific type), and pulls branding (background
- * color/image, logo) from the per-credential display. Validity date is not
- * available at offer time, so it is always null.
+ * Resolves the localized credential display name and description from the
+ * configuration metadata (both falling back to the format-specific type, as
+ * [IssuedDocument.toEaaCardData] does, so a credential reads the same on the offer
+ * as it will once it is in the wallet), and pulls branding (background color/image,
+ * logo) from the per-credential display. Validity date is not available at offer
+ * time, so it is always null.
  */
 fun Offer.OfferedDocument.toEaaCardData(locale: Locale): EaaCardData {
     val display = configuration.credentialMetadata?.display?.getLocalizedValue(
@@ -85,9 +87,10 @@ fun Offer.OfferedDocument.toEaaCardData(locale: Locale): EaaCardData {
         null -> configurationIdentifier.toString()
     }
     val name = display?.name ?: credentialType
+    val description = display?.description ?: credentialType
     return EaaCardData(
         id = configurationIdentifier.toString(),
-        description = name,
+        description = description,
         name = name,
         backgroundColor = display?.backgroundColor,
         backgroundImageUri = display?.backgroundImage,

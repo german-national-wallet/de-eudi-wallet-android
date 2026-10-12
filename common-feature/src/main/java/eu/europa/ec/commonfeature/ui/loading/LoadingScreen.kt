@@ -41,7 +41,8 @@ fun LoadingScreen(
         } else {
             null
         },
-        contentErrorConfig = state.error
+        contentErrorConfig = state.error,
+        genericErrorDialogConfig = state.errorDialog,
     ) { paddingValues ->
         Content(
             state = state,

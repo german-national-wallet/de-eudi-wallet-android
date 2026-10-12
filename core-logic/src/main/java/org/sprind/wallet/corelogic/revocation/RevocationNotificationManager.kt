@@ -46,12 +46,17 @@ class RevocationNotificationManager(
     /** Posts the revocation notification, creating the channel on first use. */
     fun postRevocationNotification() {
         createNotificationChannel()
+        val contentIntent = createMainActivityPendingIntent()
+        if (contentIntent == null) {
+            logController.d(TAG) { "No launcher activity resolved; skipping revocation notification" }
+            return
+        }
         val notification = NotificationCompat.Builder(context, CHANNEL_ID)
             .setSmallIcon(android.R.drawable.ic_dialog_alert)
             .setContentTitle(resourceProvider.getString(R.string.notification_revoked_title))
             .setContentText(resourceProvider.getString(R.string.notification_revoked_body))
             .setPriority(NotificationCompat.PRIORITY_HIGH)
-            .setContentIntent(createMainActivityPendingIntent())
+            .setContentIntent(contentIntent)
             .setAutoCancel(true)
             .build()
 
@@ -68,9 +73,18 @@ class RevocationNotificationManager(
         notificationManager?.createNotificationChannel(channel)
     }
 
-    private fun createMainActivityPendingIntent(): PendingIntent {
+    private fun createMainActivityPendingIntent(): PendingIntent? {
         val launchIntent = context.packageManager.getLaunchIntentForPackage(context.packageName)
-            ?: Intent().apply { setPackage(context.packageName) }
+            ?: Intent(Intent.ACTION_MAIN).apply {
+                addCategory(Intent.CATEGORY_LAUNCHER)
+                setPackage(context.packageName)
+            }
+        val component = launchIntent.resolveActivity(context.packageManager)
+        if (component == null) {
+            logController.d(TAG) { "No launcher activity found for package" }
+            return null
+        }
+        launchIntent.component = component
         launchIntent.flags = Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_CLEAR_TOP
         return PendingIntent.getActivity(
             context,

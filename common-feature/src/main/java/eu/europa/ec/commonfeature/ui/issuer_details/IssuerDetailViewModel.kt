@@ -1,5 +1,7 @@
 package eu.europa.ec.commonfeature.ui.issuer_details
 
+import android.net.Uri
+import androidx.core.net.toUri
 import eu.europa.ec.commonfeature.ui.issuer_details.model.IssuerInfo
 import eu.europa.ec.uilogic.config.NavigationType
 import eu.europa.ec.uilogic.mvi.MviViewModel
@@ -11,12 +13,13 @@ import org.koin.core.annotation.InjectedParam
 
 data class State(
     val issuerData: IssuerInfo,
-    val primaryButtonAction: () -> Unit = {},
 ) : ViewState
 
 sealed class Event : ViewEvent {
     data object Pop : Event()
     data object Report : Event()
+    data object HelpPressed : Event()
+    data object PrivacyPolicyPressed : Event()
 }
 
 sealed class Effect : ViewSideEffect {
@@ -24,6 +27,7 @@ sealed class Effect : ViewSideEffect {
     sealed class Navigation : Effect() {
         data object Pop : Navigation()
         data class SwitchScreen(val route: String) : Navigation()
+        data class OpenLink(val uri: Uri) : Navigation()
     }
 }
 
@@ -41,9 +45,16 @@ class IssuerDetailsViewModel(
     override fun handleEvents(event: Event) {
         when (event) {
             Event.Pop -> doNavigation(NavigationType.Pop)
-            Event.Report -> { /* Nothing to do now */
-            }
+            Event.Report -> { /* TODO: Nothing to do now */ }
+            Event.HelpPressed -> { /* TODO: Nothing to do now */ }
+            Event.PrivacyPolicyPressed -> openPrivacyPolicy()
         }
+    }
+
+    private fun openPrivacyPolicy() {
+        val privacyPolicy = viewState.value.issuerData.privacyPolicy.trim()
+        if (privacyPolicy.isEmpty()) return
+        setEffect { Effect.Navigation.OpenLink(privacyPolicy.toPrivacyPolicyUri()) }
     }
 
     private fun doNavigation(navigationType: NavigationType) {
@@ -63,4 +74,10 @@ class IssuerDetailsViewModel(
             else -> {}
         }
     }
+}
+
+/** Issuers may publish the policy without a scheme (e.g. `issuer.de/privacy`); such links open over https. */
+private fun String.toPrivacyPolicyUri(): Uri {
+    val uri = toUri()
+    return if (uri.scheme == null) "https://$this".toUri() else uri
 }

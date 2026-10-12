@@ -17,6 +17,9 @@
 package org.sprind.wallet.networklogic.mdvm.model.error
 
 import org.sprind.wallet.networklogic.common.NetEntity
+import org.sprind.wallet.networklogic.utils.NO_INTERNET_ERROR_CODE
+import org.sprind.wallet.networklogic.utils.UNKNOWN_ERROR_CODE
+import org.sprind.wallet.networklogic.utils.getErrorCode
 
 /**
  * The error codes that might be returned from MDVM endpoints. Equality / hashCode is
@@ -51,8 +54,14 @@ class MdvmErrorType internal constructor(
 
         // Client-side errors
         val MDVM_KEY_NOT_FOUND = MdvmErrorType("MDVM_KEY_NOT_FOUND", errorSource = NetEntity.CLIENT)
+        val NO_INTERNET = MdvmErrorType(NO_INTERNET_ERROR_CODE, errorSource = NetEntity.CLIENT)
+        val UNKNOWN = MdvmErrorType(UNKNOWN_ERROR_CODE, errorSource = NetEntity.CLIENT)
     }
 }
+
+/** Returns the client-side [MdvmErrorType] for a failure that produced no server response. */
+fun Throwable.toMdvmErrorType(): MdvmErrorType =
+    MdvmErrorType(getErrorCode(), errorSource = NetEntity.CLIENT)
 
 /** Returns the [MdvmErrorType] for this server-sent error response. */
 fun MdvmErrorResponse.toMdvmErrorType(): MdvmErrorType = MdvmErrorType(code)

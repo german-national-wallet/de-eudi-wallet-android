@@ -2,6 +2,7 @@ package eu.europa.ec.commonfeature.ui.document_details.transformer
 
 import android.content.ContentResolver
 import android.content.Context
+import androidx.compose.ui.text.AnnotatedString
 import androidx.test.core.app.ApplicationProvider
 import eu.europa.ec.resourceslogic.R
 import eu.europa.ec.resourceslogic.provider.ResourceProvider
@@ -65,4 +66,6 @@ class FakeResourceProvider(
     override fun genericNetworkErrorMessage(): String {
         return "Something went wrong"
     }
+
+    override fun getMarkdownString(resId: Int): AnnotatedString = AnnotatedString(getString(resId))
 }

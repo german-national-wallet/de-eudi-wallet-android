@@ -20,7 +20,6 @@ import org.sprind.wallet.analyticslogic.controller.Telemetry
 import org.sprind.wallet.analyticslogic.interceptor.HttpTelemetryInterceptor
 import eu.europa.ec.businesslogic.config.ConfigLogic
 import eu.europa.ec.businesslogic.controller.log.LogController
-import eu.europa.ec.networklogic.BuildConfig
 import eu.europa.ec.networklogic.repository.WalletAttestationRepository
 import eu.europa.ec.networklogic.repository.WalletAttestationRepositoryImpl
 import org.sprind.wallet.networklogic.common.HeaderInterceptor
@@ -32,6 +31,9 @@ import org.sprind.wallet.networklogic.utils.NetworkLogInterceptor
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.okhttp.OkHttp
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
+import io.ktor.client.plugins.logging.LogLevel
+import io.ktor.client.plugins.logging.Logger
+import io.ktor.client.plugins.logging.Logging
 import io.ktor.http.ContentType
 import io.ktor.serialization.kotlinx.json.json
 import kotlinx.serialization.json.Json
@@ -238,10 +240,27 @@ internal fun providePushNotificationsApiClient(
 @Single
 fun provideOpenId4VciVpKtorHttpClient(
     @OpenId4VciVp okHttpClient: OkHttpClient,
+    logController: LogController,
+    configLogic: ConfigLogic,
 ): HttpClient {
     return HttpClient(engineFactory = OkHttp) {
         engine {
             preconfigured = okHttpClient
+        }
+        val ktorLogger = object : Logger {
+            override fun log(message: String) {
+                logController.d(tag = "OpenId4VciVp") { message }
+            }
+        }
+        // Always install the Logging plugin, even if LogLevel is none,
+        // to prevent the default Logging plugin of the core to be applied.
+        install(Logging) {
+            logger = ktorLogger
+            level = if (configLogic.isLogcatEnabled || configLogic.isLogWriterEnabled) {
+                LogLevel.ALL
+            } else {
+                LogLevel.NONE
+            }
         }
         install(ContentNegotiation) {
             json(

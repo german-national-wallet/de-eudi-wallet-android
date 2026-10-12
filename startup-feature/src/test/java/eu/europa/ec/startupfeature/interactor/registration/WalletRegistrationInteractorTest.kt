@@ -34,6 +34,8 @@ import org.sprind.wallet.businesslogic.controller.revocation.WalletRevocationSto
 import org.sprind.wallet.commonfeature.interactor.MdvmInteractor
 import org.sprind.wallet.networklogic.common.model.ApiResult
 import org.sprind.wallet.networklogic.mdvm.model.error.MdvmErrorResponse
+import org.sprind.wallet.networklogic.mdvm.model.error.MdvmErrorType
+import org.sprind.wallet.authenticationlogic.model.MdvmError
 import org.sprind.wallet.authenticationlogic.model.MdvmRegistration
 import org.sprind.wallet.authenticationlogic.model.toMdvmError
 
@@ -108,6 +110,29 @@ class WalletRegistrationInteractorTest {
             assertEquals(TRACE_ID, failure.traceId)
             awaitComplete()
         }
+    }
+
+    @Test
+    fun `maps an unreachable MDVM backend to NO_INTERNET`() = runTest {
+        val unreachable = MdvmError(
+            MdvmErrorType.NO_INTERNET,
+            serverResponse = null,
+            clientTraceId = TRACE_ID,
+        )
+        whenever(mdvmInteractor.mdvmRegistration()).thenReturn(ApiResult.Failure(unreachable))
+
+        subject.registerWallet().test {
+            val failure = awaitItem() as WalletInitialRegistrationPartialState.Failure
+
+            assertEquals(
+                WalletInitialRegistrationPartialState.ErrorCode.NO_INTERNET,
+                failure.errorCode
+            )
+            assertEquals(MdvmErrorType.NO_INTERNET.code, failure.backendErrorCode)
+            assertEquals(TRACE_ID, failure.traceId)
+            awaitComplete()
+        }
+        verifyNoInteractions(appAttestationController)
     }
 
     @Test

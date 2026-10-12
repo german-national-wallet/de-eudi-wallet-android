@@ -40,6 +40,7 @@ import androidx.compose.ui.semantics.collectionInfo
 import androidx.compose.ui.semantics.collectionItemInfo
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.unit.dp
 import eu.europa.ec.uilogic.component.AppIcons
 import eu.europa.ec.uilogic.component.IconData
@@ -55,7 +56,7 @@ import eu.europa.ec.uilogic.component.wrap.WrapIcon
 
 @Immutable
 data class NavigationCardButton(
-    val text: String,
+    val text: AnnotatedString,
     val onClick: () -> Unit,
     val enabled: Boolean = true,
 )
@@ -187,9 +188,9 @@ private fun ButtonNavigationBottomTwoAnswersPreview() {
                 tintIcon = false,
             ),
             buttons = listOf(
-                NavigationCardButton(text = "Ja, vorhanden", onClick = {}),
+                NavigationCardButton(text = AnnotatedString("Ja, vorhanden"), onClick = {}),
                 NavigationCardButton(
-                    text = "Nein, ich habe keinen dieser Ausweise",
+                    text = AnnotatedString("Nein, ich habe keinen dieser Ausweise"),
                     onClick = {},
                 ),
             ),
@@ -209,10 +210,10 @@ private fun ButtonNavigationBottomThreeAnswersPreview() {
                 onClick = {},
             ),
             buttons = listOf(
-                NavigationCardButton(text = "Ja, Karten-PIN festgelegt und bekannt", onClick = {}),
-                NavigationCardButton(text = "Nein, aber jetzt mit PIN-Brief festlegen", onClick = {}),
+                NavigationCardButton(text = AnnotatedString("Ja, Karten-PIN festgelegt und bekannt"), onClick = {}),
+                NavigationCardButton(text = AnnotatedString("Nein, aber jetzt mit PIN-Brief festlegen"), onClick = {}),
                 NavigationCardButton(
-                    text = "Ich habe keinen PIN-Brief oder meine PIN vergessen",
+                    text = AnnotatedString("Ich habe keinen PIN-Brief oder meine PIN vergessen"),
                     onClick = {},
                 ),
             ),

@@ -22,28 +22,12 @@ package org.sprind.wallet.resourceslogic.generated
 // Values are ARGB as Long: 0xFFRRGGBB (fully opaque, alpha always 0xFF).
 
 interface DesignColors {
-    // region BackgroundPID_light
-    val backgroundPidLight: Long
-
-    // region BackgroundPID_medium
-    val backgroundPidMedium: Long
-
-    // region ColorPID
-    val colorPid: Long
-
-    // region OnColorPID
-    val onColorPid: Long
-
-    // region OnSuccess
-    val onSuccess: Long
-
     // region Schemes
     val schemesBackground: Long
     val schemesError: Long
     val schemesErrorContainer: Long
     val schemesErrorOutline: Long
     val schemesInverseOnSurface: Long
-    val schemesInversePrimary: Long
     val schemesInverseSurface: Long
     val schemesOnBackground: Long
     val schemesOnBackgroundVariant: Long
@@ -51,77 +35,47 @@ interface DesignColors {
     val schemesOnErrorContainer: Long
     val schemesOnPrimary: Long
     val schemesOnPrimaryContainer: Long
-    val schemesOnPrimaryFixed: Long
-    val schemesOnPrimaryFixedVariant: Long
     val schemesOnSecondary: Long
     val schemesOnSecondaryContainer: Long
-    val schemesOnSecondaryFixed: Long
-    val schemesOnSecondaryFixedVariant: Long
+    val schemesOnSuccessContainer: Long
     val schemesOnSurface: Long
     val schemesOnSurfaceVariant: Long
     val schemesOnTertiary: Long
     val schemesOnTertiaryContainer: Long
-    val schemesOnTertiaryFixed: Long
-    val schemesOnTertiaryFixedVariant: Long
+    val schemesOnWarningContainer: Long
     val schemesOutline: Long
     val schemesOutlineVariant: Long
     val schemesPrimary: Long
     val schemesPrimaryContainer: Long
-    val schemesPrimaryFixed: Long
-    val schemesPrimaryFixedDim: Long
     val schemesPrimaryOutline: Long
-    val schemesScrim: Long
     val schemesSecondary: Long
     val schemesSecondaryContainer: Long
-    val schemesSecondaryFixed: Long
-    val schemesSecondaryFixedDim: Long
     val schemesShadow: Long
+    val schemesSuccess: Long
+    val schemesSuccessContainer: Long
+    val schemesSuccessOutline: Long
     val schemesSurface: Long
-    val schemesSurfaceBright: Long
     val schemesSurfaceContainer: Long
     val schemesSurfaceContainerHigh: Long
     val schemesSurfaceContainerHighest: Long
     val schemesSurfaceContainerLow: Long
     val schemesSurfaceContainerLowest: Long
-    val schemesSurfaceDim: Long
-    val schemesSurfaceTint: Long
     val schemesSurfaceVariant: Long
     val schemesTertiary: Long
     val schemesTertiaryContainer: Long
-    val schemesTertiaryFixed: Long
-    val schemesTertiaryFixedDim: Long
     val schemesTertiaryOutline: Long
-
-    // region Success
-    val success: Long
-
-    // region Warning
-    val warning: Long
+    val schemesWarning: Long
+    val schemesWarningContainer: Long
+    val schemesWarningOutline: Long
 }
 
 object LightColors : DesignColors {
-    // region BackgroundPID_light
-    override val backgroundPidLight: Long = 0xFFFFFFFFL
-
-    // region BackgroundPID_medium
-    override val backgroundPidMedium: Long = 0xFFF4F4F4L
-
-    // region ColorPID
-    override val colorPid: Long = 0xFF02818BL
-
-    // region OnColorPID
-    override val onColorPid: Long = 0xFFFFFFFFL
-
-    // region OnSuccess
-    override val onSuccess: Long = 0xFF0C4A37L
-
     // region Schemes
     override val schemesBackground: Long = 0xFFFFFFFFL
     override val schemesError: Long = 0xFFB3261EL
     override val schemesErrorContainer: Long = 0xFFF9DEDCL
     override val schemesErrorOutline: Long = 0xFF852221L
     override val schemesInverseOnSurface: Long = 0xFFF5EFF7L
-    override val schemesInversePrimary: Long = 0xFFD0BCFFL
     override val schemesInverseSurface: Long = 0xFF322F35L
     override val schemesOnBackground: Long = 0xFF1D1D1EL
     override val schemesOnBackgroundVariant: Long = 0xFF494949L
@@ -129,128 +83,84 @@ object LightColors : DesignColors {
     override val schemesOnErrorContainer: Long = 0xFF852221L
     override val schemesOnPrimary: Long = 0xFF1D1D1EL
     override val schemesOnPrimaryContainer: Long = 0xFF1D1D1EL
-    override val schemesOnPrimaryFixed: Long = 0xFF21005DL
-    override val schemesOnPrimaryFixedVariant: Long = 0xFF4F378BL
     override val schemesOnSecondary: Long = 0xFFFFFFFFL
     override val schemesOnSecondaryContainer: Long = 0xFF1D1D1EL
-    override val schemesOnSecondaryFixed: Long = 0xFF1D192BL
-    override val schemesOnSecondaryFixedVariant: Long = 0xFF4A4458L
+    override val schemesOnSuccessContainer: Long = 0xFF1D1D1FL
     override val schemesOnSurface: Long = 0xFF1D1D1EL
-    override val schemesOnSurfaceVariant: Long = 0xFF49454FL
+    override val schemesOnSurfaceVariant: Long = 0xFF767676L
     override val schemesOnTertiary: Long = 0xFFFFFFFFL
     override val schemesOnTertiaryContainer: Long = 0xFF122118L
-    override val schemesOnTertiaryFixed: Long = 0xFF31111DL
-    override val schemesOnTertiaryFixedVariant: Long = 0xFF633B48L
+    override val schemesOnWarningContainer: Long = 0xFF1D1D1FL
     override val schemesOutline: Long = 0xFF79747EL
     override val schemesOutlineVariant: Long = 0xFFB9B9BDL
     override val schemesPrimary: Long = 0xFF4A6300L
     override val schemesPrimaryContainer: Long = 0xFF96F5AFL
-    override val schemesPrimaryFixed: Long = 0xFFEADDFFL
-    override val schemesPrimaryFixedDim: Long = 0xFFD0BCFFL
     override val schemesPrimaryOutline: Long = 0xFF329D77L
-    override val schemesScrim: Long = 0xFF000000L
     override val schemesSecondary: Long = 0xFF66605CL
     override val schemesSecondaryContainer: Long = 0xFFFFFFFFL
-    override val schemesSecondaryFixed: Long = 0xFFE8DEF8L
-    override val schemesSecondaryFixedDim: Long = 0xFFCCC2DCL
     override val schemesShadow: Long = 0xFF000000L
+    override val schemesSuccess: Long = 0xFF96F5AFL
+    override val schemesSuccessContainer: Long = 0xFFE9FCEEL
+    override val schemesSuccessOutline: Long = 0xFF329D77L
     override val schemesSurface: Long = 0xFFFFFFFFL
-    override val schemesSurfaceBright: Long = 0xFFFEF7FFL
     override val schemesSurfaceContainer: Long = 0xFFF4F4F4L
     override val schemesSurfaceContainerHigh: Long = 0xFFECECF0L
     override val schemesSurfaceContainerHighest: Long = 0xFFDEDEDEL
     override val schemesSurfaceContainerLow: Long = 0xFFF4F4F4L
     override val schemesSurfaceContainerLowest: Long = 0xFFFFFFFFL
-    override val schemesSurfaceDim: Long = 0xFFDED8E1L
-    override val schemesSurfaceTint: Long = 0xFF6750A4L
     override val schemesSurfaceVariant: Long = 0xFFFFFFFFL
     override val schemesTertiary: Long = 0xFF457D5CL
     override val schemesTertiaryContainer: Long = 0xFFEDEDEDL
-    override val schemesTertiaryFixed: Long = 0xFFFFD8E4L
-    override val schemesTertiaryFixedDim: Long = 0xFFEFB8C8L
     override val schemesTertiaryOutline: Long = 0xFF929294L
-
-    // region Success
-    override val success: Long = 0xFFC2FFC4L
-
-    // region Warning
-    override val warning: Long = 0xFFFF9900L
+    override val schemesWarning: Long = 0xFFFEDF43L
+    override val schemesWarningContainer: Long = 0xFFFFFBE5L
+    override val schemesWarningOutline: Long = 0xFFA16A00L
 }
 
 object DarkColors : DesignColors {
-    // region BackgroundPID_light
-    override val backgroundPidLight: Long = 0xFF1D1D1EL
-
-    // region BackgroundPID_medium
-    override val backgroundPidMedium: Long = 0xFF49454FL
-
-    // region ColorPID
-    override val colorPid: Long = 0xFFA4CCD0L
-
-    // region OnColorPID
-    override val onColorPid: Long = 0xFF000000L
-
-    // region OnSuccess
-    override val onSuccess: Long = 0xFF99D4A2L
-
     // region Schemes
-    override val schemesBackground: Long = 0xFF141218L
+    override val schemesBackground: Long = 0xFF1D1D1EL
     override val schemesError: Long = 0xFFFFB4ABL
     override val schemesErrorContainer: Long = 0xFF8C1D18L
     override val schemesErrorOutline: Long = 0xFFF2B8B5L
     override val schemesInverseOnSurface: Long = 0xFF322F35L
-    override val schemesInversePrimary: Long = 0xFF6750A4L
     override val schemesInverseSurface: Long = 0xFFE6E0E9L
-    override val schemesOnBackground: Long = 0xFFE6E0E9L
+    override val schemesOnBackground: Long = 0xFFFFFFFFL
     override val schemesOnBackgroundVariant: Long = 0xFFE6E0E9L
     override val schemesOnError: Long = 0xFF690005L
     override val schemesOnErrorContainer: Long = 0xFFF9DEDCL
     override val schemesOnPrimary: Long = 0xFF243600L
     override val schemesOnPrimaryContainer: Long = 0xFF1D1D1EL
-    override val schemesOnPrimaryFixed: Long = 0xFF21005DL
-    override val schemesOnPrimaryFixedVariant: Long = 0xFF4F378BL
     override val schemesOnSecondary: Long = 0xFF302E2CL
-    override val schemesOnSecondaryContainer: Long = 0xFFE8DEF8L
-    override val schemesOnSecondaryFixed: Long = 0xFF1D192BL
-    override val schemesOnSecondaryFixedVariant: Long = 0xFF4A4458L
-    override val schemesOnSurface: Long = 0xFFE6E0E9L
+    override val schemesOnSecondaryContainer: Long = 0xFFFFFFFFL
+    override val schemesOnSuccessContainer: Long = 0xFFFFFFFFL
+    override val schemesOnSurface: Long = 0xFFFFFFFFL
     override val schemesOnSurfaceVariant: Long = 0xFFCAC4D0L
     override val schemesOnTertiary: Long = 0xFF1D1D1EL
-    override val schemesOnTertiaryContainer: Long = 0xFFFFD8E4L
-    override val schemesOnTertiaryFixed: Long = 0xFF31111DL
-    override val schemesOnTertiaryFixedVariant: Long = 0xFF633B48L
+    override val schemesOnTertiaryContainer: Long = 0xFFFFFFFFL
+    override val schemesOnWarningContainer: Long = 0xFFFFFFFFL
     override val schemesOutline: Long = 0xFF938F99L
-    override val schemesOutlineVariant: Long = 0xFF49454FL
+    override val schemesOutlineVariant: Long = 0xFFE6E6E6L
     override val schemesPrimary: Long = 0xFFB5D669L
     override val schemesPrimaryContainer: Long = 0xFF96F5AFL
-    override val schemesPrimaryFixed: Long = 0xFFEADDFFL
-    override val schemesPrimaryFixedDim: Long = 0xFFD0BCFFL
-    override val schemesPrimaryOutline: Long = 0xFFEADDFFL
-    override val schemesScrim: Long = 0xFF000000L
+    override val schemesPrimaryOutline: Long = 0xFF96F5AFL
     override val schemesSecondary: Long = 0xFFC7C7C7L
-    override val schemesSecondaryContainer: Long = 0xFF4A4458L
-    override val schemesSecondaryFixed: Long = 0xFFE8DEF8L
-    override val schemesSecondaryFixedDim: Long = 0xFFCCC2DCL
+    override val schemesSecondaryContainer: Long = 0xFF1D1D1EL
     override val schemesShadow: Long = 0xFF000000L
+    override val schemesSuccess: Long = 0xFF99D4A2L
+    override val schemesSuccessContainer: Long = 0xFFE1F5E4L
+    override val schemesSuccessOutline: Long = 0xFFF2B8B5L
     override val schemesSurface: Long = 0xFF1D1B1EL
-    override val schemesSurfaceBright: Long = 0xFF3B383EL
-    override val schemesSurfaceContainer: Long = 0xFF211F26L
+    override val schemesSurfaceContainer: Long = 0xFF2A2A2AL
     override val schemesSurfaceContainerHigh: Long = 0xFF2B2930L
     override val schemesSurfaceContainerHighest: Long = 0xFF36343BL
     override val schemesSurfaceContainerLow: Long = 0xFF1D1B20L
     override val schemesSurfaceContainerLowest: Long = 0xFF0F0D13L
-    override val schemesSurfaceDim: Long = 0xFF141218L
-    override val schemesSurfaceTint: Long = 0xFFD0BCFFL
-    override val schemesSurfaceVariant: Long = 0xFF49454FL
+    override val schemesSurfaceVariant: Long = 0xFFE6E6E6L
     override val schemesTertiary: Long = 0xFF96F5AFL
-    override val schemesTertiaryContainer: Long = 0xFF633B48L
-    override val schemesTertiaryFixed: Long = 0xFFFFD8E4L
-    override val schemesTertiaryFixedDim: Long = 0xFFEFB8C8L
-    override val schemesTertiaryOutline: Long = 0xFFFFD8E4L
-
-    // region Success
-    override val success: Long = 0xFF243600L
-
-    // region Warning
-    override val warning: Long = 0xFFFFC774L
+    override val schemesTertiaryContainer: Long = 0xFF494949L
+    override val schemesTertiaryOutline: Long = 0xFFFFFFFFL
+    override val schemesWarning: Long = 0xFFFFC774L
+    override val schemesWarningContainer: Long = 0xFFE1F5E4L
+    override val schemesWarningOutline: Long = 0xFFF2B8B5L
 }

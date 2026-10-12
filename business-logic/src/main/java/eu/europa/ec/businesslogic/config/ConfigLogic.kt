@@ -19,6 +19,7 @@ package eu.europa.ec.businesslogic.config
 import eu.europa.ec.businesslogic.BuildConfig
 import org.sprind.wallet.businesslogic.config.OkCertificatePinnerSpec
 import org.sprind.wallet.businesslogic.config.PidIssuerSpec
+import org.sprind.wallet.businesslogic.config.SettingsLinks
 
 interface ConfigLogic {
 
@@ -43,6 +44,12 @@ interface ConfigLogic {
     val appVersion: String get() = BuildConfig.APP_VERSION
 
     /**
+     * The build this version was cut as, which the settings screen names beside [appVersion] so a
+     * bug report can identify the exact build.
+     */
+    val appVersionCode: Int get() = BuildConfig.APP_VERSION_CODE
+
+    /**
      * Whether the debug menu and the burger icon opening it are part of this build.
      */
     val isDebugMenuEnabled: Boolean get() = environmentConfig.enableDebugMenu
@@ -56,6 +63,13 @@ interface ConfigLogic {
      * Whether logs are written to file, from where the debug menu can export them.
      */
     val isLogWriterEnabled: Boolean get() = environmentConfig.enableLogWriter
+
+    val isSimulatedEidCardEnabled: Boolean get() = environmentConfig.enableSimulatedEidCard
+
+    /**
+     * The web pages the settings menu opens.
+     */
+    val settingsLinks: SettingsLinks get() = environmentConfig.settingsLinks
 
 }
 
@@ -104,6 +118,12 @@ abstract class EnvironmentConfig {
 
     abstract val walletBackendPinnerSpecs: List<OkCertificatePinnerSpec>
 
+    /** Data-protection complaint form behind "Report suspicion". */
+    abstract val dataProtectionComplaintUrl: String
+
+    /** Wallet page behind the report-issue actions of the presentation error states. */
+    abstract val reportIssueUrl: String
+
     val certificatePinnerSpecs: List<OkCertificatePinnerSpec>
         get() = walletBackendPinnerSpecs + pidIssuerSpec.okCertificatePinnerSpec
 
@@ -136,6 +156,15 @@ abstract class EnvironmentConfig {
      * Defaults to false, so a flavor shipped to end users never collects log files.
      */
     open val enableLogWriter: Boolean = false
+
+    open val enableSimulatedEidCard: Boolean = false
+
+    /**
+     * The web pages the settings menu opens in the app's own web view.
+     *
+     * Defaults to blank pages, because none of the documents is published yet; see [SettingsLinks].
+     */
+    open val settingsLinks: SettingsLinks = SettingsLinks()
 
     /**
      * Feature flag base URL. The URL where feature flags can be downloaded is based

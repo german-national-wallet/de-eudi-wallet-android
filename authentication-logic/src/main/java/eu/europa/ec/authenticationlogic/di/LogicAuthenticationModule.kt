@@ -253,10 +253,12 @@ fun provideMdvmController(
     mdvmApiClient: MdvmApiClient,
     mdvmKeyManager: MdvmKeyManager,
     configLogic: ConfigLogic,
+    logController: LogController,
 ): MdvmController = MdvmControllerImpl(
     mdvmApiClient,
     mdvmKeyManager,
     configLogic,
+    logController,
 )
 
 @Factory

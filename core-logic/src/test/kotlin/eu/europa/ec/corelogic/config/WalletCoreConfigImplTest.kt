@@ -17,6 +17,7 @@
 package eu.europa.ec.corelogic.config
 
 import eu.europa.ec.businesslogic.config.ConfigLogic
+import eu.europa.ec.eudi.openid4vci.IssuerMetadataPolicy
 import eu.europa.ec.eudi.wallet.issue.openid4vci.AuthorizationHandler
 import eu.europa.ec.eudi.wallet.issue.openid4vci.dpop.DPopConfig
 import io.mockk.every
@@ -71,6 +72,18 @@ class WalletCoreConfigImplTest {
             .filterIsInstance<DPopConfig.KeyAttested>()
         assertTrue(keyAttested.isNotEmpty())
         keyAttested.forEach { assertSame(subject.defaultDPopConfig, it.provisionalConfig) }
+    }
+
+    @Test
+    fun `every vci config requires signed issuer metadata`() {
+        subject.vciConfig.values.forEach {
+            assertTrue(it.issuerMetadataPolicy is IssuerMetadataPolicy.RequireSigned)
+        }
+    }
+
+    @Test
+    fun `the default vci config requires signed issuer metadata`() {
+        assertTrue(subject.defaultVciConfig.issuerMetadataPolicy is IssuerMetadataPolicy.RequireSigned)
     }
 
     private companion object {

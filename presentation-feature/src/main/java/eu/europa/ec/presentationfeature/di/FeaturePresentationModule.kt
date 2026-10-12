@@ -36,7 +36,7 @@ import org.koin.core.annotation.ScopeId
 import org.sprind.wallet.commonfeature.interactor.RwscaInteractor
 
 @Module
-@ComponentScan("eu.europa.ec.presentationfeature")
+@ComponentScan("eu.europa.ec.presentationfeature", "org.sprind.wallet.presentationfeature")
 class FeaturePresentationModule
 
 @Factory
@@ -44,12 +44,14 @@ fun providePresentationLoadingInteractor(
     @ScopeId(name = PRESENTATION_SCOPE_ID) walletCorePresentationController: WalletCorePresentationController,
     walletCoreDocumentsController: WalletCoreDocumentsController,
     deviceAuthenticationInteractor: DeviceAuthenticationInteractor,
+    resourceProvider: ResourceProvider,
     logController: LogController,
 ): PresentationLoadingInteractor {
     return PresentationLoadingInteractorImpl(
         walletCorePresentationController,
         walletCoreDocumentsController,
         deviceAuthenticationInteractor,
+        resourceProvider,
         logController = logController
     )
 }

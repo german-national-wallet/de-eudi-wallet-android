@@ -114,6 +114,7 @@ fun WrapModalBottomSheet(
     modifier: Modifier = Modifier,
     sheetState: SheetState,
     shape: Shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp),
+    sheetGesturesEnabled: Boolean = true,
     dragHandle: @Composable (() -> Unit) = { BottomSheetDefaultHandle() },
     properties: ModalBottomSheetProperties = ModalBottomSheetDefaults.properties,
     sheetContent: @Composable ColumnScope.() -> Unit,
@@ -126,6 +127,7 @@ fun WrapModalBottomSheet(
         dragHandle = dragHandle,
         properties = properties,
         content = sheetContent,
+        sheetGesturesEnabled = sheetGesturesEnabled
     )
 }
 
@@ -148,6 +150,7 @@ fun GenericBottomSheet(
     bodyContent: @Composable () -> Unit,
     sheetBackgroundColor: Color = bottomSheetDefaultBackgroundColor,
     sheetPadding: PaddingValues = defaultBottomSheetPadding,
+    spacer: @Composable () -> Unit = { VSpacer.Medium() }
 ) {
     Column(
         modifier = Modifier
@@ -157,7 +160,7 @@ fun GenericBottomSheet(
             .padding(sheetPadding)
     ) {
         titleContent()
-        VSpacer.Medium()
+        spacer()
         bodyContent()
     }
 }

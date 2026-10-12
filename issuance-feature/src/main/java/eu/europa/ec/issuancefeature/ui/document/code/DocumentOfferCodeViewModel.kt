@@ -36,6 +36,7 @@ import org.koin.android.annotation.KoinViewModel
 import org.koin.core.annotation.InjectedParam
 import org.sprind.wallet.uilogic.component.CodeEntryBuffer
 import org.sprind.wallet.uilogic.component.CodeEntryState
+import org.sprind.wallet.uilogic.component.cleared
 import kotlin.time.Duration.Companion.seconds
 
 data class State(
@@ -45,6 +46,7 @@ data class State(
     val isSuccess: Boolean = false,
     val error: ContentErrorConfig? = null,
     val notifyOnAuthenticationFailure: Boolean = false,
+    val showCloseConfirmationDialog: Boolean = false,
 
     val screenTitle: String,
     val screenSubtitle: String,
@@ -56,6 +58,10 @@ sealed class Event : ViewEvent {
     data object DismissError : Event()
     data object OnPinChange : Event()
     data class OnSendData(val context: Context) : Event()
+    data object HelpPressed : Event()
+    data object Decline : Event()
+    data object Cancel : Event()
+    data object DismissCloseConfirmationDialog : Event()
 }
 
 sealed class Effect : ViewSideEffect {
@@ -65,6 +71,7 @@ sealed class Effect : ViewSideEffect {
         ) : Navigation()
 
         data object Pop : Navigation()
+        data object Decline : Navigation()
     }
 }
 
@@ -117,6 +124,17 @@ class DocumentOfferCodeViewModel(
             is Event.OnSendData -> {
                 issueDocuments(event.context)
             }
+
+            is Event.HelpPressed -> {
+                // TODO: Will open the offer's help sheet
+            }
+
+            Event.Cancel -> setState { copy(showCloseConfirmationDialog = true) }
+            Event.Decline -> {
+                setState { copy(showCloseConfirmationDialog = false) }
+                setEffect { Effect.Navigation.Decline }
+            }
+            Event.DismissCloseConfirmationDialog -> setState { copy(showCloseConfirmationDialog = false) }
         }
     }
 
@@ -129,7 +147,8 @@ class DocumentOfferCodeViewModel(
             setState {
                 copy(
                     isLoading = true,
-                    error = null
+                    error = null,
+                    codeState = codeState.copy(supportingText = null),
                 )
             }
 
@@ -140,6 +159,20 @@ class DocumentOfferCodeViewModel(
                 txCode = txCode
             ).collect { response ->
                 when (response) {
+                    is IssueDocumentsInteractorPartialState.Failure if response.isGrantRejection -> {
+                        // The offer stays cached so the retry reuses it.
+                        setState {
+                            copy(
+                                isLoading = false,
+                                codeState = codeState.cleared(
+                                    supportingText = resourceProvider.getString(
+                                        R.string.eaa_issuance_transaction_code_entry_error_1
+                                    )
+                                ),
+                            )
+                        }
+                    }
+
                     is IssueDocumentsInteractorPartialState.Failure -> {
                         documentOfferInteractor.clearCachedOffer(
                             viewState.value.offerCodeUiConfig.offerURI
@@ -203,6 +236,11 @@ class DocumentOfferCodeViewModel(
 
                     is IssueDocumentsInteractorPartialState.OnCNonce -> {
                         /* nothing to do here unless we want to do something with the nonce in the UI layer*/
+                    }
+
+                    is IssueDocumentsInteractorPartialState.AwaitingConsent -> {
+                        /* Not applicable here: this screen is only reached for the
+                           pre-authorized-with-txCode grant, which never gates on consent. */
                     }
                 }
             }

@@ -24,6 +24,15 @@ import org.koin.core.annotation.Single
 import org.sprind.wallet.onboardingfeature.interactor.OnboardingInteractor
 import org.sprind.wallet.onboardingfeature.interactor.OnboardingInteractorImpl
 import org.sprind.wallet.onboardingfeature.provider.OnboardingStorageProvider
+import org.sprind.wallet.onboardingfeature.setup.interactor.NotificationsSetupGuard
+import org.sprind.wallet.onboardingfeature.setup.interactor.PlatformAuthSetupGuard
+import org.sprind.wallet.onboardingfeature.setup.interactor.PrivacyPolicySetupGuard
+import org.sprind.wallet.onboardingfeature.setup.interactor.SetupInteractor
+import org.sprind.wallet.onboardingfeature.setup.interactor.SetupInteractorImpl
+import org.sprind.wallet.onboardingfeature.setup.interactor.SuccessSetupGuard
+import org.sprind.wallet.onboardingfeature.setup.provider.SetupFlowAvailability
+import org.sprind.wallet.onboardingfeature.setup.provider.SetupStorageProvider
+import org.sprind.wallet.onboardingfeature.setup.storage.PrefsSetupStorageProvider
 import org.sprind.wallet.onboardingfeature.storage.PrefsOnboardingStorageProvider
 import org.sprind.wallet.uilogic.navigation.NavigationGuard
 
@@ -41,3 +50,38 @@ fun provideOnboardingInteractor(
 fun provideOnboardingStorageProvider(
     prefsController: PrefsController
 ): OnboardingStorageProvider = PrefsOnboardingStorageProvider(prefsController)
+
+@Single
+fun provideSetupStorageProvider(
+    prefsController: PrefsController
+): SetupStorageProvider = PrefsSetupStorageProvider(prefsController)
+
+@Factory
+fun provideSetupInteractor(
+    setupStorageProvider: SetupStorageProvider,
+    navigationGuards: List<NavigationGuard>,
+): SetupInteractor = SetupInteractorImpl(setupStorageProvider, navigationGuards)
+
+@Factory(binds = [NavigationGuard::class])
+fun providePlatformAuthSetupGuard(
+    setupStorageProvider: SetupStorageProvider,
+    setupFlowAvailability: SetupFlowAvailability,
+): PlatformAuthSetupGuard = PlatformAuthSetupGuard(setupStorageProvider, setupFlowAvailability)
+
+@Factory(binds = [NavigationGuard::class])
+fun providePrivacyPolicySetupGuard(
+    setupStorageProvider: SetupStorageProvider,
+    setupFlowAvailability: SetupFlowAvailability,
+): PrivacyPolicySetupGuard = PrivacyPolicySetupGuard(setupStorageProvider, setupFlowAvailability)
+
+@Factory(binds = [NavigationGuard::class])
+fun provideNotificationsSetupGuard(
+    setupStorageProvider: SetupStorageProvider,
+    setupFlowAvailability: SetupFlowAvailability,
+): NotificationsSetupGuard = NotificationsSetupGuard(setupStorageProvider, setupFlowAvailability)
+
+@Factory(binds = [NavigationGuard::class])
+fun provideSuccessSetupGuard(
+    setupStorageProvider: SetupStorageProvider,
+    setupFlowAvailability: SetupFlowAvailability,
+): SuccessSetupGuard = SuccessSetupGuard(setupStorageProvider, setupFlowAvailability)

@@ -73,8 +73,8 @@ fun RevocationSaveCodeScreen(
             viewModel.setEvent(Event.OnUserHasSavedCodeChanged(value = it))
         },
         onNext = {
-            navController.navigate(ModuleRoute.DashboardModule.route) {
-                popUpTo(ModuleRoute.RevocationModule.route)
+            navController.navigate(viewModel.nextRoute()) {
+                popUpTo(ModuleRoute.RevocationModule.route) { inclusive = true }
             }
         },
         onBack = { navController.popBackStack() }
