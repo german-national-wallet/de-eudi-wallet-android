@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -31,9 +32,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
-import eu.europa.ec.resourceslogic.R
 import org.sprind.wallet.designsystem.typography.CustomTypography
-import eu.europa.ec.resourceslogic.theme.values.ThemeColors
 import eu.europa.ec.uilogic.component.AppIcons
 import eu.europa.ec.uilogic.component.utils.BORDER_STROKE_1
 import eu.europa.ec.uilogic.component.utils.NAVIGATION_ICON_BOX_SIZE
@@ -41,13 +40,21 @@ import eu.europa.ec.uilogic.component.utils.PID_DOCUMENT_TOP_BAR_HEIGHT
 import eu.europa.ec.uilogic.component.utils.SPACING_LARGE
 import eu.europa.ec.uilogic.component.utils.SPACING_MEDIUM
 import eu.europa.ec.uilogic.component.wrap.WrapAsyncImage
+import eu.europa.ec.resourceslogic.R
+import org.sprind.wallet.resourceslogic.generated.LightColors
 
+/**
+ * The header of a credential's detail screens. By default it is the PID's: the PID pattern with dark
+ * text, which stays dark in dark mode because the pattern is light in both themes. Other credentials
+ * pass their issuer's [backgroundColor] or [backgroundImageUri], which replace the pattern, and a
+ * matching [textColor].
+ */
 data class ContentPidTopBarConfig(
     val title: String,
     val onBackIconPress: () -> Unit,
-    val backgroundColor: Color = ThemeColors.primaryPid,
+    val backgroundColor: Color? = null,
     val backgroundImageUri: String? = null,
-    val textColor: Color = ThemeColors.onPrimaryPid,
+    val textColor: Color = Color(LightColors.schemesOnSurface),
 )
 
 @Composable
@@ -82,10 +89,21 @@ fun ContentScreenWithPidTopBar(
                         .fillMaxHeight()
                         .fillMaxSize(),
                     title = { /* for this app bar the title is handle separately because of the expanded height */ },
-                    colors = TopAppBarDefaults.topAppBarColors()
-                        .copy(containerColor = contentPidTopBarConfig.backgroundColor),
+                    colors = TopAppBarDefaults.topAppBarColors().copy(
+                        containerColor = contentPidTopBarConfig.backgroundColor ?: Color.Transparent,
+                    ),
                     navigationIcon = { }
                 )
+                if (contentPidTopBarConfig.backgroundColor == null &&
+                    contentPidTopBarConfig.backgroundImageUri == null
+                ) {
+                    Image(
+                        modifier = Modifier.fillMaxSize(),
+                        painter = painterResource(id = R.drawable.pid_card_pattern),
+                        contentDescription = null,
+                        contentScale = ContentScale.Crop,
+                    )
+                }
                 contentPidTopBarConfig.backgroundImageUri?.let { uri ->
                     WrapAsyncImage(
                         source = uri,
@@ -135,12 +153,6 @@ fun ContentScreenWithPidTopBar(
                 HorizontalDivider(
                     color = MaterialTheme.colorScheme.outlineVariant,
                     thickness = BORDER_STROKE_1.dp
-                )
-                Icon(
-                    modifier = Modifier.align(Alignment.TopEnd),
-                    painter = painterResource(id = R.drawable.ic_eagle_right),
-                    contentDescription = "Eagle",
-                    tint = contentPidTopBarConfig.textColor.copy(alpha = 0.15f)
                 )
             }
         },

@@ -20,6 +20,7 @@ package org.sprind.wallet.cardreaderfeature.ui.document.read
 
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.SheetState
 import androidx.compose.runtime.Composable
@@ -30,6 +31,7 @@ import androidx.compose.ui.unit.dp
 import eu.europa.ec.commonfeature.ui.success.SuccessView
 import eu.europa.ec.resourceslogic.R
 import eu.europa.ec.uilogic.component.AppIcons
+import eu.europa.ec.uilogic.component.utils.SPACING_MEDIUM
 import eu.europa.ec.uilogic.component.wrap.WrapImage
 import org.sprind.wallet.cardreaderfeature.domain.CardReaderRoute
 import org.sprind.wallet.cardreaderfeature.domain.isNfcPrompt
@@ -88,7 +90,7 @@ internal fun CardReaderRouteScreen(
         }
 
         NfcScanPromptView(
-            modifier = Modifier.fillMaxSize(),
+            modifier = Modifier.fillMaxSize().padding(top = SPACING_MEDIUM.dp),
             nfcScanReason = route.toNfcScanReason(),
             bottomCardSheetConfig = state.bottomSheetConfig(bottomSheetState, onEventSend),
             onCustomerServiceCallButtonClick = {
@@ -101,7 +103,7 @@ internal fun CardReaderRouteScreen(
     when (route) {
         CardReaderRoute.ENTER_PIN -> {
             CodeEntryBody(
-                modifier = Modifier.fillMaxSize(),
+                modifier = Modifier.fillMaxSize().padding(top = SPACING_MEDIUM.dp),
                 title = stringResource(R.string.pid_issuance_card_pin_entry_title),
                 state = state.pinState,
                 onCodeChange = { onEventSend(OnPinUpdate) },
@@ -185,17 +187,17 @@ internal fun CardReaderRouteScreen(
         }
 
         CardReaderRoute.NFC_ACTIVATION -> NfcActivationView(
-            modifier = Modifier.fillMaxSize()
+            modifier = Modifier.fillMaxSize().padding(top = SPACING_MEDIUM.dp)
         )
 
         CardReaderRoute.ENTER_NEW_PIN_INSTRUCTIONS -> NewPinSetInfoView(
-            modifier = Modifier.fillMaxSize(),
+            modifier = Modifier.fillMaxSize().padding(top = SPACING_MEDIUM.dp),
             bottomCardSheetConfig = state.bottomSheetConfig(bottomSheetState, onEventSend)
         )
 
         CardReaderRoute.ENTER_NEW_PIN -> {
             CodeEntryBody(
-                modifier = Modifier.fillMaxSize(),
+                modifier = Modifier.fillMaxSize().padding(top = SPACING_MEDIUM.dp),
                 title = stringResource(R.string.eid_setup_card_pin_setup_title),
                 state = state.pinState,
                 onCodeChange = { onEventSend(OnNewPinUpdate) },
@@ -208,7 +210,7 @@ internal fun CardReaderRouteScreen(
 
         CardReaderRoute.CONFIRM_NEW_PIN -> {
             CodeEntryBody(
-                modifier = Modifier.fillMaxSize(),
+                modifier = Modifier.fillMaxSize().padding(top = SPACING_MEDIUM.dp),
                 title = stringResource(R.string.eid_setup_card_pin_reenter_title),
                 state = state.pinState,
                 onCodeChange = { onEventSend(OnNewPinConfirmUpdate) },
@@ -221,7 +223,8 @@ internal fun CardReaderRouteScreen(
 
         CardReaderRoute.ONBOARDING_CARD -> {
             OnboardingCardView(
-                modifier = Modifier.fillMaxSize()
+                modifier = Modifier.fillMaxSize(),
+                onDocumentClick = { onEventSend(Event.OnContinueClickOnboardingPin) },
             )
             val sheetConfig = state.bottomSheetConfig(bottomSheetState, onEventSend)
             ReadCardBottomSheet(sheetConfig) {
@@ -261,7 +264,7 @@ internal fun CardReaderRouteScreen(
         )
 
         CardReaderRoute.CONSENT -> ConsentView(
-            modifier = Modifier.fillMaxSize(),
+            modifier = Modifier.fillMaxSize().padding(top = SPACING_MEDIUM.dp),
             claimLabels = pidClaimLabels(),
             bottomCardSheetConfig = state.bottomSheetConfig(bottomSheetState, onEventSend),
             onSetCardPinButtonClick = { onEventSend(Event.TransportPinLetter) },
@@ -273,7 +276,7 @@ internal fun CardReaderRouteScreen(
 
         CardReaderRoute.ISSUANCE_CONSENT -> {
             IssuanceConsentView(
-                modifier = Modifier.fillMaxSize(),
+                modifier = Modifier.fillMaxSize().padding(top = SPACING_MEDIUM.dp),
                 issuerName = stringResource(R.string.__variable_text_pid_issuer_var_issuer_name),
                 onShowCredentialDataClick = { onEventSend(Event.OnCredentialDetailsClick) },
                 onIssuerClick = { onEventSend(Event.OnIssuerInformationClick) },

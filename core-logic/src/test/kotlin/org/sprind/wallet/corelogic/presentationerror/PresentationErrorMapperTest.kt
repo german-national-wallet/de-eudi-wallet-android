@@ -186,7 +186,7 @@ class PresentationErrorMapperTest {
             PresentationError.RelyingPartySideSubType.RELYING_PARTY_REJECTED,
             (result as PresentationError.RelyingPartySide).subType,
         )
-        assertEquals(PresentationError.RecommendedAction.DISMISS, result.recommendedAction)
+        assertEquals(PresentationError.RecommendedAction.CONTACT_RELYING_PARTY, result.recommendedAction)
     }
 
     @Test

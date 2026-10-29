@@ -161,9 +161,9 @@ private fun Screen(
     ) { paddingValues ->
         ContentTemplateBody(
             modifier = Modifier
-                .padding(paddingValues)
                 .padding(top = SPACING_MEDIUM.dp)
                 .testTag(copy.testTag),
+            screenPadding = paddingValues,
             templateConfig = ContentTemplateConfig(showScrollFade = true),
             title = {
                 Text(

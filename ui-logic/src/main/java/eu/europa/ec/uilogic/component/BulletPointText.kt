@@ -34,7 +34,7 @@ fun BulletPointText(text: String) {
 
         Text(
             text = text,
-            style = MaterialTheme.typography.bodyLarge.copy(
+            style = MaterialTheme.typography.labelLarge.copy(
                 color = MaterialTheme.colorScheme.onSurface
             )
         )

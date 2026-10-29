@@ -29,7 +29,7 @@ import eu.europa.ec.businesslogic.controller.storage.PrefsController
  * decrease over time, so that we never have to increase it again after our public
  * release.
  */
-const val CURRENT_APP_DATA_VERSION: AppDataVersion = 11
+const val CURRENT_APP_DATA_VERSION: AppDataVersion = 12
 
 typealias AppDataVersion = Int
 

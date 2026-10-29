@@ -19,6 +19,7 @@
 package org.sprind.wallet.cardreaderfeature.ui.document.consent
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -37,18 +38,18 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.stringResource
-import androidx.compose.foundation.layout.Box
+import androidx.compose.ui.semantics.CollectionInfo
 import androidx.compose.ui.semantics.CollectionItemInfo
+import androidx.compose.ui.semantics.collectionInfo
 import androidx.compose.ui.semantics.collectionItemInfo
-import androidx.compose.ui.semantics.onClick
-import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.hideFromAccessibility
-import androidx.compose.ui.semantics.CollectionInfo
-import androidx.compose.ui.semantics.collectionInfo
+import androidx.compose.ui.semantics.onClick
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.unit.dp
 import eu.europa.ec.resourceslogic.R
+import eu.europa.ec.resourceslogic.theme.values.ThemeColors
 import eu.europa.ec.uilogic.component.AppIcons
 import eu.europa.ec.uilogic.component.BulletPointText
 import eu.europa.ec.uilogic.component.ClickableArea
@@ -56,9 +57,11 @@ import eu.europa.ec.uilogic.component.ListItem
 import eu.europa.ec.uilogic.component.ListItemData
 import eu.europa.ec.uilogic.component.ListItemLeadingContentData
 import eu.europa.ec.uilogic.component.ListItemMainContentData
+import eu.europa.ec.uilogic.component.ListItemTrailingContentData
 import eu.europa.ec.uilogic.component.TextAndIcon
 import eu.europa.ec.uilogic.component.preview.PreviewTheme
 import eu.europa.ec.uilogic.component.preview.ThemeModeWithGermanAndEnglishPreviews
+import eu.europa.ec.uilogic.component.utils.DEFAULT_ICON_SIZE
 import eu.europa.ec.uilogic.component.utils.SPACING_EXTRA_MEDIUM
 import eu.europa.ec.uilogic.component.utils.SPACING_MEDIUM
 import eu.europa.ec.uilogic.component.utils.SPACING_SMALL
@@ -94,7 +97,9 @@ fun ConsentView(
     ProvideContentTemplateStyle(
         style = ContentTemplateDefaults.style.copy(
             titleTextStyle = MaterialTheme.typography.titleMedium,
-            bodyTextStyle = MaterialTheme.typography.labelLarge,
+            bodyTextStyle = MaterialTheme.typography.labelLarge.copy(
+                color = ThemeColors.onBackgroundVariant
+            ),
         ),
     ) {
         ContentTemplateBody(
@@ -169,7 +174,13 @@ private fun ClaimsCard(claimLabels: List<String>) {
             containerColor = MaterialTheme.colorScheme.surfaceContainer,
             contentColor = MaterialTheme.colorScheme.onSurface,
         ),
-        cardCollapsedContent = { Claims(labels = collapsed, firstIndex = 0) },
+        cardCollapsedContent = {
+            Claims(
+                labels = collapsed,
+                firstIndex = 0,
+                modifier = Modifier.padding(top = SPACING_EXTRA_MEDIUM.dp),
+            )
+        },
         cardExpandedContent = { Claims(labels = rest, firstIndex = collapsed.size) },
         cardFooterContent = {
             if (rest.isNotEmpty()) {
@@ -186,12 +197,12 @@ private fun ClaimsCard(claimLabels: List<String>) {
 private fun Claims(
     labels: List<String>,
     firstIndex: Int,
+    modifier: Modifier = Modifier,
 ) {
     Column(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
-            .padding(horizontal = SPACING_EXTRA_MEDIUM.dp)
-            .padding(top = SPACING_EXTRA_MEDIUM.dp),
+            .padding(horizontal = SPACING_EXTRA_MEDIUM.dp),
     ) {
         labels.forEachIndexed { index, label ->
             Box(
@@ -265,9 +276,15 @@ private fun IssuerSection(onIssuerTitleClick: () -> Unit) {
                     imageRes = R.drawable.bundesdruckerei_logo_squared,
                 ),
                 mainContentData = ListItemMainContentData.Text(ISSUER_NAME),
+                trailingContentData = ListItemTrailingContentData.Icon(
+                    iconData = AppIcons.Info,
+                    tint = ThemeColors.onBackgroundVariant,
+                    size = DEFAULT_ICON_SIZE
+                ),
             ),
             onItemClick = { onIssuerTitleClick() },
             leadingContentScale = ContentScale.Crop,
+
             clickableAreas = listOf(ClickableArea.ENTIRE_ROW),
         )
     }

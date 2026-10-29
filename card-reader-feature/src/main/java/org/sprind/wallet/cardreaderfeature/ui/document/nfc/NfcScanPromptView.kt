@@ -43,6 +43,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.layout.size
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import eu.europa.ec.uilogic.component.wrap.Banner
+import eu.europa.ec.uilogic.component.wrap.BannerStyle
 import org.sprind.wallet.uilogic.component.ContentIllustrationPlacement
 import org.sprind.wallet.uilogic.component.ContentTemplateBody
 import org.sprind.wallet.uilogic.component.ContentTemplateConfig
@@ -112,6 +113,7 @@ fun NfcScanPromptView(
             illustration = {
                 WrapLottieAnimation(
                     animation = R.raw.nfc_tapping_middle,
+                    iterations = 1,
                     modifier = Modifier
                         .size(NFC_ANIMATION_SIZE)
                         // The title and the banner say what the animation shows.
@@ -123,6 +125,7 @@ fun NfcScanPromptView(
                     modifier = Modifier.fillMaxWidth(),
                     body = stringResource(R.string.nfc_scanning_nfc_tap_banner_android_1),
                     icon = AppIcons.Warning,
+                    style = BannerStyle.ACCENTED,
                 )
             },
         )

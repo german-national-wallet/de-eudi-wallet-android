@@ -231,6 +231,11 @@ class ThemeColors {
          */
         val errorOutline: Color get() = Color(designColors.schemesErrorOutline)
 
+        val warningContainer: Color get() = Color(designColors.schemesWarningContainer)
+
+        /** Outline of a [warningContainer] surface, e.g. the stripe of a warning banner. */
+        val warningOutline: Color get() = Color(designColors.schemesWarningOutline)
+
         val labelLarge: Color
             get() = Color(designColors.schemesOnBackground)
 

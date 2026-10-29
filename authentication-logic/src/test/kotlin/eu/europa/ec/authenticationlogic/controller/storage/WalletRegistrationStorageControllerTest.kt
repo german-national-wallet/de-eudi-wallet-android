@@ -5,9 +5,12 @@ import eu.europa.ec.authenticationlogic.encoder.Base64EncoderDecoder
 import eu.europa.ec.authenticationlogic.model.WalletRegistration
 import eu.europa.ec.authenticationlogic.provider.WalletRegistrationStorageProvider
 import eu.europa.ec.businesslogic.controller.crypto.CryptoController
+import org.sprind.wallet.businesslogic.controller.crypto.CryptoError
 import eu.europa.ec.testlogic.extension.runTest
 import eu.europa.ec.testlogic.rule.CoroutineTestRule
 import junit.framework.TestCase.assertEquals
+import junit.framework.TestCase.assertNull
+import junit.framework.TestCase.assertTrue
 import kotlinx.serialization.json.Json
 import org.junit.After
 import org.junit.Before
@@ -16,10 +19,13 @@ import org.junit.Test
 import org.mockito.Mock
 import org.mockito.Mockito.mock
 import org.mockito.MockitoAnnotations
+import org.mockito.kotlin.any
+import org.mockito.kotlin.never
 import org.mockito.kotlin.verify
 import org.mockito.kotlin.whenever
 import java.nio.charset.StandardCharsets
 import java.util.Base64
+import javax.crypto.AEADBadTagException
 import javax.crypto.Cipher
 
 private const val mockWalletInstanceId = "mockWalletInstanceId"
@@ -114,14 +120,14 @@ class WalletRegistrationStorageControllerTest {
                     ivString
                 )
             )
-        ).thenReturn(mockCipher)
+        ).thenReturn(Result.success(mockCipher))
         whenever(cryptoController.encryptDecryptData(mockCipher, encryptedData)).thenReturn(
-            decryptedData
+            Result.success(decryptedData)
         )
         val result = subject.getWalletRegistration()
 
         // Then
-        assertEquals(data, result)
+        assertEquals(data, result.getOrThrow())
         verify(walletRegistrationStorageProvider).getWalletRegistration()
         verify(cryptoController).getWalletRegistrationCipher(
             ivBytes = base64EncoderDecoder.decodeFromPemBase64String(
@@ -137,18 +143,20 @@ class WalletRegistrationStorageControllerTest {
         val mockCipher = mock<Cipher>()
         whenever(mockCipher.iv).thenReturn(iv)
 
-        whenever(cryptoController.getWalletRegistrationCipher(encrypt = true)).thenReturn(mockCipher)
+        whenever(cryptoController.getWalletRegistrationCipher(encrypt = true))
+            .thenReturn(Result.success(mockCipher))
         whenever(
             cryptoController.encryptDecryptData(
                 mockCipher,
                 decryptedData
             )
-        ).thenReturn(encryptedData)
+        ).thenReturn(Result.success(encryptedData))
 
 
-        subject.saveWalletRegistration(data)
+        val result = subject.saveWalletRegistration(data)
 
         // Then
+        assertTrue(result.isSuccess)
         verify(cryptoController).getWalletRegistrationCipher(encrypt = true)
         verify(cryptoController).encryptDecryptData(
             mockCipher,
@@ -160,5 +168,61 @@ class WalletRegistrationStorageControllerTest {
                 ivString = base64EncoderDecoder.encodeToPemBase64String(iv)!!
             )
         )
+    }
+
+    @Test
+    fun `getWalletRegistration fails when the stored data cannot be decrypted`() = coroutineRule.runTest {
+        // Given
+        val mockCipher = mock<Cipher>()
+        whenever(walletRegistrationStorageProvider.getWalletRegistration()).thenReturn(
+            WalletRegistration(encryptedString = encryptedString, ivString = ivString)
+        )
+        whenever(cryptoController.getWalletRegistrationCipher(ivBytes = iv))
+            .thenReturn(Result.success(mockCipher))
+        whenever(cryptoController.encryptDecryptData(mockCipher, encryptedData))
+            .thenReturn(Result.failure(CryptoError.AuthenticationFailed(AEADBadTagException())))
+
+        // Then
+        val result = subject.getWalletRegistration()
+
+        assertTrue(result.exceptionOrNull() is CryptoError.AuthenticationFailed)
+    }
+
+    @Test
+    fun `getWalletRegistration succeeds with null when nothing is stored`() = coroutineRule.runTest {
+        whenever(walletRegistrationStorageProvider.getWalletRegistration()).thenReturn(null)
+
+        assertNull(subject.getWalletRegistration().getOrThrow())
+    }
+
+    @Test
+    fun `saveWalletRegistration stores nothing when encryption fails`() = coroutineRule.runTest {
+        // Given
+        whenever(cryptoController.getWalletRegistrationCipher(encrypt = true))
+            .thenReturn(Result.failure(CryptoError.KeyNotFound()))
+
+        // Then
+        val result = subject.saveWalletRegistration(data)
+
+        assertTrue(result.exceptionOrNull() is CryptoError.KeyNotFound)
+        verify(walletRegistrationStorageProvider, never()).storeWalletRegistration(any())
+    }
+
+    @Test
+    fun `saveWalletRegistration fails instead of throwing when storing fails`() = coroutineRule.runTest {
+        // Given
+        val mockCipher = mock<Cipher>()
+        whenever(mockCipher.iv).thenReturn(iv)
+        whenever(cryptoController.getWalletRegistrationCipher(encrypt = true))
+            .thenReturn(Result.success(mockCipher))
+        whenever(cryptoController.encryptDecryptData(mockCipher, decryptedData))
+            .thenReturn(Result.success(encryptedData))
+        whenever(walletRegistrationStorageProvider.storeWalletRegistration(any()))
+            .thenThrow(IllegalStateException("disk full"))
+
+        // Then
+        val result = subject.saveWalletRegistration(data)
+
+        assertTrue(result.exceptionOrNull() is IllegalStateException)
     }
 }

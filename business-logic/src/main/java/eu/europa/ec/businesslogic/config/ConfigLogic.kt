@@ -57,12 +57,12 @@ interface ConfigLogic {
     /**
      * Whether logs are printed to logcat.
      */
-    val isLogcatEnabled: Boolean get() = environmentConfig.enableLogcat
+    val isLogcatEnabled: Boolean get() = environmentConfig.logConfig.isLogcatEnabled
 
     /**
      * Whether logs are written to file, from where the debug menu can export them.
      */
-    val isLogWriterEnabled: Boolean get() = environmentConfig.enableLogWriter
+    val isLogWriterEnabled: Boolean get() = environmentConfig.logConfig.isLogWriterEnabled
 
     val isSimulatedEidCardEnabled: Boolean get() = environmentConfig.enableSimulatedEidCard
 
@@ -141,22 +141,6 @@ abstract class EnvironmentConfig {
      */
     open val enableDebugMenu: Boolean = false
 
-    /**
-     * Whether logs shall be printed to logcat.
-     *
-     * Defaults to false, so a flavor shipped to end users stays silent unless it opts in.
-     */
-    open val enableLogcat: Boolean = false
-
-    /**
-     * Whether logs shall be written to file and if they shall be exportable by the user.
-     * Written logs can only be exported through the debug menu, so this requires
-     * [enableDebugMenu] to be of any use.
-     *
-     * Defaults to false, so a flavor shipped to end users never collects log files.
-     */
-    open val enableLogWriter: Boolean = false
-
     open val enableSimulatedEidCard: Boolean = false
 
     /**
@@ -175,4 +159,7 @@ abstract class EnvironmentConfig {
      * Implementations must supply a value ending in '/'.
      */
     abstract val featureFlagApiBaseUrl: String
+
+    abstract val logConfig : LogConfig
+
 }

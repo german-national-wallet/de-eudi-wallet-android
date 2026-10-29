@@ -23,6 +23,7 @@ sealed class DashboardScreens {
     data object Dashboard : Screen(name = "DASHBOARD")
     data object Activities : Screen(name = "ACTIVITIES")
     data object Settings : Screen(name = "SETTINGS")
+    data object DebugConfig : Screen(name = "DEBUG_CONFIG")
     data object SignDocument :
         Screen(name = "SIGN_DOCUMENT")
 

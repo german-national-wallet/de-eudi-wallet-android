@@ -19,7 +19,6 @@ package eu.europa.ec.assemblylogic.ui
 import android.content.ActivityNotFoundException
 import android.content.Context
 import android.content.Intent
-import android.Manifest
 import android.os.Bundle
 import android.provider.Settings
 import android.widget.Toast
@@ -42,10 +41,6 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.lifecycleScope
-import com.google.accompanist.permissions.ExperimentalPermissionsApi
-import com.google.accompanist.permissions.isGranted
-import com.google.accompanist.permissions.rememberPermissionState
-import eu.europa.ec.businesslogic.BuildConfig
 import org.sprind.wallet.assemblylogic.controller.AppBlockingController
 import org.sprind.wallet.assemblylogic.controller.AppBlockingState
 import org.sprind.wallet.assemblylogic.controller.WalletRevocationResetCoordinator
@@ -57,7 +52,7 @@ import eu.europa.ec.presentationfeature.router.presentationGraph
 import eu.europa.ec.resourceslogic.R
 import eu.europa.ec.startupfeature.router.featureStartupGraph
 import org.sprind.wallet.uilogic.component.AppBlockingScreen
-import eu.europa.ec.uilogic.component.AppIcons
+import org.sprind.wallet.onboardingfeature.setup.platformauth.PlatformAuthBlockingScreen
 import eu.europa.ec.uilogic.container.EudiComponentActivity
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
@@ -93,6 +88,7 @@ class MainActivity : EudiComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        window.setHideOverlayWindows(true)
         handleFcmLaunchAction(intent)
         setContent {
             WalletContent()
@@ -110,25 +106,12 @@ class MainActivity : EudiComponentActivity() {
         fcmMessageDispatcher.dispatch(action = action, scope = lifecycleScope)
     }
 
-    @OptIn(ExperimentalPermissionsApi::class)
-    @Suppress("KotlinConstantCondition")
     @Composable
     private fun WalletContent() {
         var blockingState by remember { mutableStateOf<AppBlockingState?>(null) }
         val coroutineScope = rememberCoroutineScope()
         val lifecycleOwner = LocalLifecycleOwner.current
         val context = LocalContext.current
-
-        val notificationPermissionState = rememberPermissionState(
-            Manifest.permission.POST_NOTIFICATIONS
-        )
-        if (BuildConfig.ENABLE_PNS_PERMISSION_POP_UP) {
-            LaunchedEffect(Unit) {
-                if (!notificationPermissionState.status.isGranted) {
-                    notificationPermissionState.launchPermissionRequest()
-                }
-            }
-        }
 
         LaunchedEffect(Unit) {
             walletRevocationStore.revokedFlow.collect { revoked ->
@@ -168,12 +151,10 @@ class MainActivity : EudiComponentActivity() {
 
             when (blockingState) {
                 AppBlockingState.PlatformAuthentication -> {
-                    AppBlockingScreen(
-                        title = stringResource(R.string.app_onboarding_pa_not_set_title),
-                        description = stringResource(R.string.app_onboarding_pa_not_set_paragraph),
-                        buttonTitle = stringResource(R.string.app_onboarding_pa_not_set_prim_button),
-                        iconData = AppIcons.NoPAOnDevice,
-                        onButtonClick = { openSecuritySettings(context) }
+                    PlatformAuthBlockingScreen(
+                        onOpenSettings = { openSecuritySettings(context) },
+                        // The app cannot be used without a screen lock, so back leaves it.
+                        onBack = { finish() },
                     )
                 }
 

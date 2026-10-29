@@ -15,6 +15,7 @@ import eu.europa.ec.testlogic.extension.runTest
 import eu.europa.ec.testlogic.rule.CoroutineTestRule
 import eu.europa.ec.uilogic.navigation.RouterHost
 import eu.europa.ec.uilogic.serializer.UiSerializer
+import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.flow.flowOf
 import org.junit.After
 import org.junit.Before
@@ -33,6 +34,7 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
+import kotlin.test.assertTrue
 
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [34], application = TestApplication::class)
@@ -189,6 +191,40 @@ class DashboardViewModelTest {
         }
 
     //endregion
+
+    //region Documents loading
+
+    @Test
+    fun `when Event Init fetches the documents for the first time, then the loader is shown`() =
+        coroutineRule.runTest {
+            whenever(dashboardInteractor.getIssuedDocuments()).thenReturn(emptyFlow())
+
+            subject.setEvent(Event.Init)
+            coroutineRule.testScope.testScheduler.runCurrent()
+
+            assertTrue(subject.viewState.value.isLoading)
+        }
+
+    @Test
+    fun `when Event Init fetches the documents again after they loaded, then the loader is not shown`() =
+        coroutineRule.runTest {
+            whenever(dashboardInteractor.getIssuedDocuments()).thenReturn(
+                flowOf(
+                    DashboardInteractorGetIssuedDocumentsPartialState.Success(
+                        pidDocument = null,
+                        eaaDocuments = emptyList(),
+                    )
+                ),
+                emptyFlow(),
+            )
+
+            subject.setEvent(Event.Init)
+            coroutineRule.testScope.testScheduler.runCurrent()
+            subject.setEvent(Event.Init)
+            coroutineRule.testScope.testScheduler.runCurrent()
+
+            assertFalse(subject.viewState.value.isLoading)
+        }
 
     //region IssuePreferredPidDocument
 

@@ -20,14 +20,20 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.calculateEndPadding
+import androidx.compose.foundation.layout.calculateStartPadding
+import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
@@ -40,6 +46,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ProgressIndicatorDefaults
 import androidx.compose.material3.ProvideTextStyle
 import androidx.compose.material3.Text
+import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.Immutable
@@ -51,6 +58,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.CollectionInfo
 import androidx.compose.ui.semantics.CollectionItemInfo
@@ -83,6 +91,8 @@ import eu.europa.ec.uilogic.component.wrap.ButtonConfig
 import eu.europa.ec.uilogic.component.wrap.ButtonType
 import eu.europa.ec.uilogic.component.wrap.StickyBottomConfig
 import eu.europa.ec.uilogic.component.wrap.StickyBottomType
+import eu.europa.ec.uilogic.component.wrap.BannerAccent
+import eu.europa.ec.uilogic.component.wrap.BannerStyle
 import eu.europa.ec.uilogic.component.wrap.WrapCard
 import eu.europa.ec.uilogic.component.wrap.WrapIcon
 import eu.europa.ec.uilogic.component.wrap.WrapImage
@@ -135,12 +145,15 @@ data class ContentTemplateConfig(
  *   [ProvideTextStyle]).
  * @property bodyTextStyle style applied to the `body` slot.
  * @property contentColor color provided to both slots via [LocalContentColor].
+ * @property bodyContentColor overrides [contentColor] for the `body` slot, for designs whose
+ *   paragraph is lighter than the title; `null` uses [contentColor].
  */
 @Immutable
 data class ContentTemplateStyle(
     val titleTextStyle: TextStyle,
     val bodyTextStyle: TextStyle,
     val contentColor: Color,
+    val bodyContentColor: Color? = null,
 )
 
 /** Defaults for [ContentTemplateBody], resolved from the current [MaterialTheme]. */
@@ -203,8 +216,11 @@ fun ProvideContentTemplateStyle(
  *
  * @param title the headline slot; announced as a heading and styled with
  *   [ContentTemplateStyle.titleTextStyle].
- * @param modifier applied to the outer column; pass the [ContentScreen] body [PaddingValues] here,
- *   e.g. `Modifier.padding(paddingValues)`.
+ * @param modifier applied to the outer column, e.g. `Modifier.padding(paddingValues)`.
+ * @param screenPadding the [ContentScreen] body [PaddingValues]. Top and bottom are applied around
+ *   the body; start and end are applied inside the scrolling area, so the
+ *   [ContentTemplateConfig.showScrollFade] shadow spans the full width while the content keeps its
+ *   side padding. Prefer this over `Modifier.padding(paddingValues)` whenever the fade is shown.
  * @param templateConfig the layout options; see [ContentTemplateConfig].
  * @param body optional supporting-paragraph slot shown under the title, styled with
  *   [ContentTemplateStyle.bodyTextStyle].
@@ -213,31 +229,86 @@ fun ProvideContentTemplateStyle(
  *   [ContentTemplateConfig.illustrationPlacement].
  * @param progressContent optional slot pinned above the scroll (e.g. a step progress indicator).
  * @param extraContent optional slot under the text; typically a [ContentNotice] or [ContentChecklist].
+ * @param bottomContent optional slot at the end of the scroll, e.g. the screen's actions. It sits at
+ *   the bottom of the screen while the content is short and follows the content once it is longer.
  */
 @Composable
 fun ContentTemplateBody(
     title: @Composable () -> Unit,
     modifier: Modifier = Modifier,
+    screenPadding: PaddingValues = PaddingValues(),
     templateConfig: ContentTemplateConfig = ContentTemplateConfig(),
     body: (@Composable () -> Unit)? = null,
     illustration: (@Composable () -> Unit)? = null,
     progressContent: (@Composable ColumnScope.() -> Unit)? = null,
     extraContent: (@Composable ColumnScope.() -> Unit)? = null,
+    bottomContent: (@Composable ColumnScope.() -> Unit)? = null,
 ) {
     val style = LocalContentTemplateStyle.current ?: ContentTemplateDefaults.style
+    val layoutDirection = LocalLayoutDirection.current
+    val sidePadding = PaddingValues(
+        start = screenPadding.calculateStartPadding(layoutDirection),
+        end = screenPadding.calculateEndPadding(layoutDirection),
+    )
 
     // Re-provide the resolved style so the text slots (and any nested content) share it.
     CompositionLocalProvider(LocalContentTemplateStyle provides style) {
         Column(
-            modifier = modifier.fillMaxSize(),
+            modifier = modifier
+                .padding(
+                    top = screenPadding.calculateTopPadding(),
+                    bottom = screenPadding.calculateBottomPadding(),
+                )
+                .fillMaxSize(),
             verticalArrangement = Arrangement.spacedBy(templateConfig.verticalSpacing),
         ) {
             // Pinned above the scroll so a step progress indicator stays visible while
             // the rest of the content scrolls underneath it.
-            progressContent?.invoke(this)
+            progressContent?.let { progress ->
+                Column(
+                    modifier = Modifier
+                        .padding(sidePadding)
+                        .padding(bottom = SPACING_MEDIUM.dp)
+                ) { progress() }
+            }
+
+            val scrollContent: @Composable ColumnScope.() -> Unit = {
+                if (illustration != null && templateConfig.illustrationPlacement == ContentIllustrationPlacement.ABOVE_TITLE) {
+                    CenteredIllustration(illustration)
+            }
+
+            Column(verticalArrangement = Arrangement.spacedBy(SPACING_MEDIUM.dp)) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .semantics(mergeDescendants = true) { heading() },
+                ) {
+                    ProvideContentTemplateTextStyle(
+                        textStyle = style.titleTextStyle,
+                        color = style.contentColor,
+                        content = title,
+                    )
+                }
+                body?.let { bodySlot ->
+                    Box(modifier = Modifier.fillMaxWidth()) {
+                        ProvideContentTemplateTextStyle(
+                            textStyle = style.bodyTextStyle,
+                            color = style.bodyContentColor ?: style.contentColor,
+                            content = bodySlot,
+                        )
+                    }
+                }
+            }
+
+            if (illustration != null && templateConfig.illustrationPlacement == ContentIllustrationPlacement.BELOW_TEXT) {
+                CenteredIllustration(illustration)
+            }
+
+            extraContent?.invoke(this)
+            }
 
             val scrollState = rememberScrollState()
-            Box(
+            BoxWithConstraints(
                 modifier = Modifier
                     .weight(1f)
                     .fillMaxWidth(),
@@ -245,8 +316,12 @@ fun ContentTemplateBody(
                 Column(
                     modifier = Modifier
                         .fillMaxSize()
-                        .verticalScroll(scrollState),
-                    verticalArrangement = if (templateConfig.centerContent) {
+                        .verticalScroll(scrollState)
+                        .heightIn(min = if (bottomContent != null) maxHeight else 0.dp)
+                        .padding(sidePadding),
+                    verticalArrangement = if (bottomContent != null) {
+                        Arrangement.Top
+                    } else if (templateConfig.centerContent) {
                         Arrangement.spacedBy(
                             space = templateConfig.verticalSpacing,
                             alignment = Alignment.CenterVertically,
@@ -255,38 +330,17 @@ fun ContentTemplateBody(
                         Arrangement.spacedBy(templateConfig.verticalSpacing)
                     },
                 ) {
-                    if (illustration != null && templateConfig.illustrationPlacement == ContentIllustrationPlacement.ABOVE_TITLE) {
-                        CenteredIllustration(illustration)
+                    if (bottomContent == null) {
+                        scrollContent()
+                    } else {
+                        Column(
+                            verticalArrangement = Arrangement.spacedBy(templateConfig.verticalSpacing),
+                            content = scrollContent,
+                        )
+                        Spacer(modifier = Modifier.height(templateConfig.verticalSpacing))
+                        Spacer(modifier = Modifier.weight(1f))
+                        bottomContent()
                     }
-
-                    Column(verticalArrangement = Arrangement.spacedBy(SPACING_MEDIUM.dp)) {
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .semantics(mergeDescendants = true) { heading() },
-                        ) {
-                            ProvideContentTemplateTextStyle(
-                                textStyle = style.titleTextStyle,
-                                color = style.contentColor,
-                                content = title,
-                            )
-                        }
-                        body?.let { bodySlot ->
-                            Box(modifier = Modifier.fillMaxWidth()) {
-                                ProvideContentTemplateTextStyle(
-                                    textStyle = style.bodyTextStyle,
-                                    color = style.contentColor,
-                                    content = bodySlot,
-                                )
-                            }
-                        }
-                    }
-
-                    if (illustration != null && templateConfig.illustrationPlacement == ContentIllustrationPlacement.BELOW_TEXT) {
-                        CenteredIllustration(illustration)
-                    }
-
-                    extraContent?.invoke(this)
                 }
 
                 if (templateConfig.showScrollFade) {
@@ -308,7 +362,7 @@ fun ContentTemplateBody(
 @Composable
 private fun CenteredIllustration(illustration: @Composable () -> Unit) {
     Box(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier.defaultMinSize(minHeight = ILLUSTRATION_HEIGHT).fillMaxWidth(),
         contentAlignment = Alignment.Center,
         content = { illustration() },
     )
@@ -377,11 +431,14 @@ fun ContentIllustration(
  *
  * @param icon the leading icon, or `null` for the plain notice the designs use where the text alone
  *   carries the message (the NFC activation screen, for instance).
+ * @param style [BannerStyle.ACCENTED] adds the bar along the leading edge that some designs give the
+ *   notice, as on the [eu.europa.ec.uilogic.component.wrap.Banner].
  */
 @Composable
 fun ContentNotice(
     modifier: Modifier = Modifier,
     icon: IconData? = AppIcons.Warning,
+    style: BannerStyle = BannerStyle.DEFAULT,
     content: @Composable () -> Unit,
 ) {
     WrapCard(
@@ -394,26 +451,29 @@ fun ContentNotice(
             contentColor = MaterialTheme.colorScheme.onSurface,
         ),
     ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(SPACING_MEDIUM.dp),
-            horizontalArrangement = Arrangement.spacedBy(SPACING_SMALL.dp),
-            verticalAlignment = Alignment.Top,
-        ) {
-            icon?.let {
-                WrapIcon(
-                    iconData = it,
-                    modifier = Modifier
-                        .padding(top = MARK_TOP_INSET)
-                        .size(SIZE_MEDIUM_LARGE.dp),
-                    customTint = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
+        Box {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(SPACING_MEDIUM.dp),
+                horizontalArrangement = Arrangement.spacedBy(SPACING_SMALL.dp),
+                verticalAlignment = Alignment.Top,
+            ) {
+                icon?.let {
+                    WrapIcon(
+                        iconData = it,
+                        modifier = Modifier
+                            .padding(top = MARK_TOP_INSET)
+                            .size(SIZE_MEDIUM_LARGE.dp),
+                        customTint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                Box(modifier = Modifier.weight(1f)) {
+                    // The card already provides onSurface via LocalContentColor; only the text style needs setting.
+                    ProvideTextStyle(value = MaterialTheme.typography.bodyLarge, content = content)
+                }
             }
-            Box(modifier = Modifier.weight(1f)) {
-                // The card already provides onSurface via LocalContentColor; only the text style needs setting.
-                ProvideTextStyle(value = MaterialTheme.typography.bodyLarge, content = content)
-            }
+            if (style == BannerStyle.ACCENTED) BannerAccent()
         }
     }
 }
@@ -439,19 +499,41 @@ data class ContentChecklistItem(
  * Each row is merged for accessibility and its icon is decorative, so a row is announced as just
  * its text. The list is exposed to accessibility services as a single-column collection, and each
  * row reports its position, so screen readers announce it as e.g. "item 2 of 3".
+ *
+ * @param contentColor the color of the icons and the text; defaults to `onSurfaceVariant`.
+ * @param boxed shows the list in a rounded `surfaceContainer` box with `onSurface` text, as the
+ *   Privacy Policy summary does; otherwise the rows sit directly on the background.
  */
 @Composable
 fun ContentChecklist(
     items: List<ContentChecklistItem>,
     modifier: Modifier = Modifier,
+    contentColor: Color = MaterialTheme.colorScheme.onSurfaceVariant,
+    boxed: Boolean = false,
 ) {
+    val textColor = if (boxed) {
+        MaterialTheme.colorScheme.onSurface
+    } else {
+        contentColor
+    }
     Column(
         modifier = modifier
             .fillMaxWidth()
+            .then(
+                if (boxed) {
+                    Modifier
+                        .clip(RoundedCornerShape(CHECKLIST_BOX_CORNER))
+                        .background(color = MaterialTheme.colorScheme.surfaceContainer)
+                        .padding(CHECKLIST_BOX_PADDING)
+                } else {
+                    Modifier
+                },
+            )
             .semantics {
                 collectionInfo = CollectionInfo(rowCount = items.size, columnCount = 1)
             },
-        verticalArrangement = Arrangement.spacedBy(SPACING_EXTRA_SMALL.dp),
+        // In the box the rows' own vertical padding is the only gap between them, as designed.
+        verticalArrangement = Arrangement.spacedBy(if (boxed) 0.dp else SPACING_EXTRA_SMALL.dp),
     ) {
         items.forEachIndexed { index, item ->
             Row(
@@ -474,13 +556,13 @@ fun ContentChecklist(
                     modifier = Modifier
                         .size(SIZE_LARGE.dp)
                         .clearForAccessibility(),
-                    customTint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    customTint = contentColor,
                 )
                 Text(
                     modifier = Modifier.weight(1f),
                     text = item.text,
                     style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    color = textColor,
                 )
             }
         }
@@ -490,7 +572,7 @@ fun ContentChecklist(
 /**
  * A stepped linear progress indicator for the top of an onboarding flow (the intro template's
  * \"4-step progress indicator\"). It renders [totalSteps] equal segments: the steps before
- * [currentStep] are filled with the primary color, the rest use the track color.
+ * [currentStep] are filled with the on-surface color, the rest use the track color.
  *
  * [currentStep] is the step the user is *on*, not a count of finished ones, so by default its
  * segment is drawn half filled: standing on a screen means working through that step, not having
@@ -558,7 +640,7 @@ fun ContentStepProgressIndicator(
                     .weight(1f)
                     .height(STEP_BAR_HEIGHT)
                     .clearForAccessibility(),
-                color = MaterialTheme.colorScheme.primary,
+                color = MaterialTheme.colorScheme.onSurface,
                 trackColor = MaterialTheme.colorScheme.surfaceContainerHighest,
                 strokeCap = StrokeCap.Round,
                 gapSize = 0.dp,
@@ -586,6 +668,8 @@ private fun Modifier.describedForAccessibility(description: String?): Modifier =
 private val ILLUSTRATION_HEIGHT = 184.dp
 private val ILLUSTRATION_CORNER = 24.dp
 private val NOTICE_CORNER = 12.dp
+private val CHECKLIST_BOX_CORNER = 24.dp
+private val CHECKLIST_BOX_PADDING = PaddingValues(start = 16.dp, top = 20.dp, end = 20.dp, bottom = 20.dp)
 
 private val MARK_TOP_INSET = 2.dp
 private val STEP_BAR_HEIGHT = 4.dp

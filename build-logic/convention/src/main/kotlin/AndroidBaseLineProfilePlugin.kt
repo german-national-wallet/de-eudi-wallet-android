@@ -61,7 +61,6 @@ class AndroidBaseLineProfilePlugin : Plugin<Project> {
             }
 
             dependencies {
-                add("implementation", libs.findLibrary("androidx-test-orchestrator").get())
                 add("implementation", libs.findLibrary("androidx-test-uiautomator").get())
                 add("implementation", libs.findLibrary("androidx-test-espresso-core").get())
                 add("implementation", libs.findLibrary("androidx-benchmark-macro").get())

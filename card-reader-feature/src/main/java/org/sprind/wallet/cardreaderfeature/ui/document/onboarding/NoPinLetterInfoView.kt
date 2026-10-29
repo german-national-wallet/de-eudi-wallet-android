@@ -17,6 +17,7 @@
 package org.sprind.wallet.cardreaderfeature.ui.document.onboarding
 
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -50,10 +51,11 @@ fun NoPinLetterInfoView(
     ProvideContentTemplateStyle(
         style = ContentTemplateDefaults.style.copy(
             titleTextStyle = MaterialTheme.typography.titleMedium,
+            bodyTextStyle = MaterialTheme.typography.bodyLarge,
         ),
     ) {
         ContentTemplateBody(
-            modifier = modifier,
+            modifier = modifier.padding(top = SPACING_MEDIUM.dp),
             templateConfig = ContentTemplateConfig(verticalSpacing = SPACING_MEDIUM.dp),
             title = { Text(text = stringResource(R.string.pid_issuance_no_letter_forgot_info_title)) },
             body = { Text(text = stringResource(R.string.pid_issuance_no_letter_forgot_info_paragraph)) },

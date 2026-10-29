@@ -35,10 +35,15 @@ import eu.europa.ec.testfeature.mockedMdlDocType
 import eu.europa.ec.testfeature.mockedMdlId
 import eu.europa.ec.testfeature.mockedMdlNameSpace
 import eu.europa.ec.testfeature.mockedMsoMdocMdlFormat
+import eu.europa.ec.testfeature.mockedPidId
+import eu.europa.ec.testfeature.mockedPidDocName
+import eu.europa.ec.testfeature.getMockedPidWithBasicFields
+import org.mockito.kotlin.any
 import eu.europa.ec.testlogic.extension.runFlowTest
 import eu.europa.ec.testlogic.extension.runTest
 import eu.europa.ec.testlogic.rule.CoroutineTestRule
 import junit.framework.TestCase.assertEquals
+import junit.framework.TestCase.assertTrue
 import org.junit.After
 import org.junit.Before
 import org.junit.Rule
@@ -218,6 +223,22 @@ class DashboardDocumentDetailInteractorTest {
                     ),
                     result,
                 )
+            }
+        }
+    }
+
+    @Test
+    fun `Given PID, When getDocumentDetail, Then Success is marked as PID`() {
+        coroutineRule.runTest {
+            val document = getMockedPidWithBasicFields()
+            whenever(resourceProvider.getLocale()).thenReturn(Locale.ENGLISH)
+            whenever(resourceProvider.getString(any())).thenReturn(mockedPidDocName)
+            whenever(walletCoreDocumentsController.getDocumentById(mockedPidId))
+                .thenReturn(document)
+
+            interactor.getDocumentDetail(mockedPidId).runFlowTest {
+                val result = awaitItem() as DashboardDocumentDetailInteractorGetDocumentDetail.Success
+                assertTrue(result.isPid)
             }
         }
     }

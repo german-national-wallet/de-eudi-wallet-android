@@ -110,9 +110,11 @@ class PresentationErrorViewModel(
 
             PresentationErrorAction.Kind.DISMISS -> Effect.Navigation.Pop
 
-            // Blocking screens never offer retry: the presentation session is already
-            // torn down when we navigate here.
-            PresentationErrorAction.Kind.RETRY -> Effect.Navigation.Pop
+            // Blocking screens never offer retry or a service contact: the presentation
+            // session is already torn down when we navigate here.
+            PresentationErrorAction.Kind.RETRY,
+            PresentationErrorAction.Kind.CONTACT_SERVICE,
+                -> Effect.Navigation.Pop
         }
         setEffect { navigation }
     }

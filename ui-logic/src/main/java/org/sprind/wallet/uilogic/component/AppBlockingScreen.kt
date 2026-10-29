@@ -83,7 +83,7 @@ fun AppBlockingScreen(
                         color = ThemeColors.onPrimaryButton
                     ),
                     customTint = MaterialTheme.colorScheme.onPrimary,
-                    rightIconData = AppIcons.ArrowOutward
+                    rightIconData = AppIcons.OpenNewSettings
                 )
             }
         },

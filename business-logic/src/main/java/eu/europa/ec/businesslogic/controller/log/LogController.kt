@@ -20,7 +20,7 @@ import android.content.Context
 import android.net.Uri
 import android.util.Log
 import androidx.core.content.FileProvider
-import eu.europa.ec.businesslogic.config.ConfigLogic
+import eu.europa.ec.businesslogic.config.LogConfig
 import fr.bipi.treessence.file.FileLoggerTree
 import timber.log.Timber
 import java.io.File
@@ -36,7 +36,7 @@ interface LogController {
 
 class LogControllerImpl(
     private val context: Context,
-    configLogic: ConfigLogic
+    logConfig: LogConfig
 ) : LogController {
 
     companion object {
@@ -63,12 +63,12 @@ class LogControllerImpl(
         val logTrees = buildList<Timber.Tree> {
             // both are decided by the flavor, so no build type of a flavor shipped to end
             // users logs anything
-            if (configLogic.isLogcatEnabled) {
+            if (logConfig.isLogcatEnabled) {
                 add(Timber.DebugTree())
             }
             // only write logs to file where the user can export them again, i.e. where
             // the debug menu holding the log export is available
-            if (configLogic.isLogWriterEnabled) {
+            if (logConfig.isLogWriterEnabled) {
                 add(fileLoggerTree)
             }
         }

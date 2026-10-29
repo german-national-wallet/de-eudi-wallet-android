@@ -30,6 +30,8 @@ import org.mockito.Mock
 import org.mockito.MockitoAnnotations
 import org.mockito.kotlin.whenever
 import org.mockito.kotlin.verifyNoInteractions
+import org.sprind.wallet.analyticslogic.controller.Telemetry
+import org.sprind.wallet.businesslogic.controller.crypto.CryptoError
 import org.sprind.wallet.businesslogic.controller.revocation.WalletRevocationStore
 import org.sprind.wallet.commonfeature.interactor.MdvmInteractor
 import org.sprind.wallet.networklogic.common.model.ApiResult
@@ -40,6 +42,7 @@ import org.sprind.wallet.authenticationlogic.model.MdvmRegistration
 import org.sprind.wallet.authenticationlogic.model.toMdvmError
 
 private const val TRACE_ID = "4bf92f3577b34da6a3ce929d0e0e4736"
+private const val CLIENT_TRACE_ID = "0af7651916cd43dd8448eb211c80319c"
 
 class WalletRegistrationInteractorTest {
 
@@ -54,6 +57,9 @@ class WalletRegistrationInteractorTest {
 
     @Mock
     private lateinit var walletRevocationStore: WalletRevocationStore
+
+    @Mock
+    private lateinit var telemetry: Telemetry
 
     private lateinit var closeable: AutoCloseable
 
@@ -70,19 +76,40 @@ class WalletRegistrationInteractorTest {
             walletRegistrationStorageController = walletRegistrationStorageController,
             mdvmInteractor = mdvmInteractor,
             walletRevocationStore = walletRevocationStore,
+            telemetry = telemetry,
         )
     }
 
     @Before
     fun before() = runTest {
         closeable = MockitoAnnotations.openMocks(this@WalletRegistrationInteractorTest)
-        whenever(walletRegistrationStorageController.getWalletRegistration()).thenReturn(null)
+        whenever(walletRegistrationStorageController.getWalletRegistration()).thenReturn(Result.success(null))
         whenever(walletRevocationStore.isRevoked()).thenReturn(false)
+        whenever(telemetry.currentTraceId()).thenReturn(CLIENT_TRACE_ID)
     }
 
     @After
     fun after() {
         closeable.close()
+    }
+
+    @Test
+    fun `an unreadable stored registration fails instead of registering again`() = runTest {
+        whenever(walletRegistrationStorageController.getWalletRegistration())
+            .thenReturn(Result.failure(CryptoError.KeyNotFound()))
+
+        subject.registerWallet().test {
+            assertEquals(
+                WalletInitialRegistrationPartialState.Failure(
+                    errorCode = WalletInitialRegistrationPartialState.ErrorCode.UNKNOWN,
+                    traceId = CLIENT_TRACE_ID,
+                ),
+                awaitItem()
+            )
+            awaitComplete()
+        }
+        verifyNoInteractions(mdvmInteractor)
+        verifyNoInteractions(appAttestationController)
     }
 
     @Test

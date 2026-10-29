@@ -19,16 +19,10 @@ package eu.europa.ec.businesslogic.di
 import android.content.Context
 import eu.europa.ec.businesslogic.config.ConfigLogic
 import eu.europa.ec.businesslogic.config.ConfigLogicImpl
-import org.sprind.wallet.businesslogic.config.UserRuntimeConfig
-import org.sprind.wallet.businesslogic.config.UserRuntimeConfigImpl
-import org.sprind.wallet.businesslogic.controller.crypto.CipherInstanceProvider
+import eu.europa.ec.businesslogic.config.EnvironmentConfig
+import eu.europa.ec.businesslogic.config.LogConfig
 import eu.europa.ec.businesslogic.controller.crypto.CryptoController
 import eu.europa.ec.businesslogic.controller.crypto.CryptoControllerImpl
-import org.sprind.wallet.businesslogic.controller.crypto.CryptoKeyGenerator
-import org.sprind.wallet.businesslogic.controller.crypto.CryptoKeyGeneratorImpl
-import org.sprind.wallet.businesslogic.controller.crypto.EcKeyPairController
-import org.sprind.wallet.businesslogic.controller.crypto.EcKeyPairControllerImpl
-import org.sprind.wallet.businesslogic.controller.crypto.KeyStoreInstanceProvider
 import eu.europa.ec.businesslogic.controller.crypto.KeystoreController
 import eu.europa.ec.businesslogic.controller.crypto.KeystoreControllerImpl
 import eu.europa.ec.businesslogic.controller.log.LogController
@@ -37,30 +31,46 @@ import eu.europa.ec.businesslogic.controller.storage.PrefKeys
 import eu.europa.ec.businesslogic.controller.storage.PrefKeysImpl
 import eu.europa.ec.businesslogic.controller.storage.PrefsController
 import eu.europa.ec.businesslogic.controller.storage.PrefsControllerImpl
-import org.sprind.wallet.businesslogic.controller.storage.StorageController
-import org.sprind.wallet.businesslogic.controller.storage.StorageControllerImpl
-import org.sprind.wallet.businesslogic.util.RandomUUIDGenerator
 import eu.europa.ec.resourceslogic.provider.ResourceProvider
 import org.koin.core.annotation.ComponentScan
 import org.koin.core.annotation.Factory
 import org.koin.core.annotation.Module
 import org.koin.core.annotation.Single
+import org.sprind.wallet.businesslogic.config.DebugConfigOverrides
+import org.sprind.wallet.businesslogic.config.DebugConfigOverridesController
+import org.sprind.wallet.businesslogic.config.DebugConfigOverridesControllerImpl
+import org.sprind.wallet.businesslogic.config.UserRuntimeConfig
+import org.sprind.wallet.businesslogic.config.UserRuntimeConfigImpl
+import org.sprind.wallet.businesslogic.controller.crypto.CipherInstanceProvider
+import org.sprind.wallet.businesslogic.controller.crypto.CryptoKeyGenerator
+import org.sprind.wallet.businesslogic.controller.crypto.CryptoKeyGeneratorImpl
+import org.sprind.wallet.businesslogic.controller.crypto.EcKeyPairController
+import org.sprind.wallet.businesslogic.controller.crypto.EcKeyPairControllerImpl
+import org.sprind.wallet.businesslogic.controller.crypto.KeyStoreInstanceProvider
+import org.sprind.wallet.businesslogic.controller.storage.StorageController
+import org.sprind.wallet.businesslogic.controller.storage.StorageControllerImpl
+import org.sprind.wallet.businesslogic.util.RandomUUIDGenerator
 
 @Module
 @ComponentScan("eu.europa.ec.businesslogic", "org.sprind.wallet.businesslogic")
 class LogicBusinessModule
 
 @Single
-fun provideConfigLogic(): ConfigLogic = ConfigLogicImpl()
+fun provideConfigLogic(environmentConfig: EnvironmentConfig): ConfigLogic =
+    ConfigLogicImpl(environmentConfig)
+
+@Single(binds = [DebugConfigOverrides::class])
+fun provideDebugConfigOverridesController(prefsController: PrefsController):
+        DebugConfigOverridesController = DebugConfigOverridesControllerImpl(prefsController)
 
 @Single
-fun provideLogController(context: Context, configLogic: ConfigLogic): LogController =
-    LogControllerImpl(context, configLogic)
+fun provideLogController(context: Context, logConfig: LogConfig): LogController =
+    LogControllerImpl(context, logConfig)
 
 @Single
 fun providePrefsController(
     resourceProvider: ResourceProvider,
-    logController: LogController
+    logController: LogController,
 ): PrefsController = PrefsControllerImpl(resourceProvider, logController)
 
 @Single
@@ -104,9 +114,10 @@ fun provideCipherInstanceProvider() = CipherInstanceProvider()
 fun provideCryptoController(
     keystoreController: KeystoreController,
     cipherInstanceProvider: CipherInstanceProvider,
-    cryptoKeyGenerator: CryptoKeyGenerator
+    cryptoKeyGenerator: CryptoKeyGenerator,
+    logController: LogController,
 ): CryptoController =
-    CryptoControllerImpl(keystoreController, cipherInstanceProvider, cryptoKeyGenerator)
+    CryptoControllerImpl(keystoreController, cipherInstanceProvider, cryptoKeyGenerator, logController)
 
 @Factory
 fun provideCryptoKeyGenerator(): CryptoKeyGenerator =

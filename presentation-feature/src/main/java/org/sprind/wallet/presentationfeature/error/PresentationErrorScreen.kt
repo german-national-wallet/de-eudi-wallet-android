@@ -143,8 +143,8 @@ internal fun PresentationErrorContent(
     ) { paddingValues ->
         ContentTemplateBody(
             modifier = Modifier
-                .padding(paddingValues)
                 .padding(top = SPACING_MEDIUM.dp),
+            screenPadding = paddingValues,
             // Hint at text hidden behind the pinned actions.
             templateConfig = ContentTemplateConfig(showScrollFade = true),
             title = {
@@ -165,7 +165,7 @@ private fun ActionButton(
     type: ButtonType,
     onClick: () -> Unit,
 ) {
-    if (action.kind == PresentationErrorAction.Kind.REPORT_ISSUE) {
+    if (action.opensExternalLink) {
         ExternalLinkButton(type = type, textRes = action.labelRes, onClick = onClick)
     } else {
         WrapButton(

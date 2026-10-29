@@ -16,13 +16,10 @@
 
 package org.sprind.wallet.onboardingfeature.setup.ui
 
-import androidx.annotation.StringRes
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.stringResource
 import androidx.navigation.NavController
-import eu.europa.ec.resourceslogic.R
 import eu.europa.ec.uilogic.extension.findActivity
 import org.sprind.wallet.onboardingfeature.setup.model.SetupStep
 
@@ -66,59 +63,5 @@ fun SetupStepRoute(
                 context.findActivity().finish()
             }
         },
-    )
-}
-
-/**
- * Minimal content for a [step] whose screen is not implemented yet: title, paragraph and primary
- * action from the design strings. Replaced by the dedicated screens of the setup sub-tasks.
- */
-@Composable
-fun SetupStepPlaceholder(
-    step: SetupStep,
-    onComplete: () -> Unit,
-    onBack: () -> Unit,
-) {
-    val texts = step.placeholderTexts()
-    SetupStepScreen(
-        title = stringResource(texts.title),
-        body = texts.body?.let { stringResource(it) },
-        primaryButtonText = stringResource(texts.primaryButton),
-        onPrimaryClick = onComplete,
-        onBack = onBack,
-        // The success screen concludes setup and has no header.
-        showTopBar = step != SetupStep.SUCCESS,
-    )
-}
-
-private data class PlaceholderTexts(
-    @param:StringRes val title: Int,
-    @param:StringRes val body: Int?,
-    @param:StringRes val primaryButton: Int,
-)
-
-private fun SetupStep.placeholderTexts(): PlaceholderTexts = when (this) {
-    SetupStep.PLATFORM_AUTH -> PlaceholderTexts(
-        title = R.string.app_onboarding_pa_set_intro_title,
-        body = R.string.app_onboarding_pa_set_intro_paragraph,
-        primaryButton = R.string.app_onboarding_pa_set_intro_prim_button,
-    )
-
-    SetupStep.PRIVACY_POLICY -> PlaceholderTexts(
-        title = R.string.app_onboarding_policy_intro_title,
-        body = R.string.app_onboarding_policy_intro_paragraph,
-        primaryButton = R.string.app_onboarding_policy_intro_prim_button,
-    )
-
-    SetupStep.NOTIFICATIONS -> PlaceholderTexts(
-        title = R.string.app_onboarding_push_intro_title,
-        body = R.string.app_onboarding_push_intro_paragraph,
-        primaryButton = R.string.app_onboarding_push_intro_prim_button,
-    )
-
-    SetupStep.SUCCESS -> PlaceholderTexts(
-        title = R.string.app_onboarding_success_title,
-        body = null,
-        primaryButton = R.string.app_onboarding_success_prim_button,
     )
 }

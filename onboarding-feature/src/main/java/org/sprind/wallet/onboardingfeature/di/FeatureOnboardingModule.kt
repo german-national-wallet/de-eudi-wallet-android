@@ -30,7 +30,6 @@ import org.sprind.wallet.onboardingfeature.setup.interactor.PrivacyPolicySetupGu
 import org.sprind.wallet.onboardingfeature.setup.interactor.SetupInteractor
 import org.sprind.wallet.onboardingfeature.setup.interactor.SetupInteractorImpl
 import org.sprind.wallet.onboardingfeature.setup.interactor.SuccessSetupGuard
-import org.sprind.wallet.onboardingfeature.setup.provider.SetupFlowAvailability
 import org.sprind.wallet.onboardingfeature.setup.provider.SetupStorageProvider
 import org.sprind.wallet.onboardingfeature.setup.storage.PrefsSetupStorageProvider
 import org.sprind.wallet.onboardingfeature.storage.PrefsOnboardingStorageProvider
@@ -65,23 +64,19 @@ fun provideSetupInteractor(
 @Factory(binds = [NavigationGuard::class])
 fun providePlatformAuthSetupGuard(
     setupStorageProvider: SetupStorageProvider,
-    setupFlowAvailability: SetupFlowAvailability,
-): PlatformAuthSetupGuard = PlatformAuthSetupGuard(setupStorageProvider, setupFlowAvailability)
+): PlatformAuthSetupGuard = PlatformAuthSetupGuard(setupStorageProvider)
 
 @Factory(binds = [NavigationGuard::class])
 fun providePrivacyPolicySetupGuard(
     setupStorageProvider: SetupStorageProvider,
-    setupFlowAvailability: SetupFlowAvailability,
-): PrivacyPolicySetupGuard = PrivacyPolicySetupGuard(setupStorageProvider, setupFlowAvailability)
+): PrivacyPolicySetupGuard = PrivacyPolicySetupGuard(setupStorageProvider)
 
 @Factory(binds = [NavigationGuard::class])
 fun provideNotificationsSetupGuard(
     setupStorageProvider: SetupStorageProvider,
-    setupFlowAvailability: SetupFlowAvailability,
-): NotificationsSetupGuard = NotificationsSetupGuard(setupStorageProvider, setupFlowAvailability)
+): NotificationsSetupGuard = NotificationsSetupGuard(setupStorageProvider)
 
 @Factory(binds = [NavigationGuard::class])
 fun provideSuccessSetupGuard(
     setupStorageProvider: SetupStorageProvider,
-    setupFlowAvailability: SetupFlowAvailability,
-): SuccessSetupGuard = SuccessSetupGuard(setupStorageProvider, setupFlowAvailability)
+): SuccessSetupGuard = SuccessSetupGuard(setupStorageProvider)

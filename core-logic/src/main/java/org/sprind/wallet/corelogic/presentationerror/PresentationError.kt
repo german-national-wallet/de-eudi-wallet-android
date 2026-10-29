@@ -140,7 +140,7 @@ sealed interface PresentationError {
         INVALID_REQUEST("RELYING_PARTY_INVALID_REQUEST", RecommendedAction.CONTACT_RELYING_PARTY),
 
         /** The relying party rejected the wallet's VP token response. */
-        RELYING_PARTY_REJECTED("RELYING_PARTY_REJECTED", RecommendedAction.DISMISS),
+        RELYING_PARTY_REJECTED("RELYING_PARTY_REJECTED", RecommendedAction.CONTACT_RELYING_PARTY),
 
         /** The relying party was unreachable or returned a non-transient HTTP error. */
         RELYING_PARTY_UNREACHABLE("RELYING_PARTY_UNREACHABLE", RecommendedAction.RETRY_LATER),

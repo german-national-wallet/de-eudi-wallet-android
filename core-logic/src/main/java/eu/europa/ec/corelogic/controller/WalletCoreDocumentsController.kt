@@ -60,6 +60,7 @@ import eu.europa.ec.eudi.wallet.issue.openid4vci.Offer
 import eu.europa.ec.eudi.wallet.issue.openid4vci.OfferResult
 import eu.europa.ec.eudi.wallet.issue.openid4vci.OpenId4VciManager
 import eu.europa.ec.eudi.wallet.issue.openid4vci.reissue.ReissuanceAuthorizationException
+import eu.europa.ec.eudi.wallet.registration.RegistrationCertificateResult
 import eu.europa.ec.resourceslogic.R
 import eu.europa.ec.resourceslogic.provider.ResourceProvider
 import io.ktor.client.HttpClient
@@ -86,6 +87,12 @@ import kotlinx.coroutines.withContext
 import org.json.JSONObject
 import org.multipaz.securearea.AndroidKeystoreCreateKeySettings
 import org.multipaz.securearea.UserAuthenticationType
+import org.sprind.wallet.corelogic.activity.ActivityLogRepository
+import org.sprind.wallet.corelogic.activity.ActivityResult
+import org.sprind.wallet.corelogic.activity.ActivityType
+import org.sprind.wallet.corelogic.activity.issuer
+import org.sprind.wallet.corelogic.activity.newActivityLogEntry
+import org.sprind.wallet.corelogic.activity.toActivityCredential
 import org.sprind.wallet.analyticslogic.controller.Telemetry
 import org.sprind.wallet.analyticslogic.controller.TelemetryConstants
 import org.sprind.wallet.businesslogic.util.SpanAttributes
@@ -412,6 +419,7 @@ class WalletCoreDocumentsControllerImpl(
     private val ktorHttpClientFactory: (() -> HttpClient)?,
     private val telemetry: Telemetry,
     private val pidConfigurationOverridesProvider: PidConfigurationOverridesProvider,
+    private val activityLog: ActivityLogRepository,
     private val dispatcher: CoroutineDispatcher = Dispatchers.IO,
 ) : WalletCoreDocumentsController {
     /**
@@ -876,11 +884,19 @@ class WalletCoreDocumentsControllerImpl(
         )
     }
 
-    override fun deleteDocument(documentId: String): Flow<DeleteDocumentPartialState> = flow {
+    override fun deleteDocument(documentId: String): Flow<DeleteDocumentPartialState> =
+        deleteDocument(documentId = documentId, recordActivity = true)
+
+    private fun deleteDocument(
+        documentId: String,
+        recordActivity: Boolean,
+    ): Flow<DeleteDocumentPartialState> = flow {
+        val document = eudiWallet.getDocumentById(documentId)
         eudiWallet.deleteDocumentById(documentId = documentId)
             .kotlinResult
             .onSuccess {
                 //revokedDocumentDao.delete(documentId)
+                if (recordActivity && document != null) recordDeletion(document)
                 emit(DeleteDocumentPartialState.Success)
             }
             .onFailure {
@@ -971,7 +987,8 @@ class WalletCoreDocumentsControllerImpl(
 
             var failureReason: String? = null
             orderedIds.forEach { documentId ->
-                deleteDocument(documentId = documentId).collect { state ->
+                // No activity: the self-lock clears the activity log too.
+                deleteDocument(documentId = documentId, recordActivity = false).collect { state ->
                     if (state is DeleteDocumentPartialState.Failure) {
                         failureReason = state.errorMessage
                     }
@@ -1055,6 +1072,7 @@ class WalletCoreDocumentsControllerImpl(
                             }
 
                             is DeferredIssueResult.DocumentIssued -> {
+                                recordIssuance(listOf(deferredIssuanceResult.documentId))
                                 trySendBlocking(
                                     IssueDeferredDocumentPartialState.Issued(
                                         DeferredDocumentDataDomain(
@@ -1371,6 +1389,7 @@ class WalletCoreDocumentsControllerImpl(
         val deferredDocuments: MutableMap<DocumentId, FormatType> = mutableMapOf()
         val issuedDocuments: MutableMap<DocumentId, FormatType> = mutableMapOf()
         var consentGatePending = requiresConsentGate
+        var issuerRegistration: RegistrationCertificateResult? = null
 
         val listener = OpenId4VciManager.OnIssueEvent { event ->
             when (event) {
@@ -1386,6 +1405,7 @@ class WalletCoreDocumentsControllerImpl(
                         // multi-document offers) auto-resume normally below.
                         consentGatePending = false
                         pendingConsentResume = suspend {
+                            issuerRegistration = event.offeredDocument.offer.issuerRegistration
                             // BEGIN EUDI-changed
                             handleDocumentRequiresCreateSettings(event)
                             // END EUDI-changed
@@ -1397,6 +1417,7 @@ class WalletCoreDocumentsControllerImpl(
                         // See issuanceEventScope: the producer scope may already be
                         // cancelled for the remaining documents of a consent-gated offer.
                         launchIssuanceEventHandler(cancelIssuance = { event.cancelIssuance() }) {
+                            issuerRegistration = event.offeredDocument.offer.issuerRegistration
                             // BEGIN EUDI-changed
                             handleDocumentRequiresCreateSettings(event)
                             // END EUDI-changed
@@ -1447,6 +1468,8 @@ class WalletCoreDocumentsControllerImpl(
                         _issuanceState.tryEmit(state)
                         return@OnIssueEvent
                     }
+
+                    recordIssuance(event.issuedDocuments, issuerRegistration)
 
                     if (event.issuedDocuments.size == totalDocumentsToBeIssued) {
                         val state = IssueDocumentsPartialState.Success(
@@ -1513,6 +1536,39 @@ class WalletCoreDocumentsControllerImpl(
     private fun IssueEvent.DocumentRequiresCreateSettings.cancelIssuance() = when (this) {
         is IssueEvent.DocumentRequiresCreateSettings.MandatoryReusePolicy -> cancel(null)
         is IssueEvent.DocumentRequiresCreateSettings.OptionalReusePolicy -> cancel(null)
+    }
+
+    /** Keeps the links of the issuance entry, the issuer's registration is not stored with the credential. */
+    private suspend fun recordDeletion(document: Document) {
+        // The PID is one credential in two formats, so only deleting its last format is logged.
+        if (document.toDocumentIdentifier().isPid && eudiWallet.getDocuments().any { it.toDocumentIdentifier().isPid }) return
+        val issuance = activityLog.entries.first().firstOrNull { entry ->
+            entry.type == ActivityType.ISSUANCE && entry.credentials.any { it.documentId == document.id }
+        }
+        activityLog.record(
+            newActivityLogEntry(
+                type = ActivityType.DELETION,
+                result = ActivityResult.COMPLETED,
+                interactingParty = issuance?.interactingParty ?: issuer(listOf(document)),
+                credentials = listOf(document.toActivityCredential(withHeldClaims = true)),
+            )
+        )
+    }
+
+    private fun recordIssuance(
+        documentIds: List<DocumentId>,
+        registration: RegistrationCertificateResult? = null,
+    ) {
+        val documents = documentIds.mapNotNull { eudiWallet.getDocumentById(it) }
+        if (documents.isEmpty()) return
+        activityLog.record(
+            newActivityLogEntry(
+                type = ActivityType.ISSUANCE,
+                result = ActivityResult.COMPLETED,
+                interactingParty = issuer(documents, registration),
+                credentials = documents.map { it.toActivityCredential(withHeldClaims = true) },
+            )
+        )
     }
 
     private suspend fun handleDocumentRequiresCreateSettings(

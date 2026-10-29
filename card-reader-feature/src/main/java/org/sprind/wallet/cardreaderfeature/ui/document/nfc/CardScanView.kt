@@ -14,31 +14,36 @@
  * limitations under the License.
  */
 
-@file:OptIn(ExperimentalMaterial3Api::class)
-
 package org.sprind.wallet.cardreaderfeature.ui.document.nfc
 
 import androidx.annotation.RawRes
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.ModalBottomSheetProperties
-import androidx.compose.material3.SheetValue
-import androidx.compose.material3.rememberModalBottomSheetState
+import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import eu.europa.ec.resourceslogic.R
 import eu.europa.ec.uilogic.component.preview.PreviewTheme
 import eu.europa.ec.uilogic.component.preview.ThemeModeWithGermanAndEnglishPreviews
-import eu.europa.ec.uilogic.component.wrap.WrapModalBottomSheet
+import eu.europa.ec.uilogic.component.utils.ELEVATION_8
+import eu.europa.ec.uilogic.component.utils.SPACING_MEDIUM
 import org.sprind.wallet.cardreaderfeature.domain.CardScanStatus
 import org.sprind.wallet.cardreaderfeature.domain.NfcAntennaPosition
+import org.sprind.wallet.cardreaderfeature.ui.document.bottomsheet.CARD_SCAN_STATUS_MIN_HEIGHT
 import org.sprind.wallet.cardreaderfeature.ui.document.bottomsheet.CardScanStatusSheetContent
 import org.sprind.wallet.uilogic.component.WrapLottieAnimation
 
@@ -62,14 +67,15 @@ data class CardScanConfig(
 )
 
 /**
- * The screen a card is read on: the tapping animation playing behind a sheet that reports the read.
+ * The screen a card is read on: the tapping animation playing behind a dialog at the bottom of the
+ * screen that reports the read.
  *
- * The sheet cannot be dismissed — not by a swipe, a tap outside it, or a back press
+ * The dialog cannot be dismissed — not by a tap outside it or a back press.
  *
  * Accessibility:
- * - the animation is decorative and kept out of the accessibility tree: the sheet in front of it
+ * - the animation is decorative and kept out of the accessibility tree: the dialog in front of it
  *   says in words where the card goes;
- * - the sheet, being modal, holds the accessibility focus, which is where everything about the read
+ * - the dialog, being modal, holds the accessibility focus, which is where everything about the read
  *   is announced (see [CardScanStatusSheetContent]).
  */
 @Composable
@@ -80,41 +86,51 @@ fun CardScanView(
     onContinueClick: () -> Unit,
 ) {
     Box(
-        // The sheet covers the lower part of the screen, so the animation is centred in what is
-        // left above it rather than in the screen, where the sheet would hide it.
-        modifier = modifier.padding(bottom = SCAN_SHEET_HEIGHT),
+        // The dialog covers the lower part of the screen, so the animation is centred in what is
+        // left above it rather than in the screen, where the dialog would hide it.
+        modifier = modifier.padding(bottom = CARD_SCAN_STATUS_MIN_HEIGHT + SCAN_DIALOG_MARGIN),
         contentAlignment = Alignment.Center,
     ) {
         WrapLottieAnimation(
             animation = config.antennaPosition.tappingAnimation,
+            iterations = 1,
             modifier = Modifier
                 .size(SCAN_ANIMATION_SIZE)
                 .clearAndSetSemantics { },
         )
     }
 
-    val sheetState = rememberModalBottomSheetState(
-        skipPartiallyExpanded = true,
-        // Refusing the hidden state is what makes a swipe down bounce back instead of ending the
-        // read.
-        confirmValueChange = { it != SheetValue.Hidden },
-    )
-
-    WrapModalBottomSheet(
+    Dialog(
         onDismissRequest = {},
-        sheetState = sheetState,
-        // There is nothing to drag the sheet to, so it is drawn without the handle that would
-        // suggest otherwise.
-        dragHandle = {},
-        properties = ModalBottomSheetProperties(shouldDismissOnBackPress = false),
+        properties = DialogProperties(
+            dismissOnBackPress = false,
+            dismissOnClickOutside = false,
+            // Full width, so the dialog can be laid out against the bottom edge of the screen.
+            usePlatformDefaultWidth = false,
+        ),
     ) {
-        CardScanStatusSheetContent(
-            status = config.status,
-            scanReason = config.scanReason,
-            readingProgress = config.readingProgress,
-            onCancelClick = onCancelClick,
-            onContinueClick = onContinueClick,
-        )
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .windowInsetsPadding(WindowInsets.navigationBars)
+                .padding(SCAN_DIALOG_MARGIN),
+            contentAlignment = Alignment.BottomCenter,
+        ) {
+            Surface(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(SCAN_DIALOG_CORNER),
+                color = MaterialTheme.colorScheme.background,
+                shadowElevation = ELEVATION_8.dp,
+            ) {
+                CardScanStatusSheetContent(
+                    status = config.status,
+                    scanReason = config.scanReason,
+                    readingProgress = config.readingProgress,
+                    onCancelClick = onCancelClick,
+                    onContinueClick = onContinueClick,
+                )
+            }
+        }
     }
 }
 
@@ -128,7 +144,8 @@ private val NfcAntennaPosition.tappingAnimation: Int
 
 private val SCAN_ANIMATION_SIZE = 264.dp
 
-private val SCAN_SHEET_HEIGHT = 280.dp
+private val SCAN_DIALOG_MARGIN = SPACING_MEDIUM.dp
+private val SCAN_DIALOG_CORNER = 28.dp
 
 @ThemeModeWithGermanAndEnglishPreviews
 @Composable

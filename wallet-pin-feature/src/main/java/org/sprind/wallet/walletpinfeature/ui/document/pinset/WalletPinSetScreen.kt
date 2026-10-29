@@ -17,12 +17,15 @@
 package org.sprind.wallet.walletpinfeature.ui.document.pinset
 
 import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.Modifier
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.dp
 import org.sprind.wallet.walletpinfeature.ui.document.pinset.view.WalletPinEntryConfig
 import org.sprind.wallet.walletpinfeature.ui.document.pinset.view.WalletPinEntryView
 import org.sprind.wallet.walletpinfeature.ui.document.pinset.view.WalletPinSetInfoView
@@ -31,6 +34,7 @@ import eu.europa.ec.resourceslogic.R
 import eu.europa.ec.uilogic.component.dialog.GenericErrorDialogConfig
 import eu.europa.ec.uilogic.component.preview.PreviewTheme
 import eu.europa.ec.uilogic.component.preview.ThemeModeWithGermanAndEnglishPreviews
+import eu.europa.ec.uilogic.component.utils.SPACING_MEDIUM
 import eu.europa.ec.uilogic.navigation.IssuanceScreens
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.onEach
@@ -87,6 +91,7 @@ private fun Content(
 ) {
     when (state.currentStep) {
         WalletPinStep.Info -> WalletPinSetInfoView(
+            modifier = Modifier.padding(top = SPACING_MEDIUM.dp),
             onCloseClick = { onEventSend(Event.OnCloseClicked) },
             onContinueClick = {
                 onEventSend(Event.OnContinueAction)
@@ -94,6 +99,7 @@ private fun Content(
         )
 
         WalletPinStep.Set -> WalletPinEntryView(
+            modifier = Modifier.padding(top = SPACING_MEDIUM.dp),
             config = WalletPinEntryConfig(
                 title = stringResource(R.string.pid_issuance_wallet_pin_setup_title),
                 primaryButtonText = stringResource(R.string.pid_issuance_wallet_pin_setup_prim_button),
@@ -113,6 +119,7 @@ private fun Content(
         )
 
         WalletPinStep.Confirm -> WalletPinEntryView(
+            modifier = Modifier.padding(top = SPACING_MEDIUM.dp),
             config = WalletPinEntryConfig(
                 title = stringResource(R.string.pid_issuance_wallet_pin_reenter_title),
                 primaryButtonText = stringResource(R.string.pid_issuance_wallet_pin_reenter_prim_button),

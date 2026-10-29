@@ -22,7 +22,6 @@ import org.sprind.wallet.assemblylogic.controller.AppBlockingControllerImpl
 import org.sprind.wallet.assemblylogic.controller.PidConfigurationOverridesProviderImpl
 import org.sprind.wallet.assemblylogic.controller.PlatformAuthenticationProvider
 import org.sprind.wallet.assemblylogic.controller.PlatformAuthenticationProviderImpl
-import org.sprind.wallet.assemblylogic.controller.SetupFlowAvailabilityImpl
 import org.sprind.wallet.assemblylogic.controller.WalletRevocationResetCoordinator
 import org.sprind.wallet.assemblylogic.controller.WalletRevokedProvider
 import org.sprind.wallet.assemblylogic.controller.WalletRevokedProviderImpl
@@ -56,7 +55,6 @@ import org.sprind.wallet.flags.FeatureFlagStorage
 import org.sprind.wallet.flags.models.SAVED_FEATURE_FLAGS_OVERRIDE
 import org.sprind.wallet.flags.di.FeatureFlagModule
 import org.sprind.wallet.onboardingfeature.di.FeatureOnboardingModule
-import org.sprind.wallet.onboardingfeature.setup.provider.SetupFlowAvailability
 import org.sprind.wallet.revocationfeature.di.FeatureRevocationModule
 import org.sprind.wallet.walletpinfeature.di.FeatureWalletPinModule
 import org.sprind.wallet.pushnotificationsfeature.di.FeaturePushNotificationsModule
@@ -67,7 +65,6 @@ private val featureFlagStorageModule = module {
     singleOf(::PlatformAuthenticationProviderImpl).bind<PlatformAuthenticationProvider>()
     singleOf(::WalletRevokedProviderImpl).bind<WalletRevokedProvider>()
     singleOf(::PidConfigurationOverridesProviderImpl).bind<PidConfigurationOverridesProvider>()
-    singleOf(::SetupFlowAvailabilityImpl).bind<SetupFlowAvailability>()
     singleOf(::WalletRevocationResetCoordinator)
     singleOf(::AppBlockingControllerImpl).bind<AppBlockingController>()
 }

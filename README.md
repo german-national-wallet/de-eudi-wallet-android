@@ -67,16 +67,19 @@ with `adb install -r -d <apk>`.
 
 ### Running on an emulator
 
-Add one line to `local.properties`:
+Set a screen lock (PIN) on the emulator first; without one the app shows a
+blocking screen.
+
+Emulators have only a software keystore, which the app otherwise rejects.
+Software keys are accepted by default on the `dev` flavor; for other flavors add
+one line to `local.properties`:
 
 ```properties
-IS_SIMULATOR=true
+enableSoftwareKeys=true
 ```
 
-This matters. eID card reading otherwise expects real NFC hardware and a real
-ID card: `IS_SIMULATOR` switches the card type to `VIRTUAL` and suppresses the
-platform-authentication blocking screen. With it set, the first screen offers a
-**"Use simulated eID card"** toggle. Any emulator image at API 34 or above works.
+eID card reading expects real NFC hardware and a real ID card. Where the flavor
+enables it, the first screen offers a **"Use simulated eID card"** toggle. Any emulator image at API 34 or above works.
 
 ### Flavors and build types
 
@@ -109,7 +112,6 @@ values go in **`local.properties`**, which is git-ignored and takes precedence:
 ```properties
 # local.properties — never commit this file
 sdk.dir=/path/to/Android/sdk
-IS_SIMULATOR=true
 WALLET_AUTH_TOKEN=your-token
 OTEL_WALLET_AUTH_TOKEN=your-token
 FEATURE_FLAG_API_TOKEN=your-token
@@ -163,12 +165,13 @@ security model:
   PID issuer endpoints together with their public SPKI pins. Access requires entitlement
   from the operator.
 - The trust anchors in `resources-logic/src/<flavor>/res/raw/*.pem` are public CA
-  certificates, loaded through `R.raw` by each flavor's `ReaderTrustAnchors.kt`.
+  certificates, loaded through `R.raw` by each flavor's `AccessCaTrustAnchors.kt` and
+  `RegistrationCaTrustAnchors.kt`.
   They contain no private key material, and publishing them is what lets a reader
   see which CAs the wallet actually trusts.
 - eID reading goes through the AusweisApp2 SDK against the Governikus eID test
-  server. It needs real NFC hardware and an ID card — or `IS_SIMULATOR=true` for
-  a simulated card.
+  server. It needs real NFC hardware and an ID card — or the
+  **"Use simulated eID card"** toggle for a simulated card.
 
 ### Fonts
 

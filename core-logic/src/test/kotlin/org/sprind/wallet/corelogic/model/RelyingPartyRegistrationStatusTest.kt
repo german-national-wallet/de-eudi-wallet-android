@@ -81,6 +81,26 @@ class RelyingPartyRegistrationStatusTest {
     }
 
     @Test
+    fun `Given a verified in-scope certificate with a support contact, When mapped, Then it is carried`() {
+        val status = RegistrationCertificateResult.Verified(
+            registration = registration(supportUri = SUPPORT_URI),
+            overAskedClaims = emptyList(),
+        ).toRelyingPartyRegistrationStatus()
+
+        assertEquals(SUPPORT_URI, status.supportUri)
+    }
+
+    @Test
+    fun `Given a blank support contact, When mapped, Then none is offered`() {
+        val status = RegistrationCertificateResult.Verified(
+            registration = registration(supportUri = " "),
+            overAskedClaims = emptyList(),
+        ).toRelyingPartyRegistrationStatus()
+
+        assertEquals(null, status.supportUri)
+    }
+
+    @Test
     fun `Given texts in several languages, When one is picked for a locale, Then the closest match wins`() {
         val texts = listOf(
             LocalizedTextDomain(language = "fr", value = "français"),
@@ -238,11 +258,13 @@ class RelyingPartyRegistrationStatusTest {
     private fun registration(
         supervisoryAuthority: SupervisoryAuthority? = null,
         purpose: List<LocalizedText> = emptyList(),
+        supportUri: String? = null,
     ): RegistrationCertificate = RegistrationCertificate(
         identifiers = listOf(RegistrationIdentifier(value = RELYING_PARTY_ID)),
         name = "Example Relying Party",
         supervisoryAuthority = supervisoryAuthority,
         purpose = purpose,
+        supportUri = supportUri,
     )
 
     private fun overAskedClaim(vararg path: ClaimPathElement) = OverAskedClaim(
@@ -256,5 +278,6 @@ class RelyingPartyRegistrationStatusTest {
         const val PID_VCT = "urn:eudi:pid:1"
         const val RELYING_PARTY_ID = "https://relying-party.example.invalid"
         const val AUTHORITY_URI = "https://authority.example.invalid/complaint"
+        const val SUPPORT_URI = "mailto:support@relying-party.example.invalid"
     }
 }

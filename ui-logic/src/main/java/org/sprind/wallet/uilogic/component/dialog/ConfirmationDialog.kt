@@ -34,6 +34,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.heading
@@ -47,7 +48,9 @@ import eu.europa.ec.resourceslogic.theme.values.ThemeColors
 import eu.europa.ec.uilogic.component.AppIcons
 import eu.europa.ec.uilogic.component.preview.PreviewTheme
 import eu.europa.ec.uilogic.component.preview.ThemeModeWithGermanAndEnglishPreviews
+import eu.europa.ec.uilogic.component.IconData
 import eu.europa.ec.uilogic.component.utils.ELEVATION_8
+import eu.europa.ec.uilogic.component.utils.SPACING_LARGE
 import eu.europa.ec.uilogic.component.utils.SPACING_MEDIUM
 import eu.europa.ec.uilogic.component.utils.SPACING_SMALL
 import eu.europa.ec.uilogic.component.wrap.WrapIcon
@@ -66,22 +69,26 @@ data class ConfirmationDialogLink(
  * What a [ConfirmationDialog] asks and what its answers do.
  *
  * @property title the question, e.g. "Really cancel?".
- * @property body what the confirming answer costs the user.
+ * @property body what the confirming answer costs the user; omitted when the title says it all.
  * @property confirmText the confirming answer, styled as a destructive action.
  * @property dismissText the answer that changes nothing and closes the dialog.
  * @property onConfirm runs the destructive action.
  * @property onDismiss closes the dialog, also on a back press or a tap outside it.
  * @property link an optional third answer that leaves the wallet - see [ConfirmationDialogLink].
+ * @property icon the decorative mark above the title.
+ * @property iconTint the mark's color; the title's color when null.
  */
 @Immutable
 data class ConfirmationDialogConfig(
     val title: String,
-    val body: String,
+    val body: String? = null,
     val confirmText: String,
     val dismissText: String,
     val onConfirm: () -> Unit,
     val onDismiss: () -> Unit,
     val link: ConfirmationDialogLink? = null,
+    val icon: IconData = AppIcons.Info,
+    val iconTint: Color? = null,
 )
 
 /**
@@ -136,11 +143,11 @@ internal fun ConfirmationDialogContent(config: ConfirmationDialogConfig) {
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
                 WrapIcon(
-                    iconData = AppIcons.Info,
+                    iconData = config.icon,
                     modifier = Modifier
                         .size(MARK_SIZE)
                         .clearAndSetSemantics { },
-                    customTint = MaterialTheme.colorScheme.onSurface,
+                    customTint = config.iconTint ?: MaterialTheme.colorScheme.onSurface,
                 )
 
                 Text(
@@ -154,19 +161,23 @@ internal fun ConfirmationDialogContent(config: ConfirmationDialogConfig) {
                     textAlign = TextAlign.Center,
                 )
 
-                Text(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = SPACING_SMALL.dp),
-                    text = config.body,
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = ThemeColors.onBackgroundVariant,
-                    textAlign = TextAlign.Center,
-                )
+                config.body?.let { body ->
+                    Text(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = SPACING_SMALL.dp),
+                        text = body,
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = ThemeColors.onBackgroundVariant,
+                        textAlign = TextAlign.Center,
+                    )
+                }
             }
 
             Column(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = SPACING_SMALL.dp),
                 verticalArrangement = Arrangement.spacedBy(SPACING_SMALL.dp),
             ) {
                 StackedActionButton(
@@ -193,10 +204,10 @@ internal fun ConfirmationDialogContent(config: ConfirmationDialogConfig) {
 private val DIALOG_CORNER = 28.dp
 
 private val DIALOG_PADDING = PaddingValues(
-    start = SPACING_MEDIUM.dp,
+    start = SPACING_LARGE.dp,
     top = 22.5.dp,
-    end = SPACING_MEDIUM.dp,
-    bottom = SPACING_MEDIUM.dp,
+    end = SPACING_LARGE.dp,
+    bottom = SPACING_LARGE.dp,
 )
 
 private val MARK_SIZE = 25.dp

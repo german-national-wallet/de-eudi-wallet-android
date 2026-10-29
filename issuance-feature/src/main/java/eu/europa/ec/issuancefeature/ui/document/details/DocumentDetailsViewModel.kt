@@ -42,6 +42,7 @@ data class State(
     val topBarBackgroundColor: String? = null,
     val topBarBackgroundImageUri: String? = null,
     val topBarTextColor: String? = null,
+    val isPid: Boolean = false,
 ) : ViewState
 
 sealed class Event : ViewEvent {
@@ -106,7 +107,8 @@ class DocumentDetailsViewModel(
                         updateTopBarStyling(
                             response.topBarBackgroundColor,
                             response.topBarBackgroundImageUri,
-                            response.topBarTextColor
+                            response.topBarTextColor,
+                            response.isPid,
                         )
                         addDividersToDocumentDetails(documentUi)
                     }
@@ -152,12 +154,14 @@ class DocumentDetailsViewModel(
         backgroundColor: String?,
         backgroundImageUri: String?,
         textColor: String?,
+        isPid: Boolean,
     ) {
         setState {
             copy(
                 topBarBackgroundColor = backgroundColor,
                 topBarBackgroundImageUri = backgroundImageUri,
-                topBarTextColor = textColor
+                topBarTextColor = textColor,
+                isPid = isPid,
             )
         }
     }

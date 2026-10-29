@@ -16,7 +16,6 @@
 
 package org.sprind.wallet.assemblylogic.controller
 
-import eu.europa.ec.businesslogic.BuildConfig
 import eu.europa.ec.businesslogic.config.ConfigLogic
 import org.sprind.wallet.businesslogic.controller.revocation.WalletRevocationStore
 import org.sprind.wallet.businesslogic.model.SemanticVersion
@@ -110,7 +109,7 @@ class PlatformAuthenticationProviderImpl(
 ) : PlatformAuthenticationProvider {
 
     override fun shouldShowBlockingScreen(): Boolean =
-        !BuildConfig.IS_SIMULATOR.toBoolean() && platformAuthInvariant.shouldWarn()
+        platformAuthInvariant.shouldWarn()
 }
 
 class WalletRevokedProviderImpl(

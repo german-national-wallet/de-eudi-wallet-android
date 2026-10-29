@@ -20,9 +20,7 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
-import androidx.compose.foundation.layout.fillMaxHeight
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -73,11 +71,10 @@ fun WrapButton(
     buttonConfig: ButtonConfig,
     content: @Composable RowScope.() -> Unit,
 ) {
-    val modifierWithHeight = modifier.height(BUTTON_HEIGHT.dp)
+    val modifierWithHeight = modifier.heightIn(min = BUTTON_HEIGHT.dp)
 
     val centerContent: @Composable RowScope.() -> Unit = {
         Row(
-            modifier = Modifier.fillMaxHeight(),
             verticalAlignment = Alignment.CenterVertically
         ) {
             content(this)

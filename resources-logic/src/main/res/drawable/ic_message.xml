@@ -1,25 +1,9 @@
-<!--
-  ~ Copyright (c) 2023 European Commission
-  ~
-  ~ Licensed under the EUPL, Version 1.2 or - as soon they will be approved by the European
-  ~ Commission - subsequent versions of the EUPL (the "Licence"); You may not use this work
-  ~ except in compliance with the Licence.
-  ~
-  ~ You may obtain a copy of the Licence at:
-  ~ https://joinup.ec.europa.eu/software/page/eupl
-  ~
-  ~ Unless required by applicable law or agreed to in writing, software distributed under
-  ~ the Licence is distributed on an "AS IS" basis, WITHOUT WARRANTIES OR CONDITIONS OF
-  ~ ANY KIND, either express or implied. See the Licence for the specific language
-  ~ governing permissions and limitations under the Licence.
-  -->
-
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
-    android:width="80dp"
-    android:height="80dp"
-    android:viewportWidth="80"
-    android:viewportHeight="80">
+    android:width="20dp"
+    android:height="20dp"
+    android:viewportWidth="20"
+    android:viewportHeight="20">
     <path
-        android:fillColor="#2A5ED9"
-        android:pathData="M79.96,8C79.96,3.6 76.4,0 72,0H8C3.6,0 0,3.6 0,8V56C0,60.4 3.6,64 8,64H64L80,80L79.96,8ZM64,48H16V40H64V48ZM64,36H16V28H64V36ZM64,24H16V16H64V24Z" />
+        android:fillColor="#1D1D1E"
+        android:pathData="M17.5 3.75C18.25 3.75 18.75 4.25 18.75 5V13.75C18.75 14.5 18.25 15 17.5 15H13.625L11 18.75L10 18L13 13.75H17.5V5H5V13.75H10V15H5C4.25 15 3.75 14.5 3.75 13.75V5C3.75 4.25 4.25 3.75 5 3.75H17.5ZM11.25 2.5H3.125C2.75 2.5 2.5 2.75 2.5 3.125V11.25H1.25V3.125C1.25 2.0625 2.0625 1.25 3.125 1.25H11.25V2.5Z" />
 </vector>

@@ -99,7 +99,7 @@ fun NoKnownPinFindTownHallBottomSheetContent(
                             color = ThemeColors.onSecondaryButton
                         ),
                         customTint = ThemeColors.onSecondaryButton,
-                        rightIconData = AppIcons.ArrowOutward
+                        rightIconData = AppIcons.OpenNewSettings
                     )
                 }
             }

@@ -67,12 +67,14 @@
     <string name="content_description_verified_icon">Verified</string>
     <string name="content_description_message_icon">Message</string>
     <string name="content_description_success_icon">Success</string>
+    <string name="app_onboarding_success_redirect_announcement">We will direct you to the app home screen</string>
     <string name="content_description_clock_timer_icon">Clock timer</string>
     <string name="content_description_arrow_right_icon">Arrow right</string>
     <string name="content_description_arrow_forward_icon">Arrow forward</string>
     <string name="content_description_share_icon">Share</string>
     <string name="content_description_key_icon">Key</string>
     <string name="content_description_notification_icon">Notifications</string>
+    <string name="content_description_renew_icon">Renew</string>
     <string name="settings_overview_app_version">Version: %1$s Build: %2$d</string>
     <string name="content_description_lock_icon">Lock</string>
     <string name="content_description_open_new_icon">Open new</string>
@@ -226,8 +228,6 @@
     <string name="document_category_retail">RETAIL</string>
     <string name="document_category_other">OTHER</string>
 
-    <string name="content_description_unlock_phone_icon">Unlock phone</string>
-    <string name="content_description_arrow_outward">Arrow outward</string>
     <string name="content_description_error_pin">error pin</string>
     <string name="content_description_nfc_not_activated">Smartphone with switched off contactless function</string>
 
@@ -317,4 +317,7 @@
 
     <string name="a11y_animation_play">Play animation</string>
     <string name="a11y_animation_pause">Pause animation</string>
+
+    <!-- App setup: the part of app_onboarding_policy_intro_checkbox_label that links to the terms of use -->
+    <string name="setup_privacy_policy_terms_link">terms of use</string>
 </resources>

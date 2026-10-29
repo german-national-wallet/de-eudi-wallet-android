@@ -8,6 +8,7 @@ import eu.europa.ec.authenticationlogic.model.WalletWiaPopSpec
 import eu.europa.ec.businesslogic.controller.log.LogController
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
+import org.sprind.wallet.analyticslogic.controller.Telemetry
 import org.sprind.wallet.authenticationlogic.provider.MdvmAuthContext
 import org.sprind.wallet.authenticationlogic.provider.MdvmAuthContextProvider
 import org.sprind.wallet.networklogic.common.model.ApiResult
@@ -46,8 +47,13 @@ class AppAttestationControllerImpl(
     private val mdvmAuthContextProvider: MdvmAuthContextProvider,
     private val walletAttestationController: WalletAttestationController,
     private val logController: LogController,
+    private val telemetry: Telemetry,
 ) : AppAttestationController {
     private val logTag = javaClass.simpleName
+
+    private companion object {
+        const val REGISTRATION_STORAGE_ERROR = "WALLET_REGISTRATION_STORAGE_ERROR"
+    }
 
     override fun registerWallet(): Flow<WalletRegistrationPartialState> = flow {
         walletRegistrationController.getChallenge()
@@ -109,13 +115,24 @@ class AppAttestationControllerImpl(
                 mdvmAuthPrvk = mdvmAuthContext.mdvmAuthPrvk,
             ).collect {
                 when (it) {
-                    is WalletInstancePartialState.Success ->
-                        walletRegistrationStorageController.saveWalletRegistration(
+                    is WalletInstancePartialState.Success -> {
+                        val saved = walletRegistrationStorageController.saveWalletRegistration(
                             RegistrationData(
                                 walletInstanceId = it.walletInstanceId,
                                 walletInstanceRevocationCode = it.walletInstanceRevocationCode,
                             )
                         )
+                        saved.onFailure { error ->
+                            logController.e(logTag) { "requestAndSaveWalletInstanceId, saving registration failed: ${error::class.simpleName}" }
+                            emit(
+                                WalletInstancePartialState.Failure(
+                                    errorCode = REGISTRATION_STORAGE_ERROR,
+                                    traceId = telemetry.currentTraceId(),
+                                )
+                            )
+                            return@collect
+                        }
+                    }
 
                     is WalletInstancePartialState.Failure -> logController.d(logTag) { "requestAndSaveWalletInstanceId, walletRegistrationController.getWalletInstanceId returns error" }
                 }
@@ -126,12 +143,16 @@ class AppAttestationControllerImpl(
     override fun generateAttestation(): Flow<WalletAttestationGenerationResult> =
         flow {
             val registrationData = walletRegistrationStorageController.getWalletRegistration()
+                .getOrElse { error ->
+                    logController.e(logTag) { "generateAttestation, registration data cannot be read: ${error::class.simpleName}" }
+                    null
+                }
             if (registrationData == null) {
                 logController.e(logTag) { "generateAttestation , registration data from storage is null" }
                 emit(
                     WalletAttestationGenerationResult.Failure(
                         errorCode = "WB_ACCOUNT_UNKNOWN",
-                        traceId = null
+                        traceId = telemetry.currentTraceId()
                     )
                 )
                 return@flow

@@ -1,6 +1,7 @@
 package eu.europa.ec.presentationfeature.ui.request
 
 import android.net.Uri
+import androidx.core.net.toUri
 import androidx.lifecycle.viewModelScope
 import eu.europa.ec.authenticationlogic.jwt.InstantProvider
 import eu.europa.ec.businesslogic.config.ConfigLogic
@@ -47,6 +48,7 @@ import org.sprind.wallet.businesslogic.model.UserPin
 import org.sprind.wallet.businesslogic.util.SpanAttributes
 import org.sprind.wallet.networklogic.rwsca.model.error.RwscaErrorType
 import org.sprind.wallet.uilogic.component.cleared
+import org.sprind.wallet.uilogic.extension.isSafeRedirectLink
 import org.sprind.wallet.corelogic.presentationerror.PresentationError
 import java.time.Instant
 import java.time.temporal.ChronoUnit
@@ -163,6 +165,7 @@ class PresentationRequestViewModel(
                                 verifierName = response.verifierName,
                                 purpose = response.purpose,
                                 reportUrl = response.reportUri,
+                                supportUrl = response.supportUri,
                             )
                         }
                     }
@@ -811,8 +814,11 @@ class PresentationRequestViewModel(
         onRetry: (() -> Unit)?,
         onDismiss: () -> Unit = { setEvent(Event.DismissError) },
     ) {
+        // Links openUrl would drop (mailto:, tel:, ...) are not offered.
+        val supportUrl = viewState.value.supportUrl?.takeIf { it.toUri().isSafeRedirectLink() }
         val uiConfig = PresentationErrorUiConfig.from(error) { telemetry.currentTraceId() }
             .let { if (onRetry == null) it.withoutRetry() else it }
+            .let { if (supportUrl == null) it.withoutContactService() else it }
         if (navigateToBlockingErrorScreen(uiConfig)) return
 
         val errorDialog = uiConfig.toGenericErrorDialogConfig(
@@ -827,6 +833,13 @@ class PresentationRequestViewModel(
                 }
             },
             onDismiss = onDismiss,
+            // The error dialog stays open behind the redirect confirmation.
+            onContactService = { setState { copy(pendingReportIssueUrl = supportUrl) } },
+            onToOverview = {
+                setState { copy(errorDialog = null) }
+                unsubscribe()
+                leaveForDashboard()
+            },
         )
         setState { copy(isLoading = false, errorDialog = errorDialog) }
     }

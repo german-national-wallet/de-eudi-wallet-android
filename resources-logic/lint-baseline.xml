@@ -63,7 +63,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="130"
+            line="134"
             column="13"/>
     </issue>
 
@@ -74,7 +74,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="131"
+            line="135"
             column="13"/>
     </issue>
 
@@ -85,7 +85,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="132"
+            line="136"
             column="13"/>
     </issue>
 
@@ -96,7 +96,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="133"
+            line="137"
             column="13"/>
     </issue>
 
@@ -107,7 +107,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="134"
+            line="138"
             column="13"/>
     </issue>
 
@@ -118,7 +118,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="135"
+            line="139"
             column="13"/>
     </issue>
 
@@ -129,7 +129,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="136"
+            line="140"
             column="13"/>
     </issue>
 
@@ -140,7 +140,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="137"
+            line="141"
             column="13"/>
     </issue>
 
@@ -151,7 +151,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="138"
+            line="142"
             column="13"/>
     </issue>
 
@@ -162,7 +162,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="144"
+            line="148"
             column="13"/>
     </issue>
 
@@ -173,7 +173,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="145"
+            line="149"
             column="13"/>
     </issue>
 
@@ -184,7 +184,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="146"
+            line="150"
             column="13"/>
     </issue>
 
@@ -195,7 +195,7 @@
         errorLine2="            ~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="148"
+            line="152"
             column="13"/>
     </issue>
 
@@ -206,7 +206,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="167"
+            line="171"
             column="13"/>
     </issue>
 
@@ -217,7 +217,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="168"
+            line="172"
             column="13"/>
     </issue>
 
@@ -228,7 +228,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="203"
+            line="207"
             column="13"/>
     </issue>
 
@@ -239,7 +239,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="206"
+            line="210"
             column="13"/>
     </issue>
 
@@ -250,7 +250,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="207"
+            line="211"
             column="13"/>
     </issue>
 
@@ -261,7 +261,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="218"
+            line="222"
             column="13"/>
     </issue>
 
@@ -272,7 +272,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="219"
+            line="223"
             column="13"/>
     </issue>
 
@@ -283,7 +283,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="220"
+            line="224"
             column="13"/>
     </issue>
 
@@ -294,7 +294,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="221"
+            line="225"
             column="13"/>
     </issue>
 
@@ -305,7 +305,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="222"
+            line="226"
             column="13"/>
     </issue>
 
@@ -316,7 +316,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="223"
+            line="227"
             column="13"/>
     </issue>
 
@@ -327,7 +327,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="224"
+            line="228"
             column="13"/>
     </issue>
 
@@ -338,7 +338,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="225"
+            line="229"
             column="13"/>
     </issue>
 
@@ -349,7 +349,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="265"
+            line="271"
             column="13"/>
     </issue>
 
@@ -360,7 +360,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="266"
+            line="272"
             column="13"/>
     </issue>
 
@@ -371,7 +371,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="267"
+            line="273"
             column="13"/>
     </issue>
 
@@ -382,7 +382,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="268"
+            line="274"
             column="13"/>
     </issue>
 
@@ -393,7 +393,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="269"
+            line="275"
             column="13"/>
     </issue>
 
@@ -404,7 +404,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="270"
+            line="276"
             column="13"/>
     </issue>
 
@@ -415,7 +415,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="271"
+            line="277"
             column="13"/>
     </issue>
 
@@ -426,7 +426,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="272"
+            line="278"
             column="13"/>
     </issue>
 
@@ -437,7 +437,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="273"
+            line="279"
             column="13"/>
     </issue>
 
@@ -448,7 +448,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="274"
+            line="280"
             column="13"/>
     </issue>
 
@@ -459,7 +459,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="275"
+            line="281"
             column="13"/>
     </issue>
 
@@ -470,7 +470,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="276"
+            line="282"
             column="13"/>
     </issue>
 
@@ -481,7 +481,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="277"
+            line="283"
             column="13"/>
     </issue>
 
@@ -492,7 +492,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="278"
+            line="284"
             column="13"/>
     </issue>
 
@@ -503,7 +503,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="279"
+            line="285"
             column="13"/>
     </issue>
 
@@ -514,7 +514,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="280"
+            line="286"
             column="13"/>
     </issue>
 
@@ -525,7 +525,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="281"
+            line="287"
             column="13"/>
     </issue>
 
@@ -536,7 +536,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="282"
+            line="288"
             column="13"/>
     </issue>
 
@@ -547,7 +547,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="292"
+            line="298"
             column="13"/>
     </issue>
 
@@ -558,7 +558,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="293"
+            line="299"
             column="13"/>
     </issue>
 
@@ -569,7 +569,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="294"
+            line="300"
             column="13"/>
     </issue>
 
@@ -580,7 +580,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="295"
+            line="301"
             column="13"/>
     </issue>
 
@@ -591,7 +591,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="296"
+            line="302"
             column="13"/>
     </issue>
 
@@ -602,7 +602,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="297"
+            line="303"
             column="13"/>
     </issue>
 
@@ -613,7 +613,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="300"
+            line="306"
             column="13"/>
     </issue>
 
@@ -624,7 +624,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="301"
+            line="307"
             column="13"/>
     </issue>
 
@@ -635,7 +635,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="302"
+            line="308"
             column="13"/>
     </issue>
 
@@ -646,7 +646,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="309"
+            line="315"
             column="13"/>
     </issue>
 
@@ -657,19 +657,19 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="310"
+            line="316"
             column="13"/>
     </issue>
 
     <issue
         id="Typos"
-        message="&quot;Letzer&quot; is a common misspelling; did you mean &quot;Letzter&quot;?"
-        errorLine1="    &lt;string name=&quot;activities_overview_label_last_month&quot;>Letzer Monat&lt;/string>"
-        errorLine2="                                                        ~~~~~~">
+        message="&quot;unkown&quot; is a common misspelling; did you mean &quot;unknown&quot;?"
+        errorLine1="    &lt;string name=&quot;activities_detail_banner_reject_unkown&quot;>This verification was rejected by d‑you because the service is unkown. No data was shared.&lt;/string>"
+        errorLine2="                                                                                                                         ~~~~~~">
         <location
-            file="src/main/res/values-de/string_figma.xml"
-            line="160"
-            column="57"/>
+            file="src/main/res/values/string_figma.xml"
+            line="154"
+            column="122"/>
     </issue>
 
     <issue
@@ -679,7 +679,7 @@
         errorLine2="                                                                        ~~~~~~">
         <location
             file="src/main/res/values-de/string_figma.xml"
-            line="362"
+            line="393"
             column="73"/>
     </issue>
 
@@ -690,41 +690,19 @@
         errorLine2="                                                           ~~~~~~~~">
         <location
             file="src/main/res/values/string_figma.xml"
-            line="396"
+            line="431"
             column="60"/>
     </issue>
 
     <issue
         id="Typos"
-        message="Repeated word &quot;was&quot; in message: possible typo"
-        errorLine1="    &lt;string name=&quot;eaa_issuance_transaction_code_entry_error_1&quot;>Your code entry was was incorrect. Try again.&lt;/string>"
-        errorLine2="                                                                               ~~~~~~~">
+        message="&quot;detailierte&quot; is a common misspelling; did you mean &quot;detaillierte&quot;?"
+        errorLine1="    &lt;string name=&quot;nfc_scanning_sheet_nfc_list_3_dev&quot;>**Brauchst du Hilfe?** Besuche unseren Hilfebereich für eine detailierte Anleitung.&lt;/string>"
+        errorLine2="                                                                                                                  ~~~~~~~~~~~">
         <location
-            file="src/main/res/values/string_figma.xml"
-            line="457"
-            column="80"/>
-    </issue>
-
-    <issue
-        id="Typos"
-        message="Repeated word &quot;was&quot; in message: possible typo"
-        errorLine1="    &lt;string name=&quot;eid_setup_puk_entry_error_wrong_puk&quot;>Your previous PUK entry was was incorrect. Try again.&lt;/string>"
-        errorLine2="                                                                               ~~~~~~~">
-        <location
-            file="src/main/res/values/string_figma.xml"
-            line="626"
-            column="80"/>
-    </issue>
-
-    <issue
-        id="Typos"
-        message="Repeated word &quot;was&quot; in message: possible typo"
-        errorLine1="    &lt;string name=&quot;pid_issuance_card_pin_entry_error_1&quot;>Your PIN entry was was incorrect. Try again.&lt;/string>"
-        errorLine2="                                                                      ~~~~~~~">
-        <location
-            file="src/main/res/values/string_figma.xml"
-            line="870"
-            column="71"/>
+            file="src/main/res/values-de/string_figma.xml"
+            line="805"
+            column="115"/>
     </issue>
 
     <issue
@@ -734,19 +712,8 @@
         errorLine2="                                                               ~~~~~~~~">
         <location
             file="src/main/res/values/string_figma.xml"
-            line="888"
+            line="939"
             column="64"/>
-    </issue>
-
-    <issue
-        id="Typos"
-        message="Repeated word &quot;was&quot; in message: possible typo"
-        errorLine1="    &lt;string name=&quot;pid_issuance_puk_entry_error_wrong_puk&quot;>Your previous PUK entry was was incorrect. Try again.&lt;/string>"
-        errorLine2="                                                                                  ~~~~~~~">
-        <location
-            file="src/main/res/values/string_figma.xml"
-            line="990"
-            column="83"/>
     </issue>
 
     <issue
@@ -756,18 +723,7 @@
         errorLine2="    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/string_figma.xml"
-            line="487"
-            column="5"/>
-    </issue>
-
-    <issue
-        id="PluralsCandidate"
-        message="Formatting %d followed by words (&quot;out&quot;): This should probably be a plural rather than a string"
-        errorLine1="    &lt;string name=&quot;pid_presentation_data_consent_headline_credential_dev&quot;>&lt;b>%1$d&lt;/b> out of &lt;b>%2$d&lt;/b> from %3$s&lt;/string>"
-        errorLine2="    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
-        <location
-            file="src/main/res/values/string_figma.xml"
-            line="1054"
+            line="530"
             column="5"/>
     </issue>
 
@@ -778,7 +734,7 @@
         errorLine2="    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
-            line="274"
+            line="280"
             column="5"/>
     </issue>
 
@@ -789,7 +745,7 @@
         errorLine2="                                                                                       ~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values-de/string_figma.xml"
-            line="139"
+            line="140"
             column="88"/>
     </issue>
 
@@ -800,7 +756,7 @@
         errorLine2="                                                                       ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/string_figma.xml"
-            line="914"
+            line="965"
             column="72"/>
     </issue>
 
@@ -811,7 +767,7 @@
         errorLine2="                                                              ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/string_figma.xml"
-            line="926"
+            line="976"
             column="63"/>
     </issue>
 
@@ -822,7 +778,7 @@
         errorLine2="                                                   ~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/string_figma.xml"
-            line="1180"
+            line="1255"
             column="52"/>
     </issue>
 
@@ -833,7 +789,7 @@
         errorLine2="                                                                        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values-de/string_figma.xml"
-            line="135"
+            line="136"
             column="73"/>
     </issue>
 
@@ -844,7 +800,7 @@
         errorLine2="                                                                        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/string_figma.xml"
-            line="135"
+            line="136"
             column="73"/>
     </issue>
 
@@ -855,7 +811,7 @@
         errorLine2="                                                                                  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values-de/string_figma.xml"
-            line="143"
+            line="144"
             column="83"/>
     </issue>
 
@@ -866,7 +822,7 @@
         errorLine2="                                                                                  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/string_figma.xml"
-            line="143"
+            line="144"
             column="83"/>
     </issue>
 
@@ -877,7 +833,7 @@
         errorLine2="                                                                    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values-de/string_figma.xml"
-            line="145"
+            line="146"
             column="69"/>
     </issue>
 
@@ -888,7 +844,7 @@
         errorLine2="                                                                    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/string_figma.xml"
-            line="145"
+            line="146"
             column="69"/>
     </issue>
 
@@ -899,7 +855,7 @@
         errorLine2="                                                    ~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values-de/string_figma.xml"
-            line="195"
+            line="223"
             column="53"/>
     </issue>
 
@@ -910,7 +866,7 @@
         errorLine2="                                                             ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values-de/string_figma.xml"
-            line="238"
+            line="267"
             column="62"/>
     </issue>
 
@@ -921,7 +877,7 @@
         errorLine2="                                             ~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values-de/string_figma.xml"
-            line="435"
+            line="472"
             column="46"/>
     </issue>
 
@@ -932,7 +888,7 @@
         errorLine2="                                              ~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values-de/string_figma.xml"
-            line="436"
+            line="476"
             column="47"/>
     </issue>
 
@@ -943,7 +899,7 @@
         errorLine2="                                              ~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/string_figma.xml"
-            line="436"
+            line="476"
             column="47"/>
     </issue>
 
@@ -954,7 +910,7 @@
         errorLine2="                                                                       ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values-de/string_figma.xml"
-            line="462"
+            line="505"
             column="72"/>
     </issue>
 
@@ -965,7 +921,7 @@
         errorLine2="                                                                       ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/string_figma.xml"
-            line="462"
+            line="505"
             column="72"/>
     </issue>
 
@@ -976,7 +932,7 @@
         errorLine2="                                                             ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values-de/string_figma.xml"
-            line="539"
+            line="582"
             column="62"/>
     </issue>
 
@@ -987,7 +943,7 @@
         errorLine2="                                              ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values-de/string_figma.xml"
-            line="713"
+            line="759"
             column="47"/>
     </issue>
 
@@ -998,7 +954,7 @@
         errorLine2="                                                                ~~~~~~~~~~~">
         <location
             file="src/main/res/values/string_figma.xml"
-            line="779"
+            line="830"
             column="65"/>
     </issue>
 
@@ -1009,7 +965,7 @@
         errorLine2="                                                    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/string_figma.xml"
-            line="1105"
+            line="1158"
             column="53"/>
     </issue>
 
@@ -1020,7 +976,7 @@
         errorLine2="                                                    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values-de/string_figma.xml"
-            line="1106"
+            line="1159"
             column="53"/>
     </issue>
 
@@ -1031,7 +987,7 @@
         errorLine2="                                                               ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values-de/string_figma.xml"
-            line="1107"
+            line="1160"
             column="64"/>
     </issue>
 
@@ -1042,7 +998,7 @@
         errorLine2="                                                               ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/string_figma.xml"
-            line="1107"
+            line="1160"
             column="64"/>
     </issue>
 
@@ -1053,7 +1009,7 @@
         errorLine2="                                                               ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values-de/string_figma.xml"
-            line="1108"
+            line="1161"
             column="64"/>
     </issue>
 
@@ -1086,7 +1042,7 @@
         errorLine2="                                                                      ~">
         <location
             file="src/main/res/values/string_figma.xml"
-            line="115"
+            line="116"
             column="71"/>
     </issue>
 
@@ -1097,96 +1053,96 @@
         errorLine2="                                                               ~">
         <location
             file="src/main/res/values/string_figma.xml"
-            line="214"
+            line="242"
             column="64"/>
     </issue>
 
     <issue
         id="TypographyQuotes"
         message="Replace apostrophe (&apos;) with typographic apostrophe (’, &amp;#8217;) ?"
-        errorLine1="    &lt;string name=&quot;app_onboarding_outdated_os_version_paragraph&quot;>Your device doesn\&apos;t meet current security requirements. Please install the required operating system update, then restart the app.&lt;/string>"
+        errorLine1="    &lt;string name=&quot;app_onboarding_outdated_os_version_paragraph&quot;>Your phone doesn\&apos;t meet current security requirements. Please install the required operating system update, then restart the app.&lt;/string>"
+        errorLine2="                                                                                 ~">
+        <location
+            file="src/main/res/values/string_figma.xml"
+            line="247"
+            column="82"/>
+    </issue>
+
+    <issue
+        id="TypographyQuotes"
+        message="Replace apostrophe (&apos;) with typographic apostrophe (’, &amp;#8217;) ?"
+        errorLine1="    &lt;string name=&quot;app_onboarding_outdated_patch_level_paragraph&quot;>Your phone doesn\&apos;t meet current security requirements. Please install the required operating system update, then restart the app.&lt;/string>"
         errorLine2="                                                                                  ~">
         <location
             file="src/main/res/values/string_figma.xml"
-            line="219"
+            line="250"
             column="83"/>
     </issue>
 
     <issue
         id="TypographyQuotes"
         message="Replace apostrophe (&apos;) with typographic apostrophe (’, &amp;#8217;) ?"
-        errorLine1="    &lt;string name=&quot;app_onboarding_outdated_patch_level_paragraph&quot;>Your device doesn\&apos;t meet current security requirements. Please install the required operating system update, then restart the app.&lt;/string>"
-        errorLine2="                                                                                   ~">
+        errorLine1="    &lt;string name=&quot;app_onboarding_push_intro_list_1&quot;>Your phone\&apos;s security is checked continuously to protect d-you.&lt;/string>"
+        errorLine2="                                                               ~">
         <location
             file="src/main/res/values/string_figma.xml"
-            line="222"
-            column="84"/>
+            line="286"
+            column="64"/>
     </issue>
 
     <issue
         id="TypographyQuotes"
         message="Replace apostrophe (&apos;) with typographic apostrophe (’, &amp;#8217;) ?"
-        errorLine1="    &lt;string name=&quot;app_onboarding_push_intro_list_1&quot;>Your device\&apos;s security is checked continuously to protect the d-you app.&lt;/string>"
-        errorLine2="                                                                ~">
+        errorLine1="    &lt;string name=&quot;app_onboarding_push_intro_list_2&quot;>You\&apos;re only notified if your phone isn\&apos;t secure enough, or when updates are needed.&lt;/string>"
+        errorLine2="                                                    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/string_figma.xml"
-            line="256"
-            column="65"/>
-    </issue>
-
-    <issue
-        id="TypographyQuotes"
-        message="Replace apostrophe (&apos;) with typographic apostrophe (’, &amp;#8217;) ?"
-        errorLine1="    &lt;string name=&quot;app_onboarding_push_intro_list_2&quot;>You\&apos;re only notified if your device isn\&apos;t secure enough for the app, or when other updates are needed.&lt;/string>"
-        errorLine2="                                                    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
-        <location
-            file="src/main/res/values/string_figma.xml"
-            line="257"
+            line="287"
             column="53"/>
     </issue>
 
     <issue
         id="TypographyQuotes"
         message="Replace apostrophe (&apos;) with typographic apostrophe (’, &amp;#8217;) ?"
-        errorLine1="    &lt;string name=&quot;app_onboarding_security_violation_paragraph&quot;>Signs of an attack were detected on your device. For security reasons, the app can\&apos;t be used. The app has been reset and all data has been deleted. Contact customer support before setting up the app again.&lt;/string>"
-        errorLine2="                                                                                                                                                  ~">
+        errorLine1="    &lt;string name=&quot;app_onboarding_security_violation_paragraph&quot;>Signs of an attack were detected on your phone. For security reasons, the app can\&apos;t be used. The app has been reset and all data has been deleted. Contact support before setting up the app again.&lt;/string>"
+        errorLine2="                                                                                                                                                 ~">
         <location
             file="src/main/res/values/string_figma.xml"
-            line="262"
-            column="147"/>
+            line="292"
+            column="146"/>
     </issue>
 
     <issue
         id="TypographyQuotes"
         message="Replace apostrophe (&apos;) with typographic apostrophe (’, &amp;#8217;) ?"
-        errorLine1="    &lt;string name=&quot;app_onboarding_wallet_revocation_intro_list_2&quot;>You\&apos;ll see the lock key on the next screen. Save it somewhere other than this device.&lt;/string>"
+        errorLine1="    &lt;string name=&quot;app_onboarding_wallet_revocation_intro_list_2&quot;>You\&apos;ll see the deletion key on the next screen. Save it somewhere other than this phone.&lt;/string>"
         errorLine2="                                                                     ~">
         <location
             file="src/main/res/values/string_figma.xml"
-            line="267"
+            line="298"
             column="70"/>
     </issue>
 
     <issue
         id="TypographyQuotes"
         message="Replace apostrophe (&apos;) with typographic apostrophe (’, &amp;#8217;) ?"
-        errorLine1="    &lt;string name=&quot;app_onboarding_wallet_revocation_intro_list_2_dev&quot;>You\&apos;ll see the lock key on the next screen. Save it somewhere other than this device.&lt;/string>"
+        errorLine1="    &lt;string name=&quot;app_onboarding_wallet_revocation_intro_list_2_dev&quot;>You\&apos;ll see the deletion key on the next screen. Save it somewhere other than this device.diately lock your wallet using your key at **d-you.gov.de/lost-phone**.&lt;/string>"
         errorLine2="                                                                         ~">
         <location
             file="src/main/res/values/string_figma.xml"
-            line="268"
+            line="299"
             column="74"/>
     </issue>
 
     <issue
         id="TypographyQuotes"
         message="Replace apostrophe (&apos;) with typographic apostrophe (’, &amp;#8217;) ?"
-        errorLine1="    &lt;string name=&quot;app_onboarding_wb_integrity_verification_failed_title&quot;>Your device isn\&apos;t supported&lt;/string>"
-        errorLine2="                                                                                         ~">
+        errorLine1="    &lt;string name=&quot;app_onboarding_wb_integrity_verification_failed_title&quot;>Your phone isn\&apos;t supported&lt;/string>"
+        errorLine2="                                                                                        ~">
         <location
             file="src/main/res/values/string_figma.xml"
-            line="285"
-            column="90"/>
+            line="316"
+            column="89"/>
     </issue>
 
     <issue
@@ -1196,7 +1152,7 @@
         errorLine2="                                                                  ~">
         <location
             file="src/main/res/values/string_figma.xml"
-            line="293"
+            line="324"
             column="67"/>
     </issue>
 
@@ -1207,7 +1163,7 @@
         errorLine2="                                                                                     ~">
         <location
             file="src/main/res/values/string_figma.xml"
-            line="309"
+            line="340"
             column="86"/>
     </issue>
 
@@ -1218,19 +1174,41 @@
         errorLine2="                                                                         ~">
         <location
             file="src/main/res/values-de/string_figma.xml"
-            line="370"
+            line="401"
             column="74"/>
     </issue>
 
     <issue
         id="TypographyQuotes"
         message="Replace apostrophe (&apos;) with typographic apostrophe (’, &amp;#8217;) ?"
-        errorLine1="    &lt;string name=&quot;eaa_issuance_issuer_not_trustworthy_paragraph&quot;>This credential can\&apos;t be added. The issuer doesn\&apos;t meet our security requirements.dential. The issuer doesn\&apos;t meet the security requirements.&lt;/string>"
-        errorLine2="                                                                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        errorLine1="    &lt;string name=&quot;eaa_issuance_credential_not_loaded_ext_paragraph&quot;>Go back to the issuer\&apos;s website and start adding credential again.&lt;/string>"
+        errorLine2="                                                                                          ~">
         <location
             file="src/main/res/values/string_figma.xml"
-            line="433"
+            line="412"
+            column="91"/>
+    </issue>
+
+    <issue
+        id="TypographyQuotes"
+        message="Replace apostrophe (&apos;) with typographic apostrophe (’, &amp;#8217;) ?"
+        errorLine1="    &lt;string name=&quot;eaa_issuance_issuer_not_trustworthy_paragraph&quot;>This credential can\&apos;t be added. The issuer doesn\&apos;t meet our security requirements. &lt;/string>"
+        errorLine2="                                                                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/string_figma.xml"
+            line="470"
             column="66"/>
+    </issue>
+
+    <issue
+        id="TypographyQuotes"
+        message="Replace apostrophe (&apos;) with typographic apostrophe (’, &amp;#8217;) ?"
+        errorLine1="    &lt;string name=&quot;eaa_issuance_link_expired_paragraph&quot;>Go back to the issuer\&apos;s website and start adding credential again.&lt;/string>"
+        errorLine2="                                                                             ~">
+        <location
+            file="src/main/res/values/string_figma.xml"
+            line="473"
+            column="78"/>
     </issue>
 
     <issue
@@ -1240,8 +1218,19 @@
         errorLine2="                                                          ~">
         <location
             file="src/main/res/values/string_figma.xml"
-            line="441"
+            line="481"
             column="59"/>
+    </issue>
+
+    <issue
+        id="TypographyQuotes"
+        message="Replace apostrophe (&apos;) with typographic apostrophe (’, &amp;#8217;) ?"
+        errorLine1="    &lt;string name=&quot;eaa_issuance_timeout_paragraph&quot;>Go back to the issuer\&apos;s website or the credential catalog and start adding the credential again.&lt;/string>"
+        errorLine2="                                                                        ~">
+        <location
+            file="src/main/res/values/string_figma.xml"
+            line="487"
+            column="73"/>
     </issue>
 
     <issue
@@ -1251,7 +1240,7 @@
         errorLine2="                                                                                              ~">
         <location
             file="src/main/res/values/string_figma.xml"
-            line="525"
+            line="568"
             column="95"/>
     </issue>
 
@@ -1262,7 +1251,7 @@
         errorLine2="                                                                      ~">
         <location
             file="src/main/res/values/string_figma.xml"
-            line="613"
+            line="656"
             column="71"/>
     </issue>
 
@@ -1273,7 +1262,7 @@
         errorLine2="                                                     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/string_figma.xml"
-            line="619"
+            line="662"
             column="54"/>
     </issue>
 
@@ -1284,7 +1273,7 @@
         errorLine2="                                                                                                                                                   ~">
         <location
             file="src/main/res/values/string_figma.xml"
-            line="632"
+            line="675"
             column="148"/>
     </issue>
 
@@ -1295,7 +1284,7 @@
         errorLine2="                                                                                                                                                                                                                              ~">
         <location
             file="src/main/res/values/string_figma.xml"
-            line="638"
+            line="681"
             column="223"/>
     </issue>
 
@@ -1306,7 +1295,7 @@
         errorLine2="                                                                                                              ~">
         <location
             file="src/main/res/values/string_figma.xml"
-            line="641"
+            line="684"
             column="111"/>
     </issue>
 
@@ -1317,7 +1306,7 @@
         errorLine2="                                                         ~">
         <location
             file="src/main/res/values/string_figma.xml"
-            line="642"
+            line="685"
             column="58"/>
     </issue>
 
@@ -1328,7 +1317,7 @@
         errorLine2="                                                                                                                                                                                                                                             ~">
         <location
             file="src/main/res/values/string_figma.xml"
-            line="643"
+            line="686"
             column="238"/>
     </issue>
 
@@ -1339,7 +1328,7 @@
         errorLine2="                                                                                                                                  ~">
         <location
             file="src/main/res/values/string_figma.xml"
-            line="644"
+            line="687"
             column="131"/>
     </issue>
 
@@ -1350,7 +1339,7 @@
         errorLine2="                                                                                                                                                     ~">
         <location
             file="src/main/res/values/string_figma.xml"
-            line="647"
+            line="690"
             column="150"/>
     </issue>
 
@@ -1361,7 +1350,7 @@
         errorLine2="                                                                       ~">
         <location
             file="src/main/res/values/string_figma.xml"
-            line="649"
+            line="692"
             column="72"/>
     </issue>
 
@@ -1372,7 +1361,7 @@
         errorLine2="                                                                                ~">
         <location
             file="src/main/res/values/string_figma.xml"
-            line="654"
+            line="697"
             column="81"/>
     </issue>
 
@@ -1383,7 +1372,7 @@
         errorLine2="                                                               ~">
         <location
             file="src/main/res/values/string_figma.xml"
-            line="656"
+            line="699"
             column="64"/>
     </issue>
 
@@ -1394,7 +1383,7 @@
         errorLine2="                                                              ~">
         <location
             file="src/main/res/values/string_figma.xml"
-            line="658"
+            line="701"
             column="63"/>
     </issue>
 
@@ -1405,7 +1394,7 @@
         errorLine2="                                                                  ~">
         <location
             file="src/main/res/values/string_figma.xml"
-            line="659"
+            line="702"
             column="67"/>
     </issue>
 
@@ -1416,7 +1405,7 @@
         errorLine2="                                                            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/string_figma.xml"
-            line="668"
+            line="711"
             column="61"/>
     </issue>
 
@@ -1427,7 +1416,7 @@
         errorLine2="                                                        ~">
         <location
             file="src/main/res/values/string_figma.xml"
-            line="669"
+            line="712"
             column="57"/>
     </issue>
 
@@ -1438,18 +1427,18 @@
         errorLine2="                                                              ~">
         <location
             file="src/main/res/values/string_figma.xml"
-            line="707"
+            line="751"
             column="63"/>
     </issue>
 
     <issue
         id="TypographyQuotes"
         message="Replace apostrophe (&apos;) with typographic apostrophe (’, &amp;#8217;) ?"
-        errorLine1="    &lt;string name=&quot;global_redirect_info_paragraph_2&quot;>You\&apos;re about to leave the d-you app. No responsibility can be accepted for the content of the linked page.&lt;/string>"
+        errorLine1="    &lt;string name=&quot;global_redirect_info_paragraph_2&quot;>You\&apos;re about to leav d-you. No responsibility can be accepted for the content of the linked page.&lt;/string>"
         errorLine2="                                                        ~">
         <location
             file="src/main/res/values/string_figma.xml"
-            line="710"
+            line="755"
             column="57"/>
     </issue>
 
@@ -1460,41 +1449,52 @@
         errorLine2="                                                              ~">
         <location
             file="src/main/res/values/string_figma.xml"
-            line="715"
+            line="761"
             column="63"/>
     </issue>
 
     <issue
         id="TypographyQuotes"
         message="Replace apostrophe (&apos;) with typographic apostrophe (’, &amp;#8217;) ?"
-        errorLine1="    &lt;string name=&quot;nfc_scanning_nfc_tap_banner_android_1&quot;>The middle of your device\&apos;s back must touch your ID&lt;/string>"
-        errorLine2="                                                                                   ~">
-        <location
-            file="src/main/res/values/string_figma.xml"
-            line="737"
-            column="84"/>
-    </issue>
-
-    <issue
-        id="TypographyQuotes"
-        message="Replace apostrophe (&apos;) with typographic apostrophe (’, &amp;#8217;) ?"
-        errorLine1="    &lt;string name=&quot;nfc_scanning_nfc_tap_banner_android_2&quot;>The bottom of your device\&apos;s back must touch your ID&lt;/string>"
-        errorLine2="                                                                                   ~">
-        <location
-            file="src/main/res/values/string_figma.xml"
-            line="738"
-            column="84"/>
-    </issue>
-
-    <issue
-        id="TypographyQuotes"
-        message="Replace apostrophe (&apos;) with typographic apostrophe (’, &amp;#8217;) ?"
-        errorLine1="    &lt;string name=&quot;nfc_scanning_nfc_tap_banner_android_ios&quot;>The top of your device\&apos;s back must touch your ID&lt;/string>"
+        errorLine1="    &lt;string name=&quot;nfc_scanning_nfc_tap_banner_android_1&quot;>The middle of your phone\&apos;s back must touch your ID&lt;/string>"
         errorLine2="                                                                                  ~">
         <location
             file="src/main/res/values/string_figma.xml"
-            line="739"
+            line="783"
             column="83"/>
+    </issue>
+
+    <issue
+        id="TypographyQuotes"
+        message="Replace apostrophe (&apos;) with typographic apostrophe (’, &amp;#8217;) ?"
+        errorLine1="    &lt;string name=&quot;nfc_scanning_nfc_tap_banner_android_2&quot;>The bottom of your phone\&apos;s back must touch your ID&lt;/string>"
+        errorLine2="                                                                                  ~">
+        <location
+            file="src/main/res/values/string_figma.xml"
+            line="784"
+            column="83"/>
+    </issue>
+
+    <issue
+        id="TypographyQuotes"
+        message="Replace apostrophe (&apos;) with typographic apostrophe (’, &amp;#8217;) ?"
+        errorLine1="    &lt;string name=&quot;nfc_scanning_nfc_tap_banner_android_ios&quot;>The top of your phone\&apos;s back must touch your ID&lt;/string>"
+        errorLine2="                                                                                 ~">
+        <location
+            file="src/main/res/values/string_figma.xml"
+            line="785"
+            column="82"/>
+    </issue>
+
+    <issue
+        id="TypographyQuotes"
+        message="Replace apostrophe (&apos;) with typographic apostrophe (’, &amp;#8217;) ?"
+        errorLine1="    &lt;string name=&quot;nfc_scanning_system_sheet_nfc_paragraph_error_retry&quot;>We couldn\&apos;t read your ID card. &lt;/string>"
+        errorLine2="                                                                                 ~">
+        <location
+            file="src/main/res/values/string_figma.xml"
+            line="820"
+            column="82"/>
     </issue>
 
     <issue
@@ -1504,7 +1504,7 @@
         errorLine2="                                                ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values-de/string_figma.xml"
-            line="785"
+            line="836"
             column="49"/>
     </issue>
 
@@ -1515,7 +1515,7 @@
         errorLine2="                                                ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/string_figma.xml"
-            line="785"
+            line="836"
             column="49"/>
     </issue>
 
@@ -1526,7 +1526,7 @@
         errorLine2="                                                                                ~">
         <location
             file="src/main/res/values/string_figma.xml"
-            line="797"
+            line="848"
             column="81"/>
     </issue>
 
@@ -1537,7 +1537,7 @@
         errorLine2="                                                                         ~">
         <location
             file="src/main/res/values-de/string_figma.xml"
-            line="816"
+            line="867"
             column="74"/>
     </issue>
 
@@ -1548,7 +1548,7 @@
         errorLine2="                                                                                     ~">
         <location
             file="src/main/res/values/string_figma.xml"
-            line="848"
+            line="899"
             column="86"/>
     </issue>
 
@@ -1559,7 +1559,7 @@
         errorLine2="                                                                        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/string_figma.xml"
-            line="853"
+            line="904"
             column="73"/>
     </issue>
 
@@ -1570,7 +1570,7 @@
         errorLine2="                                                                                                                                                                                                                                                                                                                     ~">
         <location
             file="src/main/res/values/string_figma.xml"
-            line="866"
+            line="917"
             column="310"/>
     </issue>
 
@@ -1581,7 +1581,7 @@
         errorLine2="                                                                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/string_figma.xml"
-            line="878"
+            line="929"
             column="66"/>
     </issue>
 
@@ -1592,7 +1592,7 @@
         errorLine2="                                                                   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/string_figma.xml"
-            line="930"
+            line="980"
             column="68"/>
     </issue>
 
@@ -1603,7 +1603,7 @@
         errorLine2="                                                                  ~">
         <location
             file="src/main/res/values/string_figma.xml"
-            line="960"
+            line="1010"
             column="67"/>
     </issue>
 
@@ -1614,7 +1614,7 @@
         errorLine2="                                                              ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/string_figma.xml"
-            line="961"
+            line="1011"
             column="63"/>
     </issue>
 
@@ -1625,7 +1625,7 @@
         errorLine2="                                                                                                                                                                                                                                                     ~">
         <location
             file="src/main/res/values/string_figma.xml"
-            line="964"
+            line="1014"
             column="246"/>
     </issue>
 
@@ -1636,7 +1636,7 @@
         errorLine2="                                                                                                                                                                                       ~">
         <location
             file="src/main/res/values/string_figma.xml"
-            line="966"
+            line="1016"
             column="184"/>
     </issue>
 
@@ -1647,41 +1647,74 @@
         errorLine2="                                                                      ~">
         <location
             file="src/main/res/values/string_figma.xml"
-            line="973"
+            line="1023"
             column="71"/>
     </issue>
 
     <issue
         id="TypographyQuotes"
         message="Replace apostrophe (&apos;) with typographic apostrophe (’, &amp;#8217;) ?"
-        errorLine1="    &lt;string name=&quot;pid_issuance_onboarding_eid_prim_button&quot;>Yes, I\&apos;ve &lt;b>set my card PIN&lt;/b> and know it&lt;/string>"
+        errorLine1="    &lt;string name=&quot;pid_issuance_onboarding_eid_prim_button&quot;>Yes, I\&apos;ve **set my card PIN** and know it&lt;/string>"
         errorLine2="                                                                  ~">
         <location
             file="src/main/res/values/string_figma.xml"
-            line="977"
+            line="1027"
             column="67"/>
     </issue>
 
     <issue
         id="TypographyQuotes"
         message="Replace apostrophe (&apos;) with typographic apostrophe (’, &amp;#8217;) ?"
-        errorLine1="    &lt;string name=&quot;pid_issuance_onboarding_eid_sec_button&quot;>No, but I\&apos;ll set it now using my &lt;b>PIN letter&lt;/b>&lt;/string>"
+        errorLine1="    &lt;string name=&quot;pid_issuance_onboarding_eid_prim_button_dev&quot;>Yes, I\&apos;ve **set my card PIN** and know it&lt;/string>"
+        errorLine2="                                                                      ~">
+        <location
+            file="src/main/res/values/string_figma.xml"
+            line="1028"
+            column="71"/>
+    </issue>
+
+    <issue
+        id="TypographyQuotes"
+        message="Replace apostrophe (&apos;) with typographic apostrophe (’, &amp;#8217;) ?"
+        errorLine1="    &lt;string name=&quot;pid_issuance_onboarding_eid_sec_button&quot;>No, but I\&apos;ll set it now using my **PIN letter**&lt;/string>"
         errorLine2="                                                                    ~">
         <location
             file="src/main/res/values/string_figma.xml"
-            line="978"
+            line="1029"
             column="69"/>
     </issue>
 
     <issue
         id="TypographyQuotes"
         message="Replace apostrophe (&apos;) with typographic apostrophe (’, &amp;#8217;) ?"
-        errorLine1="    &lt;string name=&quot;pid_issuance_onboarding_eid_tert_button_1&quot;>I &lt;b>don\&apos;t have a PIN letter&lt;/b>, or I\&apos;ve &lt;b>forgotten my PIN&lt;/b>&lt;/string>"
-        errorLine2="                                                                         ~">
+        errorLine1="    &lt;string name=&quot;pid_issuance_onboarding_eid_sec_button_dev&quot;>No, but I\&apos;ll set it now using my **PIN letter**&lt;/string>"
+        errorLine2="                                                                        ~">
         <location
             file="src/main/res/values/string_figma.xml"
-            line="979"
-            column="74"/>
+            line="1030"
+            column="73"/>
+    </issue>
+
+    <issue
+        id="TypographyQuotes"
+        message="Replace apostrophe (&apos;) with typographic apostrophe (’, &amp;#8217;) ?"
+        errorLine1="    &lt;string name=&quot;pid_issuance_onboarding_eid_tert_button_1&quot;>I **don\&apos;t have a PIN letter**, or I\&apos;ve **forgotten my PIN**&lt;/string>"
+        errorLine2="                                                             ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/string_figma.xml"
+            line="1031"
+            column="62"/>
+    </issue>
+
+    <issue
+        id="TypographyQuotes"
+        message="Replace apostrophe (&apos;) with typographic apostrophe (’, &amp;#8217;) ?"
+        errorLine1="    &lt;string name=&quot;pid_issuance_onboarding_eid_tert_button_1_dev&quot;>I **don\&apos;t have a PIN letter**, or I\&apos;ve **forgotten my PIN**&lt;/string>"
+        errorLine2="                                                                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/string_figma.xml"
+            line="1032"
+            column="66"/>
     </issue>
 
     <issue
@@ -1691,7 +1724,7 @@
         errorLine2="                                                                 ~">
         <location
             file="src/main/res/values/string_figma.xml"
-            line="987"
+            line="1040"
             column="66"/>
     </issue>
 
@@ -1702,7 +1735,7 @@
         errorLine2="                                                                                                                                                        ~">
         <location
             file="src/main/res/values/string_figma.xml"
-            line="1023"
+            line="1076"
             column="153"/>
     </issue>
 
@@ -1713,7 +1746,7 @@
         errorLine2="                                                                           ~">
         <location
             file="src/main/res/values/string_figma.xml"
-            line="1025"
+            line="1078"
             column="76"/>
     </issue>
 
@@ -1724,7 +1757,7 @@
         errorLine2="                                                                                     ~">
         <location
             file="src/main/res/values/string_figma.xml"
-            line="1035"
+            line="1088"
             column="86"/>
     </issue>
 
@@ -1735,7 +1768,7 @@
         errorLine2="                                                                                                           ~">
         <location
             file="src/main/res/values/string_figma.xml"
-            line="1036"
+            line="1089"
             column="108"/>
     </issue>
 
@@ -1746,7 +1779,7 @@
         errorLine2="                                                                                              ~">
         <location
             file="src/main/res/values/string_figma.xml"
-            line="1090"
+            line="1143"
             column="95"/>
     </issue>
 
@@ -1757,7 +1790,7 @@
         errorLine2="                                                                                          ~">
         <location
             file="src/main/res/values/string_figma.xml"
-            line="1103"
+            line="1156"
             column="91"/>
     </issue>
 
@@ -1768,8 +1801,30 @@
         errorLine2="                                                                                                                                                                         ~">
         <location
             file="src/main/res/values/string_figma.xml"
-            line="1172"
+            line="1229"
             column="170"/>
+    </issue>
+
+    <issue
+        id="TypographyQuotes"
+        message="Replace apostrophe (&apos;) with typographic apostrophe (’, &amp;#8217;) ?"
+        errorLine1="    &lt;string name=&quot;settings_debug_config_banner&quot;>Advanced settings for developers only. Changing these values will alter the app\&apos;s default behavior.   Leave a field blank to use the default configuration.&lt;/string>"
+        errorLine2="                                                                                                                                ~">
+        <location
+            file="src/main/res/values/string_figma.xml"
+            line="1236"
+            column="129"/>
+    </issue>
+
+    <issue
+        id="TypographyQuotes"
+        message="Replace apostrophe (&apos;) with typographic apostrophe (’, &amp;#8217;) ?"
+        errorLine1="    &lt;string name=&quot;settings_dialog_debug_config_paragraph&quot;>d-you will close to apply the configuration. Keep d-you data if the backend stays the same, for example after a version update. Delete wallet data if the environment changes. Otherwise, the d-you registration won\&apos;t match the new environment.&lt;/string>"
+        errorLine2="                                                                                                                                                                                                                                                                               ~">
+        <location
+            file="src/main/res/values/string_figma.xml"
+            line="1250"
+            column="272"/>
     </issue>
 
     <issue
@@ -1779,7 +1834,7 @@
         errorLine2="                                                                                ~">
         <location
             file="src/main/res/values/strings.xml"
-            line="257"
+            line="263"
             column="81"/>
     </issue>
 
@@ -1790,7 +1845,7 @@
         errorLine2="                                                                                                                                                                                                                                                                        ~">
         <location
             file="src/main/res/values/strings.xml"
-            line="286"
+            line="292"
             column="265"/>
     </issue>
 

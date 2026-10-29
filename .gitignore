@@ -16,7 +16,9 @@ build/
 
 # Local configuration file (sdk path, etc)
 local.properties
-./version.properties
+# No longer read (the build uses VERSION/VERSION_CODE), but existing checkouts
+# still carry one; keep it out of commits.
+version.properties
 
 # Secrets
 dev.properties
@@ -81,3 +83,6 @@ app.apks
 # CI/CD
 tmp/
 ci_scripts/
+
+# The build hook is a directory named build, which the pattern above would hide.
+!/.github/actions/build/

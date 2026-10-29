@@ -17,10 +17,12 @@
 package org.sprind.wallet.uilogic.component
 
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
@@ -31,6 +33,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.semantics.CollectionItemInfo
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.collectionItemInfo
 import androidx.compose.ui.semantics.semantics
@@ -48,16 +51,31 @@ data class EligibleDocument(
 )
 
 
+/**
+ * @param onClick makes the row a button, announced by the document's name, e.g. to confirm the user
+ *   has this document.
+ */
 @Composable
 fun EligibleDocumentRow(
     document: EligibleDocument,
     index: Int,
+    onClick: (() -> Unit)? = null,
 ) {
     val artworkShape = RoundedCornerShape(ARTWORK_CORNER)
 
     Row(
         modifier = Modifier
             .fillMaxWidth()
+            .then(
+                if (onClick != null) {
+                    Modifier.clickable(
+                        role = Role.Button,
+                        onClick = onClick,
+                    )
+                } else {
+                    Modifier
+                }
+            )
             .semantics(mergeDescendants = true) {
                 collectionItemInfo = CollectionItemInfo(
                     rowIndex = index,
@@ -66,14 +84,14 @@ fun EligibleDocumentRow(
                     columnSpan = 1,
                 )
             },
-        horizontalArrangement = Arrangement.spacedBy(SPACING_MEDIUM.dp),
+        horizontalArrangement = Arrangement.spacedBy(0.dp, Alignment.CenterHorizontally),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         WrapImage(
             iconData = document.artwork,
             modifier = Modifier
                 .width(ARTWORK_WIDTH)
-                .aspectRatio(ARTWORK_ASPECT_RATIO)
+                .height(ARTWORK_HEIGHT)
                 .clip(artworkShape)
                 .border(
                     width = BORDER_STROKE_1.dp,
@@ -84,7 +102,9 @@ fun EligibleDocumentRow(
             contentScale = ContentScale.Crop,
         )
         Text(
-            modifier = Modifier.weight(WEIGHT_1),
+            modifier = Modifier
+                .weight(WEIGHT_1)
+                .padding(start = SPACING_MEDIUM.dp),
             text = document.name,
             style = MaterialTheme.typography.headlineSmall,
             color = MaterialTheme.colorScheme.onSurface,
@@ -93,5 +113,5 @@ fun EligibleDocumentRow(
 }
 
 private val ARTWORK_WIDTH = 145.dp
+private val ARTWORK_HEIGHT = 91.dp
 private val ARTWORK_CORNER = 5.dp
-private const val ARTWORK_ASPECT_RATIO = 1.585f

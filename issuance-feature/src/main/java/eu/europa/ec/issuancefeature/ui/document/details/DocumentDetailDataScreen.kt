@@ -24,7 +24,6 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import eu.europa.ec.resourceslogic.R
-import eu.europa.ec.resourceslogic.theme.values.ThemeColors
 import eu.europa.ec.resourceslogic.theme.values.parseCssColor
 import eu.europa.ec.uilogic.component.ListItemData
 import eu.europa.ec.uilogic.component.ListItemMainContentData
@@ -95,19 +94,28 @@ private fun MainScreen(
     ContentScreenWithPidTopBar(
         isLoading = state.isLoading,
         contentErrorConfig = state.error,
-        contentPidTopBarConfig = ContentPidTopBarConfig(
-            title = stringResource(R.string.pid_inspection_pid_personal_data_title),
-            onBackIconPress = { onEventSend(Event.OnBackPressed) },
-            backgroundColor = parseCssColor(
-                state.topBarBackgroundColor,
-                ThemeColors.primaryPid
-            ),
-            backgroundImageUri = state.topBarBackgroundImageUri,
-            textColor = parseCssColor(
-                state.topBarTextColor,
-                ThemeColors.onPrimaryPid
+        contentPidTopBarConfig = if (state.isPid) {
+            ContentPidTopBarConfig(
+                title = stringResource(R.string.pid_inspection_pid_personal_data_title),
+                onBackIconPress = { onEventSend(Event.OnBackPressed) },
             )
-        ),
+        } else {
+            ContentPidTopBarConfig(
+                title = stringResource(R.string.pid_inspection_pid_personal_data_title),
+                onBackIconPress = { onEventSend(Event.OnBackPressed) },
+                // Transparent until the issuer says otherwise, so nothing is drawn in a color of its own
+                // before the document has loaded.
+                backgroundColor = parseCssColor(
+                    state.topBarBackgroundColor,
+                    Color.Transparent
+                ),
+                backgroundImageUri = state.topBarBackgroundImageUri,
+                textColor = parseCssColor(
+                    state.topBarTextColor,
+                    MaterialTheme.colorScheme.onSurface
+                )
+            )
+        },
         onBack = { onEventSend(Event.OnBackPressed) },
     ) { paddingValues ->
         LazyColumn(

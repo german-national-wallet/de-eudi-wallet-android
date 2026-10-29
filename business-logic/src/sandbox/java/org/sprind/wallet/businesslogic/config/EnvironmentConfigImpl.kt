@@ -16,7 +16,13 @@
 
 package org.sprind.wallet.businesslogic.config
 
-internal class EnvironmentConfigImpl : WalletBackendEnvironmentConfig() {
+import eu.europa.ec.businesslogic.config.EnvironmentConfig
+import eu.europa.ec.businesslogic.config.LogConfig
+import eu.europa.ec.businesslogic.config.LogConfigImpl
+import org.koin.core.annotation.Single
+
+internal class EnvironmentConfigImpl(override val logConfig: LogConfig) :
+    WalletBackendEnvironmentConfig() {
 
     override val serverHostURL: String
         get() = "https://sandbox.wallet-backend.example.invalid"
@@ -29,7 +35,16 @@ internal class EnvironmentConfigImpl : WalletBackendEnvironmentConfig() {
 
     // testing flavor, so it carries the full debug tooling on every build type
     override val enableDebugMenu: Boolean = true
-    override val enableLogcat: Boolean = true
-    override val enableLogWriter: Boolean = true
     override val enableSimulatedEidCard: Boolean = true
 }
+
+@Single
+fun provideLogConfig(): LogConfig =
+    LogConfigImpl(isLogcatEnabled = true, isLogWriterEnabled = true)
+
+@Single
+fun provideEnvironmentConfig(
+    overrides: DebugConfigOverrides,
+    logConfig: LogConfig
+): EnvironmentConfig =
+    DebugConfig(delegate = EnvironmentConfigImpl(logConfig = logConfig), overrides = overrides)

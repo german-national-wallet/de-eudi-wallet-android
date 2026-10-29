@@ -22,18 +22,20 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.dp
 import eu.europa.ec.resourceslogic.R
 import eu.europa.ec.uilogic.component.content.ContentScreen
 import eu.europa.ec.uilogic.component.content.ScreenNavigateAction
 import eu.europa.ec.uilogic.component.dialog.GenericErrorDialogConfig
 import eu.europa.ec.uilogic.component.preview.PreviewTheme
 import eu.europa.ec.uilogic.component.preview.ThemeModeWithGermanAndEnglishPreviews
+import eu.europa.ec.uilogic.component.utils.SPACING_MEDIUM
 import eu.europa.ec.uilogic.component.wrap.WrapStickyPrimaryButton
 import org.sprind.wallet.uilogic.component.CodeEntryBody
-import org.sprind.wallet.walletpinfeature.ui.document.pinset.WalletPinStep
 import org.sprind.wallet.uilogic.component.CodeEntryState
 import org.sprind.wallet.uilogic.component.CodeLength
 import org.sprind.wallet.uilogic.component.codeEntryStateForPreview
+import org.sprind.wallet.walletpinfeature.ui.document.pinset.WalletPinStep
 
 /**
  * The parts of a wallet-PIN entry screen that change between the "choose a PIN" and "confirm your
@@ -70,6 +72,7 @@ data class WalletPinEntryConfig(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun WalletPinEntryView(
+    modifier: Modifier = Modifier,
     config: WalletPinEntryConfig,
     state: CodeEntryState,
     onCodeChange: () -> Unit,
@@ -106,7 +109,7 @@ fun WalletPinEntryView(
         },
     ) { paddingValues ->
         CodeEntryBody(
-            modifier = Modifier.padding(paddingValues),
+            modifier = modifier.padding(paddingValues),
             title = config.title,
             state = state,
             onCodeChange = onCodeChange,

@@ -217,14 +217,7 @@ class ReadCardViewModel(
                     replayCode.consumeAsPin()
                 }
                 setState { copy(isLoading = scanStatus == null) }
-                if (viewState.value.eidCardType.isVirtual) {
-                    // A simulated card takes no PIN, so the digits are discarded rather than sent.
-                    pin.getAndClear().close()
-                    replayCode.wipe()
-                    cardReaderInteractor.providePin(null)
-                } else {
-                    cardReaderInteractor.providePin(pin)
-                }
+                cardReaderInteractor.providePin(pin)
             }
 
             is Event.Can -> {
@@ -1048,11 +1041,24 @@ class ReadCardViewModel(
             CardReaderRoute.NFC_SCAN_CAN -> setEvent(Event.Can)
             CardReaderRoute.NFC_SCAN_EID_PIN,
             CardReaderRoute.NFC_SCAN_TRANSPORT_PIN,
-            -> setEvent(Event.Pin)
+            -> if (viewState.value.eidCardType.isVirtual) {
+                // The simulator is answered when it asks for the PIN, not here: sent before the SDK
+                // has reached its PIN entry, the answer is refused and the request that follows
+                // is left waiting.
+                discardEnteredPin()
+            } else {
+                setEvent(Event.Pin)
+            }
 
             CardReaderRoute.NFC_SCAN_NEW_PIN -> setEvent(Event.NewPin)
             else -> Unit
         }
+    }
+
+    /** Erases the PIN typed for a simulated card, which is never sent anywhere. */
+    private fun discardEnteredPin() {
+        viewState.value.pinState.buffer.wipe()
+        replayCode.wipe()
     }
 
     /** How many digits the code field on [this] step asks for. */
@@ -1064,13 +1070,23 @@ class ReadCardViewModel(
 
     private fun handlePinRequested(pinRetryCounter: Int) {
         val currentState = viewState.value
+        if (currentState.eidCardType.isVirtual) {
+            // A simulated card takes no PIN, and this request is the one moment the SDK accepts
+            // being told so. Answering each request, and only a request, means it is answered once.
+            // Checked first, and whatever the scan sheet shows, so that no request goes unanswered
+            // and no real PIN can ever be replayed to the simulator.
+            discardEnteredPin()
+            setState { copy(isLoading = scanStatus == null) }
+            cardReaderInteractor.providePin(null)
+            return
+        }
+
         if (currentState.currentRoute.canReplayCachedPin() && replayCode.length > 0) {
             setEvent(Event.Pin)
             return
         }
 
         replayCode.wipe()
-        if (currentState.scanStatus != null && currentState.eidCardType.isVirtual) return
 
         when (currentState.currentRoute) {
             CardReaderRoute.NFC_SCAN_CAN -> {

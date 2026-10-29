@@ -16,6 +16,7 @@
 
 package org.sprind.wallet.businesslogic.config
 
+import eu.europa.ec.businesslogic.config.LogConfigImpl
 import org.junit.Assert
 import org.junit.Test
 import java.net.URI
@@ -27,7 +28,7 @@ class EnvironmentConfigImplTest {
     @Test
     fun `featureFlagApiBaseUrl ends in slash`() {
         Assert.assertTrue(
-            EnvironmentConfigImpl().featureFlagApiBaseUrl.endsWith("/")
+            EnvironmentConfigImpl(LogConfigImpl()).featureFlagApiBaseUrl.endsWith("/")
         )
     }
 
@@ -39,16 +40,16 @@ class EnvironmentConfigImplTest {
      */
     @Test
     fun `a flavor writing log files also carries the debug menu to export them`() {
-        val config = EnvironmentConfigImpl()
+        val config = EnvironmentConfigImpl(LogConfigImpl())
 
-        if (config.enableLogWriter) {
+        if (config.logConfig.isLogWriterEnabled) {
             Assert.assertTrue(config.enableDebugMenu)
         }
     }
 
     @Test
     fun `the wallet backend host is covered by a pinned pattern`() {
-        val config = EnvironmentConfigImpl()
+        val config = EnvironmentConfigImpl(LogConfigImpl())
         val host = URI(config.serverHostURL).host
 
         val isPinned = config.certificatePinnerSpecs.any { spec ->

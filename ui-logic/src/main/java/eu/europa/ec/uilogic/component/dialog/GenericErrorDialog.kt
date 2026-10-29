@@ -27,9 +27,11 @@ import eu.europa.ec.resourceslogic.R
 import eu.europa.ec.resourceslogic.theme.values.ThemeColors
 import eu.europa.ec.uilogic.component.AppIcons
 import eu.europa.ec.uilogic.component.IconData
+import eu.europa.ec.uilogic.component.TextAndIcon
 import eu.europa.ec.uilogic.component.preview.PreviewTheme
 import eu.europa.ec.uilogic.component.preview.ThemeModeWithGermanAndEnglishPreviews
 import eu.europa.ec.uilogic.component.utils.DEFAULT_ICON_SIZE
+import eu.europa.ec.uilogic.component.utils.SIZE_MEDIUM_LARGE
 import eu.europa.ec.uilogic.component.utils.SPACING_LARGE
 import eu.europa.ec.uilogic.component.utils.SPACING_MEDIUM
 import eu.europa.ec.uilogic.component.utils.SPACING_SMALL
@@ -50,6 +52,7 @@ data class GenericErrorDialogConfig(
     val dismissable: Boolean = true,
     val primaryButtonTextRes: Int? = null,
     val onPrimaryButtonClick: () -> Unit = {},
+    val primaryButtonOpensExternalLink: Boolean = false,
     val secondaryButtonTextRes: Int? = null,
     val onSecondaryButtonClick: () -> Unit = {},
     val onDismiss: () -> Unit = {},
@@ -170,6 +173,7 @@ private fun GenericErrorDialog(
                                 text = it,
                                 type = ButtonType.PRIMARY,
                                 onClick = config.onPrimaryButtonClick,
+                                opensExternalLink = config.primaryButtonOpensExternalLink,
                             )
                         }
                         secondaryButtonText?.let {
@@ -203,26 +207,41 @@ private fun SupportReference(label: String, value: String) {
 }
 
 @Composable
-private fun DialogButton(text: String, type: ButtonType, onClick: () -> Unit) {
+private fun DialogButton(
+    text: String,
+    type: ButtonType,
+    onClick: () -> Unit,
+    opensExternalLink: Boolean = false,
+) {
+    val color = if (type == ButtonType.PRIMARY) {
+        ThemeColors.onPrimaryButton
+    } else {
+        ThemeColors.onSecondaryButton
+    }
+    val textConfig = TextConfig(
+        style = if (type == ButtonType.PRIMARY) {
+            ThemeTextStyles.onPrimaryButton
+        } else {
+            ThemeTextStyles.onSecondaryButton
+        },
+        color = color,
+    )
     WrapButton(
         modifier = Modifier.fillMaxWidth(),
         buttonConfig = ButtonConfig(type = type, onClick = onClick),
     ) {
-        WrapText(
-            text = text,
-            textConfig = TextConfig(
-                style = if (type == ButtonType.PRIMARY) {
-                    ThemeTextStyles.onPrimaryButton
-                } else {
-                    ThemeTextStyles.onSecondaryButton
-                },
-                color = if (type == ButtonType.PRIMARY) {
-                    ThemeColors.onPrimaryButton
-                } else {
-                    ThemeColors.onSecondaryButton
-                },
+        if (opensExternalLink) {
+            TextAndIcon(
+                iconModifier = Modifier.size(SIZE_MEDIUM_LARGE.dp),
+                textModifier = Modifier.padding(end = SPACING_SMALL.dp),
+                textValue = text,
+                textConfig = textConfig,
+                rightIconData = AppIcons.Launch,
+                customTint = color,
             )
-        )
+        } else {
+            WrapText(text = text, textConfig = textConfig)
+        }
     }
 }
 

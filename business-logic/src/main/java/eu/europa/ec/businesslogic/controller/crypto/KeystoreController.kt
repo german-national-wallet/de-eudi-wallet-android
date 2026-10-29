@@ -20,9 +20,12 @@ import android.security.keystore.KeyGenParameterSpec
 import android.security.keystore.KeyProperties
 import eu.europa.ec.businesslogic.controller.log.LogController
 import eu.europa.ec.businesslogic.controller.storage.PrefKeys
+import org.sprind.wallet.businesslogic.controller.crypto.AES_KEY_SIZE_BITS
+import org.sprind.wallet.businesslogic.controller.crypto.CryptoError
 import org.sprind.wallet.businesslogic.controller.crypto.CryptoKeyGenerator
 import org.sprind.wallet.businesslogic.controller.crypto.EcKeyPairController
 import org.sprind.wallet.businesslogic.controller.crypto.KeyStoreInstanceProvider
+import org.sprind.wallet.businesslogic.controller.crypto.generateHardwareBackedKey
 import java.security.KeyStore
 import java.security.KeyStore.PrivateKeyEntry
 import java.util.UUID
@@ -72,6 +75,20 @@ internal class KeystoreControllerImpl(
 
     companion object {
         private const val STORE_TYPE = "AndroidKeyStore"
+
+        @Suppress("DEPRECATION")
+        internal fun biometricSecretKeySpec(alias: String): KeyGenParameterSpec =
+            KeyGenParameterSpec.Builder(
+                alias,
+                KeyProperties.PURPOSE_ENCRYPT or KeyProperties.PURPOSE_DECRYPT
+            )
+                .setKeySize(AES_KEY_SIZE_BITS)
+                .setBlockModes(KeyProperties.BLOCK_MODE_GCM)
+                .setEncryptionPaddings(KeyProperties.ENCRYPTION_PADDING_NONE)
+                .setUserAuthenticationRequired(true)
+                .setInvalidatedByBiometricEnrollment(true)
+                .setUserAuthenticationValidityDurationSeconds(-1)
+                .build()
     }
 
     private lateinit var androidKeyStore: KeyStore
@@ -109,29 +126,15 @@ internal class KeystoreControllerImpl(
         }
     }
 
-    @Suppress("DEPRECATION")
     private fun generateBiometricSecretKey(alias: String) {
         val keyGenerator = KeyGenerator.getInstance(KeyProperties.KEY_ALGORITHM_AES, STORE_TYPE)
-        keyGenerator.init(
-            KeyGenParameterSpec.Builder(
-                alias,
-                KeyProperties.PURPOSE_ENCRYPT or KeyProperties.PURPOSE_DECRYPT
-            )
-                .setBlockModes(KeyProperties.BLOCK_MODE_GCM)
-                .setEncryptionPaddings(KeyProperties.ENCRYPTION_PADDING_NONE)
-                .setUserAuthenticationRequired(true)
-                .setInvalidatedByBiometricEnrollment(true)
-                .setUserAuthenticationValidityDurationSeconds(-1)
-                .build()
-        )
-        keyGenerator.generateKey()
+        keyGenerator.init(biometricSecretKeySpec(alias))
+        keyGenerator.generateHardwareBackedKey(alias)
         logController.d(logTag) { "[STORAGE] store key=$alias dest=keystore" }
     }
 
-    private fun getBiometricSecretKey(keyStore: KeyStore, alias: String): SecretKey {
-        keyStore.load(null)
-        return keyStore.getKey(alias, null) as SecretKey
-    }
+    private fun getBiometricSecretKey(keyStore: KeyStore, alias: String): SecretKey =
+        keyStore.getSecretKey(alias)
 
     /**
      * Get random GUID string
@@ -216,7 +219,7 @@ internal class KeystoreControllerImpl(
 
     private fun KeyStore.getSecretKey(alias: String): SecretKey {
         load(null)
-        return getKey(alias, null) as SecretKey
+        return getKey(alias, null) as? SecretKey ?: throw CryptoError.KeyNotFound()
     }
 
     private fun KeyStore.getPrivateKeyEntry(alias: String): PrivateKeyEntry {

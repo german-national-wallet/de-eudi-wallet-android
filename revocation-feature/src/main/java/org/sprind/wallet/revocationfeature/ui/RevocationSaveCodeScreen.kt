@@ -40,7 +40,6 @@ import androidx.navigation.NavController
 import eu.europa.ec.resourceslogic.R
 import eu.europa.ec.resourceslogic.theme.values.ThemeColors
 import eu.europa.ec.uilogic.component.AppIcons
-import eu.europa.ec.uilogic.component.CheckboxWithContent
 import eu.europa.ec.uilogic.component.TextAndIcon
 import eu.europa.ec.uilogic.component.content.ContentScreen
 import eu.europa.ec.uilogic.component.preview.PreviewTheme
@@ -50,13 +49,13 @@ import eu.europa.ec.uilogic.component.utils.SPACING_MEDIUM
 import eu.europa.ec.uilogic.component.utils.SPACING_SMALL
 import eu.europa.ec.uilogic.component.wrap.ButtonConfig
 import eu.europa.ec.uilogic.component.wrap.ButtonType
-import eu.europa.ec.uilogic.component.wrap.CheckboxData
 import eu.europa.ec.uilogic.component.wrap.TextConfig
 import eu.europa.ec.uilogic.component.wrap.WrapButton
 import eu.europa.ec.uilogic.component.wrap.WrapIcon
 import eu.europa.ec.uilogic.navigation.ModuleRoute
 import org.sprind.wallet.resourceslogic.theme.values.ThemeTextStyles
 import org.sprind.wallet.uilogic.component.ContentTemplateBody
+import org.sprind.wallet.uilogic.component.RoundCheckboxRow
 
 @Composable
 fun RevocationSaveCodeScreen(
@@ -99,15 +98,15 @@ private fun Content(
                     .padding(paddingValues),
                 verticalArrangement = Arrangement.spacedBy(SPACING_MEDIUM.dp)
             ) {
-                CheckboxWithContent(
-                    checkboxData = CheckboxData(
-                        isChecked = savedCodeConfirmation,
-                        onCheckedChange = onUserHasSavedCodeChanged
-                    )
+                RoundCheckboxRow(
+                    checked = savedCodeConfirmation,
+                    onCheckedChange = onUserHasSavedCodeChanged,
                 ) {
                     Text(
                         text = stringResource(R.string.app_onboarding_wallet_revocation_save_key_checkbox_label),
-                        style = MaterialTheme.typography.labelLarge,
+                        modifier = Modifier.weight(1f),
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = ThemeColors.onBackgroundVariant,
                     )
                 }
                 WrapButton(

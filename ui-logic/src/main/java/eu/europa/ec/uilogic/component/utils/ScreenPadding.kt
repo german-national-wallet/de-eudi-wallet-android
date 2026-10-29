@@ -34,10 +34,10 @@ fun screenPaddings(
     append: PaddingValues? = null,
     topSpacing: TopSpacing = TopSpacing.WithToolbar
 ) = PaddingValues(
-    start = SPACING_LARGE.dp,
+    start = SPACING_MEDIUM.dp,
     top = calculateTopSpacing(topSpacing).dp + (append?.calculateTopPadding() ?: 0.dp),
-    end = SPACING_LARGE.dp,
-    bottom = SPACING_LARGE.dp + (append?.calculateBottomPadding() ?: 0.dp)
+    end = SPACING_MEDIUM.dp,
+    bottom = SPACING_MEDIUM.dp + (append?.calculateBottomPadding() ?: 0.dp)
 )
 
 internal fun stickyBottomPaddings(

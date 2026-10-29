@@ -23,6 +23,7 @@ import eu.europa.ec.uilogic.mvi.MviViewModel
 import eu.europa.ec.uilogic.mvi.ViewEvent
 import eu.europa.ec.uilogic.mvi.ViewSideEffect
 import eu.europa.ec.uilogic.mvi.ViewState
+import eu.europa.ec.uilogic.navigation.DashboardScreens
 import eu.europa.ec.uilogic.navigation.RevocationScreens
 import org.koin.android.annotation.KoinViewModel
 import org.sprind.wallet.businesslogic.config.SettingsLinks
@@ -106,6 +107,10 @@ class SettingsViewModel(
             SettingsMenuEntry.IMPRINT -> openWebPage(entry, links.imprint)
 
             SettingsMenuEntry.EXPORT_LOGS -> exportLogs()
+
+            SettingsMenuEntry.DEBUG_CONFIG -> setEffect {
+                Effect.Navigation.SwitchScreen(DashboardScreens.DebugConfig.screenRoute)
+            }
         }
     }
 

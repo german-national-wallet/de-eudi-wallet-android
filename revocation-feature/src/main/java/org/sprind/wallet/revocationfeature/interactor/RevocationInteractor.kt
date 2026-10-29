@@ -48,6 +48,7 @@ class RevocationInteractorImpl(
 ) : RevocationInteractor {
     override suspend fun getRevocationCode(): String? {
         return walletRegistrationStorageController.getWalletRegistration()
+            .getOrNull()
             ?.walletInstanceRevocationCode
     }
 

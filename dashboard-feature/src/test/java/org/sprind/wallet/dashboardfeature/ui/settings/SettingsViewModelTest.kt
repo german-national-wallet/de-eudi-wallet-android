@@ -38,6 +38,7 @@ import org.mockito.kotlin.whenever
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import org.sprind.wallet.businesslogic.config.SettingsLinks
+import org.sprind.wallet.businesslogic.config.debugConfigAvailable
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
@@ -86,16 +87,21 @@ class SettingsViewModelTest {
             val entries = subject.viewState.value.menuGroups.flatMap { it.entries }
 
             assertEquals(
-                listOf(
-                    SettingsMenuEntry.FAQ_AND_SUPPORT,
-                    SettingsMenuEntry.WALLET_REVOCATION,
-                    SettingsMenuEntry.NOTIFICATIONS,
-                    SettingsMenuEntry.ABOUT,
-                    SettingsMenuEntry.ACCESSIBILITY_DECLARATION,
-                    SettingsMenuEntry.PRIVACY_POLICY,
-                    SettingsMenuEntry.TERMS_AND_CONDITIONS,
-                    SettingsMenuEntry.IMPRINT,
-                ),
+                buildList {
+                    addAll(
+                        listOf(
+                            SettingsMenuEntry.FAQ_AND_SUPPORT,
+                            SettingsMenuEntry.WALLET_REVOCATION,
+                            SettingsMenuEntry.NOTIFICATIONS,
+                            SettingsMenuEntry.ABOUT,
+                            SettingsMenuEntry.ACCESSIBILITY_DECLARATION,
+                            SettingsMenuEntry.PRIVACY_POLICY,
+                            SettingsMenuEntry.TERMS_AND_CONDITIONS,
+                            SettingsMenuEntry.IMPRINT,
+                        )
+                    )
+                    if (debugConfigAvailable) add(SettingsMenuEntry.DEBUG_CONFIG)
+                },
                 entries,
             )
         }

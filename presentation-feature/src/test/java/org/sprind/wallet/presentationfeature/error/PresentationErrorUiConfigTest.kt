@@ -113,20 +113,34 @@ class PresentationErrorUiConfigTest {
     }
 
     @Test
-    fun `relying party rejected renders the rejection state without a retry`() {
-        val error = errorOf(
-            PresentationError.RelyingPartySide(
-                traceId = null,
-                cause = null,
-                displayMessage = "msg",
-                subType = PresentationError.RelyingPartySideSubType.RELYING_PARTY_REJECTED,
-            )
-        )
+    fun `relying party rejected offers contacting the service and cancelling to the overview`() {
+        val error = errorOf(rejected())
 
         assertEquals(PresentationErrorLayout.DIALOG, error.layout)
-        assertEquals(R.string.eaa_presentation_dialog_rp_rejection_title, error.titleRes)
-        assertEquals(PresentationErrorAction.Kind.DISMISS, error.primaryAction.kind)
-        assertNull(error.primaryAction.takeIf { it.kind == PresentationErrorAction.Kind.RETRY })
+        assertEquals(R.string.pid_presentation_service_rejection_title, error.titleRes)
+        assertEquals(R.string.pid_presentation_service_rejection_paragraph, error.bodyRes)
+        assertEquals("RELYING_PARTY_REJECTED", error.errorCode)
+        assertEquals(PresentationErrorAction.Kind.CONTACT_SERVICE, error.primaryAction.kind)
+        assertEquals(R.string.pid_presentation_service_rejection_prim_button, error.primaryAction.labelRes)
+        assertTrue(error.primaryAction.opensExternalLink)
+        assertEquals(PresentationErrorAction.Kind.TO_OVERVIEW, error.secondaryAction?.kind)
+        assertEquals(R.string.pid_presentation_service_rejection_sec_button, error.secondaryAction?.labelRes)
+    }
+
+    @Test
+    fun `relying party rejected without a support contact offers cancelling only`() {
+        val error = errorOf(rejected()).withoutContactService()
+
+        assertEquals(PresentationErrorAction.Kind.TO_OVERVIEW, error.primaryAction.kind)
+        assertEquals(R.string.pid_presentation_service_rejection_sec_button, error.primaryAction.labelRes)
+        assertNull(error.secondaryAction)
+    }
+
+    @Test
+    fun `withoutContactService leaves states without a service contact unchanged`() {
+        val error = PresentationErrorUiConfig.blocking(BlockingErrorReason.TRUST_FAILURE, "trace")
+
+        assertEquals(error, error.withoutContactService())
     }
 
     @Test
@@ -390,13 +404,33 @@ class PresentationErrorUiConfigTest {
     }
 
     @Test
+    fun `dialog config contacts the service, and cancelling or dismissing leaves for the overview`() {
+        val config = errorOf(rejected())
+        val calls = mutableListOf<String>()
+
+        val dialog = config.toGenericErrorDialogConfig(
+            onRetry = { calls += "retry" },
+            onReportIssue = { calls += "report" },
+            onDismiss = { calls += "dismiss" },
+            onContactService = { calls += "contact" },
+            onToOverview = { calls += "overview" },
+        )
+        dialog.onPrimaryButtonClick()
+        dialog.onSecondaryButtonClick()
+        dialog.onDismiss()
+
+        assertTrue(dialog.primaryButtonOpensExternalLink)
+        assertEquals(listOf("contact", "overview", "overview"), calls)
+    }
+
+    @Test
     fun `dialog config dismisses on a non-retry primary action`() {
         val config = errorOf(
             PresentationError.RelyingPartySide(
                 traceId = "trace",
                 cause = null,
                 displayMessage = "msg",
-                subType = PresentationError.RelyingPartySideSubType.RELYING_PARTY_REJECTED,
+                subType = PresentationError.RelyingPartySideSubType.OTHER,
             ),
         )
         val calls = mutableListOf<String>()
@@ -504,6 +538,13 @@ class PresentationErrorUiConfigTest {
     }
 
     //endregion
+
+    private fun rejected() = PresentationError.RelyingPartySide(
+        traceId = "trace",
+        cause = null,
+        displayMessage = "msg",
+        subType = PresentationError.RelyingPartySideSubType.RELYING_PARTY_REJECTED,
+    )
 
     private fun errorOf(presentationError: PresentationError): PresentationErrorUiConfig =
         PresentationErrorUiConfig.from(presentationError, traceIdFallback = traceFallback)

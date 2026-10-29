@@ -29,6 +29,7 @@ import org.sprind.wallet.authenticationlogic.controller.storage.MdvmRegistration
 import org.sprind.wallet.authenticationlogic.provider.RwscaStorageController
 import org.sprind.wallet.businesslogic.controller.revocation.WalletRevocationStore
 import org.sprind.wallet.businesslogic.extensions.runSuspendCatching
+import org.sprind.wallet.corelogic.activity.ActivityLogRepository
 
 /**
  * Executes the wallet self-lock and its user-acknowledged reset.
@@ -72,6 +73,7 @@ class WalletRevocationHandlerImpl(
     private val mdvmRegistrationStorageController: MdvmRegistrationStorageController,
     private val rwscaStorageController: RwscaStorageController,
     private val walletPinUnBlockTimeStorageController: WalletPinUnBlockTimeStorageController,
+    private val activityLogRepository: ActivityLogRepository,
     private val logController: LogController,
 ) : WalletRevocationHandler {
 
@@ -160,6 +162,8 @@ class WalletRevocationHandlerImpl(
         runSuspendCatching { rwscaStorageController.clearPinSalt() }
             .onFailure { logController.e(TAG, it) }
         runSuspendCatching { walletPinUnBlockTimeStorageController.clear() }
+            .onFailure { logController.e(TAG, it) }
+        runSuspendCatching { activityLogRepository.clear() }
             .onFailure { logController.e(TAG, it) }
         return documentsWiped
     }

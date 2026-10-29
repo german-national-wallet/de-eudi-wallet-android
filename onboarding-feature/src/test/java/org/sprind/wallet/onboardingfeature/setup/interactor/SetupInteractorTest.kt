@@ -24,9 +24,7 @@ import org.sprind.wallet.onboardingfeature.setup.provider.SetupStorageProvider
 import org.sprind.wallet.uilogic.navigation.NavigationGuard
 import org.sprind.wallet.uilogic.navigation.NavigationGuardPriority
 import org.sprind.wallet.uilogic.navigation.getDirection
-import org.sprind.wallet.onboardingfeature.setup.provider.SetupFlowAvailability
 import kotlin.test.assertEquals
-import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
 class SetupInteractorTest {
@@ -34,9 +32,6 @@ class SetupInteractorTest {
     private val dashboard = ModuleRoute.DashboardModule.route
 
     private val storage = FakeSetupStorageProvider()
-
-    private var setupEnabled = true
-    private val availability = SetupFlowAvailability { setupEnabled }
 
     /** Stands in for the revocation feature's guard, which sits between notifications and success. */
     private var revocationConfirmed = false
@@ -48,11 +43,11 @@ class SetupInteractorTest {
     }
 
     private val guards: List<NavigationGuard> = listOf(
-        SuccessSetupGuard(storage, availability),
+        SuccessSetupGuard(storage),
         revocationGuard,
-        NotificationsSetupGuard(storage, availability),
-        PrivacyPolicySetupGuard(storage, availability),
-        PlatformAuthSetupGuard(storage, availability),
+        NotificationsSetupGuard(storage),
+        PrivacyPolicySetupGuard(storage),
+        PlatformAuthSetupGuard(storage),
     )
 
     private val subject = SetupInteractorImpl(storage, guards)
@@ -94,7 +89,7 @@ class SetupInteractorTest {
     fun `given a completed step when getting its guard direction then it points to the dashboard`() {
         storage.storeStepCompleted(SetupStep.PLATFORM_AUTH, true)
 
-        assertEquals(dashboard, PlatformAuthSetupGuard(storage, availability).getDirection())
+        assertEquals(dashboard, PlatformAuthSetupGuard(storage).getDirection())
     }
 
     @Test
@@ -117,31 +112,6 @@ class SetupInteractorTest {
             val guard = guards.filterIsInstance<SetupStepGuard>().single { it.priority == step.priority }
             assertEquals(step.screen.screenRoute, guard.getDirection())
         }
-    }
-
-    @Test
-    fun `given the setup flow is disabled when entering the app then every setup step is skipped`() {
-        setupEnabled = false
-
-        guards.filterIsInstance<SetupStepGuard>().forEach { guard ->
-            assertEquals(dashboard, guard.getDirection())
-        }
-        // Only the other features' guards remain, e.g. revocation.
-        assertEquals(ModuleRoute.RevocationModule.route, guards.getDirection(dashboard))
-
-        revocationConfirmed = true
-        assertEquals(dashboard, guards.getDirection(dashboard))
-        SetupStep.entries.forEach { assertFalse(storage.isStepCompleted(it)) }
-    }
-
-    @Test
-    fun `given the setup flow is enabled later then the pending steps are shown`() {
-        setupEnabled = false
-        revocationConfirmed = true
-        assertEquals(dashboard, guards.getDirection(dashboard))
-
-        setupEnabled = true
-        assertEquals(SetupScreens.PlatformAuth.screenRoute, guards.getDirection(dashboard))
     }
 
     private class FakeSetupStorageProvider : SetupStorageProvider {

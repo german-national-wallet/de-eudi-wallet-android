@@ -24,6 +24,8 @@ import eu.europa.ec.commonfeature.ui.document_details.domain.DocumentDetailsDoma
 import eu.europa.ec.commonfeature.ui.document_details.transformer.DocumentDetailsTransformer
 import eu.europa.ec.corelogic.controller.WalletCoreDocumentsController
 import eu.europa.ec.corelogic.extension.localizedIssuerMetadata
+import eu.europa.ec.corelogic.model.isPid
+import eu.europa.ec.corelogic.model.toDocumentIdentifier
 import eu.europa.ec.resourceslogic.provider.ResourceProvider
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
@@ -42,6 +44,7 @@ sealed class DocumentDetailsInteractorPartialState {
         val topBarBackgroundColor: String? = null,
         val topBarBackgroundImageUri: String? = null,
         val topBarTextColor: String? = null,
+        val isPid: Boolean = false,
     ) : DocumentDetailsInteractorPartialState()
 
     data class Failure(val error: String) : DocumentDetailsInteractorPartialState()
@@ -131,7 +134,8 @@ class DocumentDetailsInteractorImpl(
                         documentFormat = safeIssuedDocument.format,
                         topBarBackgroundColor = issuerDisplay?.backgroundColor,
                         topBarBackgroundImageUri = issuerDisplay?.backgroundImageUri?.toString(),
-                        topBarTextColor = issuerDisplay?.textColor
+                        topBarTextColor = issuerDisplay?.textColor,
+                        isPid = safeIssuedDocument.toDocumentIdentifier().isPid,
                     )
                 )
             } ?: emit(DocumentDetailsInteractorPartialState.Failure(error = genericErrorMsg))

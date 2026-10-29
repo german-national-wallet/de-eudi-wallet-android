@@ -53,6 +53,7 @@ sealed class DashboardDocumentDetailInteractorGetDocumentDetail {
         val topBarBackgroundImageUri: String? = null,
         val topBarTextColor: String? = null,
         val eaaCardData: EaaCardData? = null,
+        val isPid: Boolean = false,
     ) : DashboardDocumentDetailInteractorGetDocumentDetail()
 
     data class Failure(
@@ -149,7 +150,8 @@ internal class DashboardDocumentDetailInteractorImpl(
                     topBarBackgroundColor = topBarBackgroundColor,
                     topBarBackgroundImageUri = topBarBackgroundImageUri,
                     topBarTextColor = topBarTextColor,
-                    eaaCardData = eaaCardData
+                    eaaCardData = eaaCardData,
+                    isPid = document.toDocumentIdentifier().isPid,
                 )
             )
         }.safeAsync {
@@ -210,7 +212,8 @@ internal class DashboardDocumentDetailInteractorImpl(
                     topBarBackgroundColor = topBarBackgroundColor,
                     topBarBackgroundImageUri = topBarBackgroundImageUri,
                     topBarTextColor = topBarTextColor,
-                    eaaCardData = eaaCardData
+                    eaaCardData = eaaCardData,
+                    isPid = documentIdentifier.isPid,
                 )
             )
         }.safeAsync {

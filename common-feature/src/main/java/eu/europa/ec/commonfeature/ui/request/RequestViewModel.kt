@@ -59,6 +59,8 @@ data class State(
     val verifierName: String? = null,
     val purpose: String? = null,
     val reportUrl: String? = null,
+    /** The relying party's support contact from its registration certificate. */
+    val supportUrl: String? = null,
     /** Report-issue page the user is asked to confirm before leaving the app. */
     val pendingReportIssueUrl: String? = null,
     val toShowDataDetails: Boolean = false,
@@ -322,6 +324,11 @@ abstract class RequestViewModel(
                             isLoading = true
                         )
                     }
+                    // From here on processRequest() owns every outcome of the request. Stop the
+                    // collector held so far (the request loader, or the processRequest() of an
+                    // earlier wrong-PIN attempt): both observe the same transfer events, so one
+                    // failure would otherwise be rendered twice, or a send handled twice.
+                    viewModelJob?.cancel()
                     viewModelJob = viewModelScope.launch {
                         processRequest(pin)
                     }

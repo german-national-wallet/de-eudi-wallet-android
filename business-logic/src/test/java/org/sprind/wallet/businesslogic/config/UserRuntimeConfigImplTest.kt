@@ -18,6 +18,7 @@ package org.sprind.wallet.businesslogic.config
 
 import eu.europa.ec.businesslogic.config.ConfigLogic
 import eu.europa.ec.businesslogic.config.EnvironmentConfig
+import eu.europa.ec.businesslogic.config.LogConfigImpl
 import org.junit.Assert
 import org.junit.Test
 
@@ -33,6 +34,13 @@ class UserRuntimeConfigImplTest {
     }
 
     @Test
+    fun `the card type starts physical even when the simulated eID card is enabled`() {
+        val subject = UserRuntimeConfigImpl(configLogic(simulatedEidCardEnabled = true))
+
+        Assert.assertEquals(EidCardType.PHYSICAL, subject.eidCardType)
+    }
+
+    @Test
     fun `a build with the simulated eID card accepts a virtual card type`() {
         val subject = UserRuntimeConfigImpl(configLogic(simulatedEidCardEnabled = true))
 
@@ -42,7 +50,7 @@ class UserRuntimeConfigImplTest {
     }
 
     private fun configLogic(simulatedEidCardEnabled: Boolean) = object : ConfigLogic {
-        override val environmentConfig: EnvironmentConfig = EnvironmentConfigImpl()
+        override val environmentConfig: EnvironmentConfig = EnvironmentConfigImpl(LogConfigImpl())
         override val isSimulatedEidCardEnabled: Boolean = simulatedEidCardEnabled
     }
 }

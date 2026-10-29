@@ -80,6 +80,7 @@ import org.sprind.wallet.authenticationlogic.provider.JsonStorageProvider
 import org.sprind.wallet.authenticationlogic.provider.MdvmAuthContextProvider
 import org.sprind.wallet.authenticationlogic.provider.RwscaStorageController
 import org.sprind.wallet.authenticationlogic.storage.PrefsJsonStorageProvider
+import org.sprind.wallet.analyticslogic.controller.Telemetry
 import org.sprind.wallet.authenticationlogic.storage.PrefsMdvmRegistrationStorageProvider
 import org.sprind.wallet.authenticationlogic.storage.RwscaStorageControllerImpl
 import org.sprind.wallet.businesslogic.controller.crypto.EcKeyPairController
@@ -193,7 +194,8 @@ fun provideAppAttestationController(
     walletRegistrationStorageController: WalletRegistrationStorageController,
     mdvmAuthContextProvider: MdvmAuthContextProvider,
     walletAttestationController: WalletAttestationController,
-    logController: LogController
+    logController: LogController,
+    telemetry: Telemetry,
 ): AppAttestationController =
     AppAttestationControllerImpl(
         walletRegistrationController,
@@ -201,7 +203,8 @@ fun provideAppAttestationController(
         walletRegistrationStorageController,
         mdvmAuthContextProvider,
         walletAttestationController,
-        logController
+        logController,
+        telemetry,
     )
 
 @Single

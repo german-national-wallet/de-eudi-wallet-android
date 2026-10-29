@@ -33,6 +33,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.BottomSheetDefaults
 import androidx.compose.material3.ModalBottomSheetDefaults
 import androidx.compose.material3.ModalBottomSheetProperties
 import androidx.compose.material3.SheetState
@@ -117,6 +118,7 @@ fun WrapModalBottomSheet(
     sheetGesturesEnabled: Boolean = true,
     dragHandle: @Composable (() -> Unit) = { BottomSheetDefaultHandle() },
     properties: ModalBottomSheetProperties = ModalBottomSheetDefaults.properties,
+    containerColor: Color = BottomSheetDefaults.ContainerColor,
     sheetContent: @Composable ColumnScope.() -> Unit,
 ) {
     ModalBottomSheet(
@@ -126,6 +128,7 @@ fun WrapModalBottomSheet(
         shape = shape,
         dragHandle = dragHandle,
         properties = properties,
+        containerColor = containerColor,
         content = sheetContent,
         sheetGesturesEnabled = sheetGesturesEnabled
     )

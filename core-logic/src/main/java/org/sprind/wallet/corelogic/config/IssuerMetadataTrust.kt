@@ -17,6 +17,7 @@ package org.sprind.wallet.corelogic.config
 
 import android.content.Context
 import androidx.annotation.RawRes
+import eu.europa.ec.eudi.iso18013.transfer.readerauth.RevocationPolicy
 import eu.europa.ec.eudi.openid4vci.CertificateChainTrust
 import eu.europa.ec.eudi.openid4vci.IssuerMetadataPolicy
 import eu.europa.ec.eudi.wallet.trust.X509CertificateChainTrust
@@ -25,27 +26,26 @@ import java.security.cert.X509Certificate
 
 /**
  * Requires every credential issuer to serve signed metadata (`openidvci-issuer-metadata+jwt`) whose
- * `x5c` chain ends in the flavor's [issuerMetadataTrustAnchors]. A flavor without anchors trusts no
- * issuer, so issuance fails there until anchors are bundled.
+ * `x5c` chain ends in the flavor's [accessCaTrustAnchors]: an issuer signs its metadata with its
+ * access certificate, so the access CAs that anchor verifiers anchor issuers too. A flavor without
+ * anchors trusts no issuer, so issuance fails there until anchors are bundled.
  *
  * The anchors are an interim stand-in for the ETSI LoTE: the root of the metadata `x5c` chain is
- * meant to be validated against the LoTE, which is not available yet. Do not add anchors to make a
- * new issuer pass; once the LoTE exists, replace them with a LoTE-backed `CertificateChainTrust`
- * here. Issuers send only their leaf in `x5c`, never the root, so the root must come from the
- * anchors (or the LoTE), not from the issuer.
+ * meant to be validated against the LoTE, which is not available yet. Issuers send only their leaf
+ * in `x5c`, never the root, so the root must come from the anchors (or the LoTE), not from the
+ * issuer.
  *
  * The anchors are read on the first check rather than while the issuer configs are built.
- * Revocation is not checked, as for reader authentication: the platform PKIX validator does not
- * fetch the CRLs these chains point to, so every chain would be rejected.
+ * Revocation is checked with [RevocationPolicy.SoftFail], as for reader authentication.
  */
 internal fun requireSignedIssuerMetadata(context: Context): IssuerMetadataPolicy {
-    if (issuerMetadataTrustAnchors.isEmpty()) {
+    if (accessCaTrustAnchors.isEmpty()) {
         return IssuerMetadataPolicy.RequireSigned(CertificateChainTrust { false })
     }
     val trust by lazy {
         X509CertificateChainTrust(
-            trustAnchors = issuerMetadataTrustAnchors.map { context.readCertificate(it) },
-            checkRevocation = false,
+            trustAnchors = accessCaTrustAnchors.map { context.readCertificate(it) },
+            revocationPolicy = RevocationPolicy.SoftFail,
         )
     }
     return IssuerMetadataPolicy.RequireSigned(CertificateChainTrust { chain -> trust.isTrusted(chain) })

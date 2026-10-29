@@ -23,10 +23,13 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -41,14 +44,19 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import eu.europa.ec.resourceslogic.R
+import eu.europa.ec.uilogic.component.AppIcons
 import eu.europa.ec.uilogic.component.preview.PreviewTheme
 import eu.europa.ec.uilogic.component.preview.ThemeModeWithGermanAndEnglishPreviews
 import eu.europa.ec.uilogic.component.utils.BORDER_STROKE_1
 import eu.europa.ec.uilogic.component.utils.SPACING_EXTRA_MEDIUM
+import eu.europa.ec.uilogic.component.utils.SIZE_MEDIUM_LARGE
 import eu.europa.ec.uilogic.component.utils.SPACING_MEDIUM
+import eu.europa.ec.uilogic.component.utils.SPACING_SMALL
+import eu.europa.ec.uilogic.component.wrap.WrapIcon
 import org.sprind.wallet.resourceslogic.generated.LightColors
 
 /**
@@ -60,11 +68,15 @@ import org.sprind.wallet.resourceslogic.generated.LightColors
  *
  * Accessibility: the artwork is decorative; the card is announced as one element with its two
  * lines. With [onClick] it becomes a single button.
+ *
+ * @param actionLabel shows a pill button with this label over the pattern, e.g. "View details".
  */
 @Composable
 fun PidCredentialCard(
     modifier: Modifier = Modifier,
     onClick: (() -> Unit)? = null,
+    actionLabel: String? = null,
+    onAction: () -> Unit = {},
 ) {
     val shape = RoundedCornerShape(CARD_CORNER_RADIUS)
 
@@ -137,6 +149,50 @@ fun PidCredentialCard(
             painter = painterResource(R.drawable.pid_card_eagle),
             contentDescription = null,
         )
+
+        actionLabel?.let { label ->
+            PidCardAction(
+                modifier = Modifier
+                    .align(Alignment.BottomStart)
+                    .padding(SPACING_SMALL.dp),
+                text = label,
+                onClick = onAction,
+            )
+        }
+    }
+}
+
+/** The design's Filled_tertiary button, in the card face's light colors. */
+@Composable
+private fun PidCardAction(
+    text: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val contentColor = Color(LightColors.schemesOnTertiaryContainer)
+    Row(
+        modifier = modifier
+            .height(ACTION_HEIGHT)
+            .clip(CircleShape)
+            .background(Color(LightColors.schemesTertiaryContainer))
+            .border(BORDER_STROKE_1.dp, Color(LightColors.schemesTertiaryOutline), CircleShape)
+            .clickable(role = Role.Button, onClick = onClick)
+            .padding(horizontal = SPACING_MEDIUM.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(SPACING_SMALL.dp),
+    ) {
+        Text(
+            text = text,
+            style = MaterialTheme.typography.labelLarge.copy(fontSize = MaterialTheme.typography.titleSmall.fontSize),
+            color = contentColor,
+        )
+        WrapIcon(
+            iconData = AppIcons.ArrowRightLong,
+            modifier = Modifier
+                .size(SIZE_MEDIUM_LARGE.dp)
+                .clearAndSetSemantics { },
+            customTint = contentColor,
+        )
     }
 }
 
@@ -150,6 +206,7 @@ private val HEADER_TO_PATTERN_SPACING = 13.dp
 private val TITLE_TO_ISSUER_SPACING = 2.dp
 private val EAGLE_SIZE = 68.dp
 private val EAGLE_AREA_WIDTH = 91.dp
+private val ACTION_HEIGHT = 40.dp
 private const val PATTERN_ASPECT_RATIO = 328f / 141f
 
 @ThemeModeWithGermanAndEnglishPreviews

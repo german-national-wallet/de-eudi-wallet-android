@@ -25,6 +25,9 @@ import eu.europa.ec.eudi.iso18013.transfer.response.Response
 import eu.europa.ec.eudi.iso18013.transfer.response.ResponseResult
 import eu.europa.ec.eudi.wallet.EudiWallet
 import eu.europa.ec.eudi.wallet.document.DocumentExtensions
+import eu.europa.ec.eudi.wallet.document.IssuedDocument
+import eu.europa.ec.eudi.wallet.document.format.MsoMdocFormat
+import eu.europa.ec.eudi.wallet.registration.RegistrationFailureReason
 import eu.europa.ec.resourceslogic.provider.ResourceProvider
 import eu.europa.ec.testfeature.mockedGenericErrorMessage
 import eu.europa.ec.testlogic.extension.runTest
@@ -38,9 +41,11 @@ import junit.framework.TestCase.assertEquals
 import junit.framework.TestCase.assertTrue
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.yield
 import kotlinx.serialization.json.JsonArray
 import org.junit.After
 import org.junit.Before
@@ -49,6 +54,7 @@ import org.junit.Test
 import org.mockito.Mock
 import org.mockito.MockitoAnnotations
 import org.mockito.kotlin.any
+import org.mockito.kotlin.argumentCaptor
 import org.mockito.kotlin.doAnswer
 import org.mockito.kotlin.doReturn
 import org.mockito.kotlin.mock
@@ -74,6 +80,12 @@ import org.multipaz.securearea.AndroidKeystoreSecureArea
 import org.multipaz.securearea.KeyUnlockData
 import org.multipaz.securearea.SecureArea
 import org.sprind.wallet.analyticslogic.controller.Telemetry
+import org.sprind.wallet.corelogic.activity.ActivityLogEntry
+import org.sprind.wallet.corelogic.activity.ActivityLogRepository
+import org.sprind.wallet.corelogic.activity.ActivityRejection
+import org.sprind.wallet.corelogic.activity.ActivityResult
+import org.sprind.wallet.corelogic.activity.ActivityType
+import org.sprind.wallet.corelogic.model.RelyingPartyRegistrationStatus
 import org.sprind.wallet.corelogic.presentationerror.PresentationError
 import java.net.URI
 
@@ -104,6 +116,9 @@ class WalletCorePresentationControllerTest {
     @Mock
     private lateinit var telemetry: Telemetry
 
+    @Mock
+    private lateinit var activityLog: ActivityLogRepository
+
     private lateinit var closeable: AutoCloseable
 
     /**
@@ -125,6 +140,7 @@ class WalletCorePresentationControllerTest {
             resourceProvider = resourceProvider,
             logController = logController,
             telemetry = telemetry,
+            activityLog = activityLog,
             dispatcher = coroutineRule.testDispatcher,
         )
     }
@@ -402,6 +418,166 @@ class WalletCorePresentationControllerTest {
             rejectionListeners.forEach { it.onTransferEvent(event) }
             Unit
         }.whenever(eudiWallet).rejectRemotePresentation()
+    }
+
+    @Test
+    fun `a sent presentation is logged with what was requested and what was shared`() =
+        coroutineRule.runTest {
+            walletHolds(DOCUMENT_ID)
+            val kept = requestedClaim("family_name")
+            val withheld = requestedClaim("birth_date")
+            receiveRequest(selectionOf(match(plainCredential(DOCUMENT_ID, CREDENTIAL_ID), kept, withheld)))
+            subject.updateRequestedDocuments(mutableListOf(consentTo(DOCUMENT_ID, kept)))
+
+            subject.sendRequestedDocuments()
+            subject.stopPresentation()
+
+            val entry = recordedEntry()
+            assertEquals(ActivityType.PRESENTATION, entry.type)
+            assertEquals(ActivityResult.COMPLETED, entry.result)
+            val credential = entry.credentials.single()
+            assertEquals(DOC_TYPE, credential.credentialIdentifier)
+            assertEquals(
+                listOf(listOf(NAMESPACE, "family_name"), listOf(NAMESPACE, "birth_date")),
+                credential.requestedClaims,
+            )
+            assertEquals(listOf(listOf(NAMESPACE, "family_name")), credential.presentedClaims)
+        }
+
+    @Test
+    fun `a refused presentation is logged once, with nothing shared`() =
+        coroutineRule.runTest {
+            walletHolds(DOCUMENT_ID)
+            receiveRequest(
+                selectionOf(match(plainCredential(DOCUMENT_ID, CREDENTIAL_ID), requestedClaim("family_name")))
+            )
+
+            subject.rejectPresentation()
+            subject.stopPresentation()
+
+            val entry = recordedEntry()
+            assertEquals(ActivityResult.NOT_COMPLETED, entry.result)
+            assertEquals(ActivityRejection.BY_USER, entry.rejection)
+            assertEquals(emptyList<List<String>>(), entry.credentials.single().presentedClaims)
+        }
+
+    @Test
+    fun `a request the wallet declines for overasking is logged as such`() =
+        coroutineRule.runTest {
+            walletHolds(DOCUMENT_ID)
+            receiveRequest(
+                selectionOf(match(plainCredential(DOCUMENT_ID, CREDENTIAL_ID), requestedClaim("family_name")))
+            )
+            subject.relyingPartyRegistration = RelyingPartyRegistrationStatus.OverAsking(overAskedClaims = emptyList())
+
+            subject.rejectPresentation()
+
+            assertEquals(ActivityRejection.OVERASKING, recordedEntry().rejection)
+        }
+
+    @Test
+    fun `a request the wallet declines for an unregistered relying party is logged as such`() =
+        coroutineRule.runTest {
+            walletHolds(DOCUMENT_ID)
+            receiveRequest(
+                selectionOf(match(plainCredential(DOCUMENT_ID, CREDENTIAL_ID), requestedClaim("family_name")))
+            )
+            subject.relyingPartyRegistration =
+                RelyingPartyRegistrationStatus.NotRegistered(RegistrationFailureReason.CERTIFICATE_ABSENT)
+
+            subject.rejectPresentation()
+
+            assertEquals(ActivityRejection.UNKNOWN_SERVICE, recordedEntry().rejection)
+        }
+
+    @Test
+    fun `a request nothing in the wallet matches is declined without a rejection reason`() =
+        coroutineRule.runTest {
+            receiveRequest(selectionOf())
+
+            subject.rejectPresentation()
+
+            val entry = recordedEntry()
+            assertEquals(ActivityResult.NOT_COMPLETED, entry.result)
+            assertEquals(null, entry.rejection)
+        }
+
+    @Test
+    fun `a response the relying party rejects is logged as rejected by the service`() =
+        coroutineRule.runTest {
+            walletHolds(DOCUMENT_ID)
+            val claim = requestedClaim("family_name")
+            receiveRequest(selectionOf(match(plainCredential(DOCUMENT_ID, CREDENTIAL_ID), claim)))
+            subject.updateRequestedDocuments(mutableListOf(consentTo(DOCUMENT_ID, claim)))
+            subject.sendRequestedDocuments()
+
+            val outcome = async { subject.mappedCallbackStateFlow().first() }
+            yield()
+            registeredListener.await().onTransferEvent(
+                TransferEvent.Error(IllegalStateException("Verifier rejected the response"))
+            )
+            outcome.await()
+
+            val entry = recordedEntry()
+            assertEquals(ActivityResult.NOT_COMPLETED, entry.result)
+            assertEquals(ActivityRejection.BY_SERVICE, entry.rejection)
+            assertEquals(emptyList<List<String>>(), entry.credentials.single().presentedClaims)
+        }
+
+    @Test
+    fun `an abandoned presentation is logged as rejected by the user`() =
+        coroutineRule.runTest {
+            walletHolds(DOCUMENT_ID)
+            receiveRequest(
+                selectionOf(match(plainCredential(DOCUMENT_ID, CREDENTIAL_ID), requestedClaim("family_name")))
+            )
+
+            subject.stopPresentation()
+
+            val entry = recordedEntry()
+            assertEquals(ActivityResult.NOT_COMPLETED, entry.result)
+            assertEquals(ActivityRejection.BY_USER, entry.rejection)
+        }
+
+    @Test
+    fun `a sent response that then fails is logged as shared`() =
+        coroutineRule.runTest {
+            walletHolds(DOCUMENT_ID)
+            val claim = requestedClaim("family_name")
+            receiveRequest(selectionOf(match(plainCredential(DOCUMENT_ID, CREDENTIAL_ID), claim)))
+            subject.updateRequestedDocuments(mutableListOf(consentTo(DOCUMENT_ID, claim)))
+            subject.sendRequestedDocuments()
+
+            val outcome = async { subject.mappedCallbackStateFlow().first() }
+            yield()
+            registeredListener.await().onTransferEvent(TransferEvent.Error(IllegalStateException("timeout")))
+            outcome.await()
+
+            val entry = recordedEntry()
+            assertEquals(ActivityResult.COMPLETED, entry.result)
+            assertEquals(listOf(listOf(NAMESPACE, "family_name")), entry.credentials.single().presentedClaims)
+        }
+
+    @Test
+    fun `nothing is logged without a request`() =
+        coroutineRule.runTest {
+            subject.stopPresentation()
+
+            verify(activityLog, never()).recordFrom(any())
+        }
+
+    private fun walletHolds(documentId: String) {
+        val document = mock<IssuedDocument> {
+            on { id } doReturn documentId
+            on { format } doReturn MsoMdocFormat(DOC_TYPE)
+        }
+        whenever(eudiWallet.getDocumentById(documentId)).thenReturn(document)
+    }
+
+    private fun recordedEntry(): ActivityLogEntry {
+        val captor = argumentCaptor<() -> ActivityLogEntry>()
+        verify(activityLog).recordFrom(captor.capture())
+        return captor.firstValue()
     }
 
     @Test

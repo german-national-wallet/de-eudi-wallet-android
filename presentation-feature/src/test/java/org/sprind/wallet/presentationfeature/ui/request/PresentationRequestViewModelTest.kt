@@ -683,6 +683,72 @@ class PresentationRequestViewModelTest {
             assertFalse(subject.viewState.value.isLoading)
         }
 
+    // region WD-4267: one collector per presentation phase
+
+    @Test
+    fun `a failure after the PIN is confirmed is shown once, as the dialog, not also as the inline error`() =
+        // getRequestDocuments() and processRequest() are both built on the controller's shared
+        // transfer events, so one wallet-core error reaches both. Left running, the request
+        // loader paints its inline error behind the dialog processRequest() shows.
+        coroutineRule.runTest {
+            val rejected = PresentationError.RelyingPartySide(
+                traceId = "trace-4267",
+                cause = null,
+                displayMessage = "Verifier rejected the response",
+                subType = PresentationError.RelyingPartySideSubType.RELYING_PARTY_REJECTED,
+            )
+            val sessionEvents = startRequest()
+            val processStates = MutableSharedFlow<PresentationRequestProcessPartialState>()
+            whenever(rwscaPinHandler.startPinSession(any())).thenReturn(StartPinSessionResult.Success)
+            whenever(presentationRequestInteractor.processRequest()).thenReturn(processStates)
+
+            subject.typeIntoPinField("123456")
+            subject.setEvent(Event.ConfirmPin)
+            coroutineRule.testScope.advanceUntilIdle()
+
+            // The same transfer error, as each of the two flows maps it.
+            sessionEvents.emit(PresentationRequestInteractorPartialState.Failure(error = rejected))
+            processStates.emit(PresentationRequestProcessPartialState.Failure(error = rejected))
+            coroutineRule.testScope.advanceUntilIdle()
+
+            assertNotNull(subject.viewState.value.errorDialog)
+            assertNull(subject.viewState.value.error)
+        }
+
+    @Test
+    fun `re-entering the PIN after a wrong one sends the documents only once`() =
+        // A wrong PIN leaves the first processRequest() collector alive; the second ConfirmPin
+        // must replace it, or both react to the next RequestReadyToBeSent and send twice.
+        coroutineRule.runTest {
+            val processStates = MutableSharedFlow<PresentationRequestProcessPartialState>()
+            whenever(rwscaPinHandler.startPinSession(any())).thenReturn(StartPinSessionResult.Success)
+            whenever(presentationRequestInteractor.processRequest()).thenReturn(processStates)
+            whenever(presentationRequestInteractor.sendRequestedDocuments()).thenReturn(
+                PresentationDocumentSubmissionPartialState.Failure.WrongPin(
+                    triesRemaining = 2,
+                    iso8601utcTime = "",
+                ),
+                PresentationDocumentSubmissionPartialState.Success,
+            )
+
+            subject.typeIntoPinField("111111")
+            subject.setEvent(Event.ConfirmPin)
+            coroutineRule.testScope.advanceUntilIdle()
+            processStates.emit(PresentationRequestProcessPartialState.RequestReadyToBeSent)
+            coroutineRule.testScope.advanceUntilIdle()
+
+            subject.typeIntoPinField("123456")
+            subject.setEvent(Event.ConfirmPin)
+            coroutineRule.testScope.advanceUntilIdle()
+            processStates.emit(PresentationRequestProcessPartialState.RequestReadyToBeSent)
+            coroutineRule.testScope.advanceUntilIdle()
+
+            // One send per attempt: the wrong-PIN one and the retried one.
+            verify(presentationRequestInteractor, times(2)).sendRequestedDocuments()
+        }
+
+    // endregion
+
     private fun startRequest(): MutableSharedFlow<PresentationRequestInteractorPartialState> {
         val sessionEvents = MutableSharedFlow<PresentationRequestInteractorPartialState>()
         givenRequestDocuments(sessionEvents)
@@ -787,24 +853,47 @@ class PresentationRequestViewModelTest {
         }
 
     @Test
-    fun `when a relying-party-side dialog error occurs, the dialog offers no retry and dismisses on the primary button`() =
+    fun `when the verifier rejects the response, cancel leaves for the overview without answering again`() =
         coroutineRule.runTest {
-            // RELYING_PARTY_REJECTED maps to a DISMISS primary action: the dialog must
-            // expose no retry and its primary click must clear the dialog.
-            val typedError = PresentationError.RelyingPartySide(
-                traceId = "rejected-trace-id",
-                cause = null,
-                displayMessage = "rejected",
-                subType = PresentationError.RelyingPartySideSubType.RELYING_PARTY_REJECTED,
-            )
+            givenVerifierRejectsTheResponse()
 
-            whenever(rwscaPinHandler.startPinSession(any())).thenReturn(StartPinSessionResult.Success)
-            whenever(presentationRequestInteractor.processRequest()).thenReturn(
-                flowOf(PresentationRequestProcessPartialState.RequestReadyToBeSent)
+            subject.typeIntoPinField("123456")
+            subject.setEvent(Event.ConfirmPin)
+            coroutineRule.testScope.advanceUntilIdle()
+
+            // No support contact registered, so cancelling is the only action.
+            val dialog = assertNotNull(subject.viewState.value.errorDialog)
+            assertEquals(R.string.pid_presentation_service_rejection_title, dialog.titleRes)
+            assertEquals(
+                R.string.pid_presentation_service_rejection_sec_button,
+                dialog.primaryButtonTextRes,
             )
-            whenever(presentationRequestInteractor.sendRequestedDocuments()).thenReturn(
-                PresentationDocumentSubmissionPartialState.Failure.Unknown(error = typedError)
+            assertNull(dialog.secondaryButtonTextRes)
+
+            dialog.onPrimaryButtonClick()
+            coroutineRule.testScope.advanceUntilIdle()
+
+            val exit = subject.effect.awaitFirstOf<Effect.Navigation.SwitchScreen>()
+            assertEquals(DashboardScreens.Dashboard.screenRoute, exit.screenRoute)
+            assertNull(subject.viewState.value.errorDialog)
+            verify(presentationRequestInteractor).stopPresentation()
+            verify(presentationRequestInteractor, never()).rejectPresentation()
+        }
+
+    @Test
+    fun `when the verifier rejects the response, contact service confirms the registered support contact`() =
+        coroutineRule.runTest {
+            givenRequest(
+                PresentationRequestInteractorPartialState.Success(
+                    verifierName = "Verifier",
+                    verifierIsTrusted = true,
+                    requestDocuments = listOf(requestDocumentItemUi(DocumentType.EAA)),
+                    supportUri = "https://verifier.example.invalid/support",
+                )
             )
+            subject.setEvent(Event.DoWork)
+            coroutineRule.testScope.advanceUntilIdle()
+            givenVerifierRejectsTheResponse()
 
             subject.typeIntoPinField("123456")
             subject.setEvent(Event.ConfirmPin)
@@ -812,12 +901,67 @@ class PresentationRequestViewModelTest {
 
             val dialog = assertNotNull(subject.viewState.value.errorDialog)
             assertEquals(
-                R.string.eaa_presentation_dialog_rp_rejection_sec_button_2,
+                R.string.pid_presentation_service_rejection_prim_button,
                 dialog.primaryButtonTextRes,
             )
+            assertTrue(dialog.primaryButtonOpensExternalLink)
+            assertEquals(
+                R.string.pid_presentation_service_rejection_sec_button,
+                dialog.secondaryButtonTextRes,
+            )
+
             dialog.onPrimaryButtonClick()
-            assertEquals(null, subject.viewState.value.errorDialog)
+
+            assertEquals(
+                "https://verifier.example.invalid/support",
+                subject.viewState.value.pendingReportIssueUrl,
+            )
+            // The rejection stays visible behind the redirect confirmation.
+            assertEquals(dialog, subject.viewState.value.errorDialog)
         }
+
+    @Test
+    fun `when the verifier rejects the response, a support contact the wallet cannot open is not offered`() =
+        coroutineRule.runTest {
+            givenRequest(
+                PresentationRequestInteractorPartialState.Success(
+                    verifierName = "Verifier",
+                    verifierIsTrusted = true,
+                    requestDocuments = listOf(requestDocumentItemUi(DocumentType.EAA)),
+                    supportUri = "tel:+4930123456",
+                )
+            )
+            subject.setEvent(Event.DoWork)
+            coroutineRule.testScope.advanceUntilIdle()
+            givenVerifierRejectsTheResponse()
+
+            subject.typeIntoPinField("123456")
+            subject.setEvent(Event.ConfirmPin)
+            coroutineRule.testScope.advanceUntilIdle()
+
+            val dialog = assertNotNull(subject.viewState.value.errorDialog)
+            assertEquals(
+                R.string.pid_presentation_service_rejection_sec_button,
+                dialog.primaryButtonTextRes,
+            )
+            assertNull(dialog.secondaryButtonTextRes)
+        }
+
+    private suspend fun givenVerifierRejectsTheResponse() {
+        whenever(rwscaPinHandler.startPinSession(any())).thenReturn(StartPinSessionResult.Success)
+        whenever(presentationRequestInteractor.processRequest()).thenReturn(
+            flowOf(
+                PresentationRequestProcessPartialState.Failure(
+                    PresentationError.RelyingPartySide(
+                        traceId = "rejected-trace-id",
+                        cause = null,
+                        displayMessage = "rejected",
+                        subType = PresentationError.RelyingPartySideSubType.RELYING_PARTY_REJECTED,
+                    )
+                )
+            )
+        )
+    }
 
     //region WD-4273: retry gated by the taxonomy on the request screen
 

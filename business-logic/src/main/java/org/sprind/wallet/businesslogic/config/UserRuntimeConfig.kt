@@ -16,7 +16,6 @@
 
 package org.sprind.wallet.businesslogic.config
 
-import eu.europa.ec.businesslogic.BuildConfig
 import eu.europa.ec.businesslogic.config.ConfigLogic
 
 /**
@@ -33,8 +32,7 @@ internal class UserRuntimeConfigImpl(configLogic: ConfigLogic) : UserRuntimeConf
 
     private val simulationEnabled = configLogic.isSimulatedEidCardEnabled
 
-    // set to simulated by default, if Simulator is used
-    override var eidCardType: EidCardType = if (BuildConfig.IS_SIMULATOR.toBoolean()) EidCardType.VIRTUAL else EidCardType.PHYSICAL
+    override var eidCardType: EidCardType = EidCardType.PHYSICAL
         get() = if (simulationEnabled) field else EidCardType.PHYSICAL
 }
 

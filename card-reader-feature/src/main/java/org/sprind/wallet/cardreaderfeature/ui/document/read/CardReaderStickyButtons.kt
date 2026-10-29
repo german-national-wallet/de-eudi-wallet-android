@@ -138,7 +138,7 @@ internal fun CardReaderStickyButtons(
                 text = stringResource(R.string.global_office_button),
                 enabled = true,
                 paddingValues = padding,
-                trailingIcon = AppIcons.ArrowOutward,
+                trailingIcon = AppIcons.OpenNewSettings,
                 onClick = { onEventSend(Event.OnSearchCitizenOfficeButtonClick(locale)) }
             )
         }

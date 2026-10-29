@@ -191,8 +191,8 @@ class BiometricAuthenticationControllerImpl(
             val biometricData = biometryStorageController.getBiometricAuthentication()
             val cipher = cryptoController.getCipher(
                 encrypt = biometricData == null,
-                ivBytes = biometricData?.ivString?.decodeFromPemBase64String() ?: ByteArray(0)
-            )
+                ivBytes = biometricData?.ivString?.decodeFromPemBase64String()
+            ).getOrNull()
             Pair(biometricData, cipher)
         }
 
@@ -201,37 +201,38 @@ class BiometricAuthenticationControllerImpl(
         result: AuthenticationResult?,
         biometricAuthentication: BiometricAuthentication?
     ): BiometricsAuthenticate = withContext(dispatcher) {
-        result?.cryptoObject?.cipher?.let {
-            if (biometricAuthentication == null) {
-                val randomString = cryptoController.generateCodeVerifier()
-                biometryStorageController.setBiometricAuthentication(
-                    BiometricAuthentication(
-                        randomString = randomString,
-                        encryptedString = cryptoController.encryptDecryptBiometric(
-                            cipher = it,
-                            byteArray = randomString.toByteArray(StandardCharsets.UTF_8)
-                        ).encodeToPemBase64String().orEmpty(),
-                        ivString = it.iv.encodeToPemBase64String().orEmpty()
-                    )
+        val failed = BiometricsAuthenticate.Failed(context.getString(R.string.generic_error_description))
+        val cipher = result?.cryptoObject?.cipher ?: return@withContext failed
+        if (biometricAuthentication == null) {
+            val randomString = cryptoController.generateCodeVerifier()
+            val encryptedString = cryptoController.encryptDecryptBiometric(
+                cipher = cipher,
+                byteArray = randomString.toByteArray(StandardCharsets.UTF_8)
+            ).getOrNull()?.encodeToPemBase64String()
+            val ivString = cipher.iv?.encodeToPemBase64String()
+            if (encryptedString == null || ivString == null) return@withContext failed
+            biometryStorageController.setBiometricAuthentication(
+                BiometricAuthentication(
+                    randomString = randomString,
+                    encryptedString = encryptedString,
+                    ivString = ivString
                 )
+            )
+            BiometricsAuthenticate.Success
+        } else {
+            val encryptedBytes = biometricAuthentication.encryptedString
+                .decodeFromPemBase64String() ?: return@withContext failed
+            val decrypted = cryptoController.encryptDecryptBiometric(cipher, encryptedBytes)
+                .getOrNull() ?: return@withContext failed
+            if (biometricAuthentication.randomString
+                    .toByteArray(StandardCharsets.UTF_8)
+                    .contentEquals(decrypted)
+            ) {
                 BiometricsAuthenticate.Success
             } else {
-                if (biometricAuthentication.randomString
-                        .toByteArray(StandardCharsets.UTF_8)
-                        .contentEquals(
-                            cryptoController.encryptDecryptBiometric(
-                                cipher = it,
-                                byteArray = biometricAuthentication.encryptedString
-                                    .decodeFromPemBase64String() ?: ByteArray(0)
-                            )
-                        )
-                ) {
-                    BiometricsAuthenticate.Success
-                } else {
-                    BiometricsAuthenticate.Failed(context.getString(R.string.generic_error_description))
-                }
+                failed
             }
-        } ?: BiometricsAuthenticate.Failed(context.getString(R.string.generic_error_description))
+        }
     }
 }
 

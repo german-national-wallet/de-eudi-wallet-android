@@ -17,9 +17,11 @@
 package eu.europa.ec.businesslogic.controller.crypto
 
 import android.util.Base64
+import eu.europa.ec.businesslogic.controller.log.LogController
 import org.sprind.wallet.businesslogic.controller.crypto.CipherInstanceProvider
+import org.sprind.wallet.businesslogic.controller.crypto.CryptoError
 import org.sprind.wallet.businesslogic.controller.crypto.CryptoKeyGenerator
-import java.security.KeyStore.PrivateKeyEntry
+import org.sprind.wallet.businesslogic.controller.crypto.toCryptoError
 import java.security.SecureRandom
 import javax.crypto.Cipher
 import javax.crypto.SecretKey
@@ -27,38 +29,21 @@ import javax.crypto.spec.GCMParameterSpec
 
 typealias GUID = String
 
+/**
+ * AES-GCM operations on Android Keystore keys. Every operation returns a [Result] whose failure
+ * is a [CryptoError]; callers must fail closed on it.
+ */
 interface CryptoController {
     fun generateCodeVerifier(): String
 
-
     /**
-     * Retrieves a [Cipher] instance configured for either encryption or decryption.
-     *
-     * This function initializes a [Cipher] object using the AES/GCM/NoPadding transformation.
-     * The behavior of the cipher (encryption or decryption) is determined by the [encrypt] parameter.
-     *
-     * - If [encrypt] is `true`, the cipher is initialized in `Cipher.ENCRYPT_MODE`.
-     * - If [encrypt] is `false`, the cipher is initialized in `Cipher.DECRYPT_MODE`, and the
-     *   [ivBytes] parameter is required to provide the Initialization Vector (IV) for the
-     *   GCMParameterSpec.
-     *
-     * The secret key used for cipher initialization is retrieved or generated via the
-     * `keystoreController`.
-     *
-     * @param encrypt A [Boolean] indicating whether the cipher should be initialized for
-     * encryption (`true`) or decryption (`false`). Defaults to `false`.
-     * @param ivBytes An optional [ByteArray] containing the Initialization Vector. This is
-     * required only when `encrypt` is `false` (i.e., for decryption).
-     * @param userAuthenticationRequired A [Boolean] indicating if user authentication is
-     * required for the cryptographic operation. Defaults to `true`.
-     * @return A configured [Cipher] instance if initialization is successful, or `null` if an
-     * exception occurs during initialization.
+     * Returns a cipher on the biometric key: `ENCRYPT_MODE` if [encrypt], otherwise
+     * `DECRYPT_MODE` with [ivBytes] as the GCM IV.
      */
     fun getCipher(
         encrypt: Boolean = false,
         ivBytes: ByteArray? = null,
-        userAuthenticationRequired: Boolean = true
-    ): Cipher?
+    ): Result<Cipher>
 
     /**
      * Returns the [Cipher] needed to create the [androidx.biometric.BiometricPrompt.CryptoObject]
@@ -66,14 +51,14 @@ interface CryptoController {
      * [encrypt] should be set to true if the cipher should encrypt, false otherwise.
      * [ivBytes] is needed only for decryption to create the [GCMParameterSpec].
      */
-    fun getBiometricCipher(encrypt: Boolean = false, ivBytes: ByteArray? = null): Cipher?
+    fun getBiometricCipher(encrypt: Boolean = false, ivBytes: ByteArray? = null): Result<Cipher>
 
     /**
      * Returns the [Cipher] needed to create the wallet registration key crypto object
      * [encrypt] should be set to true if the cipher should encrypt, false otherwise.
      * [ivBytes] is needed only for decryption to create the [GCMParameterSpec].
      */
-    fun getWalletRegistrationCipher(encrypt: Boolean = false, ivBytes: ByteArray? = null): Cipher?
+    fun getWalletRegistrationCipher(encrypt: Boolean = false, ivBytes: ByteArray? = null): Result<Cipher>
 
     /**
      * Returns the [Cipher] needed to create the wallet instance private key crypto object
@@ -83,7 +68,7 @@ interface CryptoController {
     fun getWalletInstancePrivateKeyCipher(
         encrypt: Boolean = false,
         ivBytes: ByteArray? = null
-    ): Cipher?
+    ): Result<Cipher>
 
     /**
      * Returns the [Cipher] needed to create the wallet instance attestation private key crypto object
@@ -93,17 +78,13 @@ interface CryptoController {
     fun getWalletInstanceAttestationPrivateKeyCipher(
         encrypt: Boolean = false,
         ivBytes: ByteArray? = null
-    ): Cipher?
+    ): Result<Cipher>
 
-    fun encryptDecryptData(cipher: Cipher?, byteArray: ByteArray): ByteArray
+    /** Encrypts or decrypts [byteArray], depending on the mode [cipher] was initialised in. */
+    fun encryptDecryptData(cipher: Cipher, byteArray: ByteArray): Result<ByteArray>
 
-    /**
-     * Returns the [ByteArray] after the encryption/decryption from the given [Cipher].
-     * [cipher] the biometric cipher needed. This can be null but then an empty [ByteArray] is
-     * returned.
-     * [byteArray] that needed to be encrypted or decrypted (Depending always on [Cipher] provided.
-     */
-    fun encryptDecryptBiometric(cipher: Cipher?, byteArray: ByteArray): ByteArray
+    /** Same as [encryptDecryptData], for a cipher unlocked by a biometric prompt. */
+    fun encryptDecryptBiometric(cipher: Cipher, byteArray: ByteArray): Result<ByteArray>
 
     /**
      * This method will remove all private keys and aliases created during wallet registration
@@ -116,7 +97,10 @@ internal class CryptoControllerImpl(
     private val keystoreController: KeystoreController,
     private val cipherInstanceProvider: CipherInstanceProvider,
     private val cryptoKeyGenerator: CryptoKeyGenerator,
+    private val logController: LogController,
 ) : CryptoController {
+
+    private val logTag = javaClass.simpleName
 
     companion object {
         private const val AES_EXTERNAL_TRANSFORMATION = "AES/GCM/NoPadding"
@@ -132,100 +116,63 @@ internal class CryptoControllerImpl(
         return Base64.encodeToString(code, Base64.URL_SAFE or Base64.NO_WRAP or Base64.NO_PADDING)
     }
 
-    override fun getCipher(
-        encrypt: Boolean,
-        ivBytes: ByteArray?,
-        userAuthenticationRequired: Boolean
-    ): Cipher? =
-        try {
-            Cipher.getInstance(AES_EXTERNAL_TRANSFORMATION).apply {
-                if (encrypt) {
-                    init(
-                        Cipher.ENCRYPT_MODE,
-                        keystoreController.retrieveOrGenerateBiometricSecretKey()
-                    )
-                } else {
-                    init(
-                        Cipher.DECRYPT_MODE,
-                        keystoreController.retrieveOrGenerateBiometricSecretKey(),
-                        GCMParameterSpec(IV_SIZE, ivBytes)
-                    )
-                }
-            }
-        } catch (_: Exception) {
-            null
-        }
+    override fun getCipher(encrypt: Boolean, ivBytes: ByteArray?): Result<Cipher> =
+        getBiometricCipher(encrypt, ivBytes)
+
+    override fun getBiometricCipher(encrypt: Boolean, ivBytes: ByteArray?): Result<Cipher> =
+        getCipher(encrypt, ivBytes) { keystoreController.retrieveOrGenerateBiometricSecretKey() }
 
     override fun getWalletInstancePrivateKeyCipher(encrypt: Boolean, ivBytes: ByteArray?) =
-        getCipher(
-            keystoreController.retrieveOrGenerateWalletInstancePrivateKeySecretKey(),
-            encrypt,
-            ivBytes
-        )
+        getCipher(encrypt, ivBytes) {
+            keystoreController.retrieveOrGenerateWalletInstancePrivateKeySecretKey()
+        }
 
-    override fun getWalletRegistrationCipher(encrypt: Boolean, ivBytes: ByteArray?): Cipher? =
-        getCipher(
-            keystoreController.retrieveOrGenerateWalletRegistrationSecretKey(),
-            encrypt,
-            ivBytes
-        )
+    override fun getWalletRegistrationCipher(encrypt: Boolean, ivBytes: ByteArray?) =
+        getCipher(encrypt, ivBytes) {
+            keystoreController.retrieveOrGenerateWalletRegistrationSecretKey()
+        }
 
     override fun getWalletInstanceAttestationPrivateKeyCipher(
         encrypt: Boolean,
         ivBytes: ByteArray?
     ) =
-        getCipher(
-            keystoreController.retrieveOrGenerateWalletInstanceAttestationPrivateKeySecretKey(),
-            encrypt,
-            ivBytes
-        )
-
-    override fun encryptDecryptData(cipher: Cipher?, byteArray: ByteArray): ByteArray =
-        cipher?.doFinal(byteArray) ?: ByteArray(0)
-
-    override fun getBiometricCipher(encrypt: Boolean, ivBytes: ByteArray?): Cipher? =
-        try {
-            Cipher.getInstance(AES_EXTERNAL_TRANSFORMATION).apply {
-                if (encrypt) {
-                    init(
-                        Cipher.ENCRYPT_MODE,
-                        keystoreController.retrieveOrGenerateBiometricSecretKey()
-                    )
-                } else {
-                    init(
-                        Cipher.DECRYPT_MODE,
-                        keystoreController.retrieveOrGenerateBiometricSecretKey(),
-                        GCMParameterSpec(IV_SIZE, ivBytes)
-                    )
-                }
-            }
-        } catch (e: Exception) {
-            null
+        getCipher(encrypt, ivBytes) {
+            keystoreController.retrieveOrGenerateWalletInstanceAttestationPrivateKeySecretKey()
         }
 
-    private fun getCipher(secretKey: SecretKey?, encrypt: Boolean, ivBytes: ByteArray?): Cipher? =
-        try {
-            cipherInstanceProvider.getNewInstance(AES_EXTERNAL_TRANSFORMATION).apply {
-                if (encrypt) {
-                    init(
-                        Cipher.ENCRYPT_MODE,
-                        secretKey
-                    )
-                } else {
-                    init(
-                        Cipher.DECRYPT_MODE,
-                        secretKey,
-                        GCMParameterSpec(IV_SIZE, ivBytes)
-                    )
-                }
-            }
-        } catch (e: Exception) {
-            null
-        }
+    override fun encryptDecryptData(cipher: Cipher, byteArray: ByteArray): Result<ByteArray> =
+        doFinal(cipher, byteArray)
 
-    override fun encryptDecryptBiometric(cipher: Cipher?, byteArray: ByteArray): ByteArray {
-        return cipher?.doFinal(byteArray) ?: ByteArray(0)
+    override fun encryptDecryptBiometric(cipher: Cipher, byteArray: ByteArray): Result<ByteArray> =
+        doFinal(cipher, byteArray)
+
+    private fun getCipher(
+        encrypt: Boolean,
+        ivBytes: ByteArray?,
+        secretKey: () -> SecretKey?,
+    ): Result<Cipher> = cryptoResult {
+        val key = secretKey() ?: throw CryptoError.KeyNotFound()
+        cipherInstanceProvider.getNewInstance(AES_EXTERNAL_TRANSFORMATION).apply {
+            if (encrypt) {
+                init(Cipher.ENCRYPT_MODE, key)
+            } else {
+                if (ivBytes == null || ivBytes.isEmpty()) throw CryptoError.InvalidParameters()
+                init(Cipher.DECRYPT_MODE, key, GCMParameterSpec(IV_SIZE, ivBytes))
+            }
+        }
     }
+
+    private fun doFinal(cipher: Cipher, byteArray: ByteArray): Result<ByteArray> =
+        cryptoResult { cipher.doFinal(byteArray) }
+
+    private inline fun <T> cryptoResult(block: () -> T): Result<T> =
+        try {
+            Result.success(block())
+        } catch (e: Exception) {
+            val error = e.toCryptoError()
+            logController.w(logTag) { "Cipher operation failed: ${error::class.simpleName}" }
+            Result.failure(error)
+        }
 
     override fun removeWalletRegistrationData() {
         keystoreController.removeWalletKeysAndAliases()

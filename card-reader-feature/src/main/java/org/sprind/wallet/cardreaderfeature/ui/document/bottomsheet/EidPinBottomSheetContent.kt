@@ -132,7 +132,7 @@ fun EidPinBottomSheetContent(
                             maxLines = 2
                         ),
                         customTint = ThemeColors.onSecondaryButton,
-                        rightIconData = AppIcons.ArrowOutward
+                        rightIconData = AppIcons.OpenNewSettings
                     )
                 }
             }

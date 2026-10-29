@@ -15,13 +15,16 @@ import org.junit.Assert.assertEquals
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
+import org.sprind.wallet.analyticslogic.controller.Telemetry
 import org.sprind.wallet.authenticationlogic.model.MdvmError
 import org.sprind.wallet.authenticationlogic.provider.MdvmAuthContext
 import org.sprind.wallet.authenticationlogic.provider.MdvmAuthContextProvider
+import org.sprind.wallet.businesslogic.controller.crypto.CryptoError
 import org.sprind.wallet.networklogic.common.model.ApiResult
 import org.sprind.wallet.networklogic.mdvm.model.error.MdvmErrorType
 import org.mockito.Mock
 import org.mockito.MockitoAnnotations
+import org.mockito.kotlin.any
 import org.mockito.kotlin.verify
 import org.mockito.kotlin.whenever
 import org.robolectric.RobolectricTestRunner
@@ -32,6 +35,7 @@ private const val mockChallenge = "mockChallenge"
 private const val mockWalletInstanceId = "mockWalletInstanceId"
 private const val mockWalletInstanceRevocationCode = "mockWalletInstanceRevocationCode"
 private const val mockMdvmToken = "mockMdvmToken"
+private const val mockClientTraceId = "mockClientTraceId"
 
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [28], application = TestApplication::class)
@@ -55,6 +59,9 @@ class AppAttestationControllerTest {
     private lateinit var logController: LogController
 
     @Mock
+    private lateinit var telemetry: Telemetry
+
+    @Mock
     private lateinit var mockMdvmAuthPrivateKey: PrivateKey
 
     private lateinit var closeable: AutoCloseable
@@ -66,13 +73,15 @@ class AppAttestationControllerTest {
             walletRegistrationStorageController,
             mdvmAuthContextProvider,
             walletAttestationController,
-            logController
+            logController,
+            telemetry,
         )
     }
 
     @Before
     fun before() {
         closeable = MockitoAnnotations.openMocks(this)
+        whenever(telemetry.currentTraceId()).thenReturn(mockClientTraceId)
         runBlocking {
             whenever(mdvmAuthContextProvider.getMdvmAuthContext()).thenReturn(
                 ApiResult.Success(
@@ -135,6 +144,9 @@ class AppAttestationControllerTest {
                     )
                 )
             )
+
+            whenever(walletRegistrationStorageController.saveWalletRegistration(any()))
+                .thenReturn(Result.success(Unit))
 
             //Then
             subject.registerWallet().test {
@@ -202,6 +214,41 @@ class AppAttestationControllerTest {
                 WalletRegistrationPartialState.Failure(
                     errorCode = "UNKNOWN",
                     traceId = null
+                ), awaitItem()
+            )
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun `registerWallet emits Failure with the client trace id when saving the registration fails`() = runTest {
+        // When
+        whenever(walletRegistrationController.getChallenge()).thenReturn(
+            flowOf(RegistrationChallengePartialState.Success(mockChallenge))
+        )
+        whenever(
+            walletRegistrationController.getWalletInstanceId(
+                authChallenge = mockChallenge,
+                mdvmToken = mockMdvmToken,
+                mdvmAuthPrvk = mockMdvmAuthPrivateKey,
+            )
+        ).thenReturn(
+            flowOf(
+                WalletInstancePartialState.Success(
+                    walletInstanceId = mockWalletInstanceId,
+                    walletInstanceRevocationCode = mockWalletInstanceRevocationCode,
+                )
+            )
+        )
+        whenever(walletRegistrationStorageController.saveWalletRegistration(any()))
+            .thenReturn(Result.failure(CryptoError.KeyNotFound()))
+
+        // Then
+        subject.registerWallet().test {
+            assertEquals(
+                WalletRegistrationPartialState.Failure(
+                    errorCode = "WALLET_REGISTRATION_STORAGE_ERROR",
+                    traceId = mockClientTraceId
                 ), awaitItem()
             )
             cancelAndIgnoreRemainingEvents()

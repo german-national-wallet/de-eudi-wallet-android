@@ -16,8 +16,11 @@ import eu.europa.ec.eudi.openid4vci.CredentialIssuerId
 import eu.europa.ec.eudi.openid4vci.Grants
 import eu.europa.ec.eudi.wallet.EudiWallet
 import eu.europa.ec.eudi.wallet.document.IssuedDocument
+import eu.europa.ec.eudi.wallet.document.Outcome
 import eu.europa.ec.eudi.wallet.document.UnsignedDocument
+import eu.europa.ec.eudi.wallet.document.format.DocumentFormat
 import eu.europa.ec.eudi.wallet.document.format.MsoMdocFormat
+import eu.europa.ec.eudi.wallet.document.format.SdJwtVcFormat
 import eu.europa.ec.eudi.wallet.issue.openid4vci.IssueEvent
 import eu.europa.ec.eudi.wallet.issue.openid4vci.Offer
 import eu.europa.ec.eudi.wallet.issue.openid4vci.OfferResult
@@ -61,6 +64,13 @@ import org.mockito.kotlin.times
 import org.mockito.kotlin.verify
 import org.mockito.kotlin.whenever
 import org.sprind.wallet.corelogic.controller.ReissueDocumentPartialState
+import org.sprind.wallet.corelogic.activity.ActivityCredential
+import org.sprind.wallet.corelogic.activity.ActivityLogEntry
+import org.sprind.wallet.corelogic.activity.ActivityLogRepository
+import org.sprind.wallet.corelogic.activity.ActivityResult
+import org.sprind.wallet.corelogic.activity.ActivityType
+import org.sprind.wallet.corelogic.activity.InteractingParty
+import org.sprind.wallet.corelogic.activity.newActivityLogEntry
 import org.sprind.wallet.corelogic.config.PidConfigurationOverrides
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.first
@@ -142,8 +152,11 @@ class WalletCoreDocumentsControllerTest {
             pidConfigurationOverridesProvider = { pidConfigurationOverrides },
             // Runs issuanceEventScope on the test scheduler instead of Dispatchers.IO.
             dispatcher = coroutineRule.testDispatcher,
+            activityLog = activityLog,
         )
     }
+
+    private val activityLog: ActivityLogRepository = mock(ActivityLogRepository::class.java)
 
     @Before
     fun before() {
@@ -1337,7 +1350,88 @@ class WalletCoreDocumentsControllerTest {
     )
 
     //endregion
+
+    @Test
+    fun `a deleted credential is logged with the issuer links of its issuance`() =
+        coroutineRule.runTest {
+            val issuer = InteractingParty(
+                name = "Stadt Köln",
+                isTrusted = true,
+                privacyPolicyUri = "https://stadt.koeln/privacy",
+            )
+            whenever(activityLog.entries).thenReturn(
+                flowOf(
+                    listOf(
+                        newActivityLogEntry(
+                            type = ActivityType.ISSUANCE,
+                            result = ActivityResult.COMPLETED,
+                            interactingParty = issuer,
+                            credentials = listOf(
+                                ActivityCredential(documentId = DELETED_DOCUMENT_ID, credentialIdentifier = DOC_TYPE)
+                            ),
+                        )
+                    )
+                )
+            )
+            val document = deletableDocument()
+            whenever(eudiWallet.getDocumentById(DELETED_DOCUMENT_ID)).thenReturn(document)
+
+            subject.deleteDocument(DELETED_DOCUMENT_ID).first()
+
+            val captor = argumentCaptor<ActivityLogEntry>()
+            verify(activityLog).record(captor.capture())
+            val entry = captor.firstValue
+            assertEquals(ActivityType.DELETION, entry.type)
+            assertEquals(issuer, entry.interactingParty)
+            assertEquals(DELETED_DOCUMENT_ID, entry.credentials.single().documentId)
+        }
+
+    @Test
+    fun `deleting the PID logs once, when its last format goes`() =
+        coroutineRule.runTest {
+            whenever(activityLog.entries).thenReturn(flowOf(emptyList()))
+            deletableDocument(id = "pid-mdoc", format = MsoMdocFormat(PID_DOC_TYPE))
+            val sdJwt = deletableDocument(id = "pid-sd-jwt", format = SdJwtVcFormat(PID_VCT))
+            whenever(eudiWallet.getDocuments()).thenReturn(listOf(sdJwt), emptyList())
+
+            subject.deleteDocument("pid-mdoc").first()
+            verify(activityLog, never()).record(any())
+
+            subject.deleteDocument("pid-sd-jwt").first()
+            val captor = argumentCaptor<ActivityLogEntry>()
+            verify(activityLog).record(captor.capture())
+            assertEquals("pid-sd-jwt", captor.firstValue.credentials.single().documentId)
+        }
+
+    @Test
+    fun `wiping the wallet logs no deletions`() =
+        coroutineRule.runTest {
+            val document = deletableDocument()
+            whenever(eudiWallet.getDocuments(any())).thenReturn(listOf(document))
+            whenever(eudiWallet.getDocumentById(DELETED_DOCUMENT_ID)).thenReturn(document)
+
+            subject.wipeAllDocuments().first()
+
+            verify(activityLog, never()).record(any())
+        }
+
+    private fun deletableDocument(
+        id: String = DELETED_DOCUMENT_ID,
+        format: DocumentFormat = MsoMdocFormat(DOC_TYPE),
+    ): IssuedDocument {
+        val document = mock(IssuedDocument::class.java)
+        whenever(document.id).thenReturn(id)
+        whenever(document.format).thenReturn(format)
+        whenever(eudiWallet.getDocumentById(id)).thenReturn(document)
+        whenever(eudiWallet.deleteDocumentById(id)).thenReturn(Outcome.success(null))
+        return document
+    }
 }
+
+private const val DELETED_DOCUMENT_ID = "deleted-document"
+private const val DOC_TYPE = "org.example.sozialpass"
+private const val PID_DOC_TYPE = "eu.europa.ec.eudi.pid.1"
+private const val PID_VCT = "urn:eudi:pid:de:1"
 
 private const val PID_ISSUER_URL = "https://fake.issuer.example.com/"
 

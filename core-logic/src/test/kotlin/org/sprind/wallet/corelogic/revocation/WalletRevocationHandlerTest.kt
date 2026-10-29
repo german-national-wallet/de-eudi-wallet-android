@@ -42,6 +42,7 @@ import org.sprind.wallet.authenticationlogic.controller.mdvm.MdvmKeyManager
 import org.sprind.wallet.authenticationlogic.controller.storage.MdvmRegistrationStorageController
 import org.sprind.wallet.authenticationlogic.provider.RwscaStorageController
 import org.sprind.wallet.businesslogic.controller.revocation.WalletRevocationStore
+import org.sprind.wallet.corelogic.activity.ActivityLogRepository
 
 class WalletRevocationHandlerTest {
 
@@ -56,6 +57,7 @@ class WalletRevocationHandlerTest {
     @Mock private lateinit var mdvmRegistrationStorageController: MdvmRegistrationStorageController
     @Mock private lateinit var rwscaStorageController: RwscaStorageController
     @Mock private lateinit var walletPinUnBlockTimeStorageController: WalletPinUnBlockTimeStorageController
+    @Mock private lateinit var activityLogRepository: ActivityLogRepository
     @Mock private lateinit var logController: LogController
 
     private lateinit var handler: WalletRevocationHandler
@@ -74,6 +76,7 @@ class WalletRevocationHandlerTest {
             mdvmRegistrationStorageController = mdvmRegistrationStorageController,
             rwscaStorageController = rwscaStorageController,
             walletPinUnBlockTimeStorageController = walletPinUnBlockTimeStorageController,
+            activityLogRepository = activityLogRepository,
             logController = logController,
         )
     }
@@ -97,6 +100,7 @@ class WalletRevocationHandlerTest {
         verify(rwscaStorageController).clearPinInitialized()
         verify(rwscaStorageController).clearPinSalt()
         verify(walletPinUnBlockTimeStorageController).clear()
+        verify(activityLogRepository).clear()
     }
 
     @Test

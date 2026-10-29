@@ -70,6 +70,8 @@ import org.multipaz.crypto.Algorithm
 import org.multipaz.securearea.AndroidKeystoreCreateKeySettings
 import org.multipaz.securearea.AndroidKeystoreSecureArea
 import org.multipaz.securearea.SecureArea
+import org.sprind.wallet.corelogic.activity.ActivityLogRepository
+import org.sprind.wallet.corelogic.activity.ActivityLogRepositoryImpl
 import org.sprind.wallet.authenticationlogic.controller.rwsca.RwscaController
 import org.sprind.wallet.authenticationlogic.provider.RwscaPinSessionHolder
 import org.sprind.wallet.authenticationlogic.provider.RwscaRegistrationsProvider
@@ -171,6 +173,7 @@ fun provideWalletRevocationHandler(
     mdvmRegistrationStorageController: MdvmRegistrationStorageController,
     rwscaStorageController: RwscaStorageController,
     walletPinUnBlockTimeStorageController: WalletPinUnBlockTimeStorageController,
+    activityLogRepository: ActivityLogRepository,
     logController: LogController,
 ): WalletRevocationHandler = WalletRevocationHandlerImpl(
     store = walletRevocationStore,
@@ -181,6 +184,7 @@ fun provideWalletRevocationHandler(
     mdvmRegistrationStorageController = mdvmRegistrationStorageController,
     rwscaStorageController = rwscaStorageController,
     walletPinUnBlockTimeStorageController = walletPinUnBlockTimeStorageController,
+    activityLogRepository = activityLogRepository,
     logController = logController,
 )
 
@@ -195,6 +199,12 @@ fun provideMultipazStorage(context: Context, encryptedStorageKeyManager: Encrypt
             "${EudiWalletConfig.DEFAULT_DOCUMENT_MANAGER_IDENTIFIER}.bin").path,
         passphrase = encryptedStorageKeyManager.getOrGenerateEncryptedStorageKey(),
     )
+
+@Single
+fun provideActivityLogRepository(
+    multipazStorage: org.multipaz.storage.Storage,
+    logController: LogController,
+): ActivityLogRepository = ActivityLogRepositoryImpl(multipazStorage, logController)
 
 @Single
 fun provideAndroidKeystoreSecureArea(
@@ -249,6 +259,7 @@ fun provideWalletCoreDocumentsController(
     @OpenId4VciVp openId4VciVpKtorHttpClient: HttpClient,
     telemetry: org.sprind.wallet.analyticslogic.controller.Telemetry,
     pidConfigurationOverridesProvider: PidConfigurationOverridesProvider,
+    activityLogRepository: ActivityLogRepository,
 ): WalletCoreDocumentsController {
     return WalletCoreDocumentsControllerImpl(
         resourceProvider,
@@ -262,6 +273,7 @@ fun provideWalletCoreDocumentsController(
         ktorHttpClientFactory = { openId4VciVpKtorHttpClient },
         telemetry = telemetry,
         pidConfigurationOverridesProvider = pidConfigurationOverridesProvider,
+        activityLog = activityLogRepository,
     )
 }
 @Single

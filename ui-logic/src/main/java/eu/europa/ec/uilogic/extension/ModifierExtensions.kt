@@ -196,6 +196,20 @@ fun Modifier.paddingFrom(
     )
 }
 
+/**
+ * These values without their bottom padding, for a screen whose sticky bottom content already sits
+ * above the system bars so the body does not need to reserve that space again.
+ */
+@Composable
+fun PaddingValues.withoutBottom(): PaddingValues {
+    val layoutDirection = LocalLayoutDirection.current
+    return PaddingValues(
+        start = calculateStartPadding(layoutDirection),
+        top = calculateTopPadding(),
+        end = calculateEndPadding(layoutDirection),
+    )
+}
+
 fun Modifier.optionalTestTag(testTag: String?): Modifier {
     return this.then(
         if (testTag != null) {

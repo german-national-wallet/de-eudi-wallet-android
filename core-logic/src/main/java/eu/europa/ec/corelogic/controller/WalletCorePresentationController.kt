@@ -22,6 +22,7 @@ import eu.europa.ec.businesslogic.controller.log.LogController
 import eu.europa.ec.businesslogic.extension.safeAsync
 import eu.europa.ec.businesslogic.extension.toUri
 import eu.europa.ec.corelogic.di.WalletPresentationScope
+import eu.europa.ec.corelogic.extension.toNamespacedPath
 import eu.europa.ec.corelogic.model.AuthenticationData
 import eu.europa.ec.corelogic.model.DisclosedDocumentDomain
 import eu.europa.ec.corelogic.securearea.exception.RwscaException
@@ -54,6 +55,7 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.mapNotNull
+import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.merge
 import kotlinx.coroutines.flow.shareIn
 import kotlinx.coroutines.launch
@@ -71,10 +73,19 @@ import org.multipaz.securearea.AndroidKeystoreKeyUnlockData
 import org.multipaz.securearea.AndroidKeystoreSecureArea
 import org.multipaz.securearea.KeyUnlockData
 import org.sprind.wallet.analyticslogic.controller.Telemetry
+import org.sprind.wallet.corelogic.activity.ActivityLogRepository
+import org.sprind.wallet.corelogic.activity.ActivityRejection
+import org.sprind.wallet.corelogic.activity.ActivityResult
+import org.sprind.wallet.corelogic.activity.ActivityType
+import org.sprind.wallet.corelogic.activity.newActivityLogEntry
+import org.sprind.wallet.corelogic.activity.registeredPurpose
+import org.sprind.wallet.corelogic.activity.relyingParty
+import org.sprind.wallet.corelogic.activity.toActivityCredential
 import org.sprind.wallet.corelogic.model.RelyingPartyRegistrationStatus
 import org.sprind.wallet.corelogic.model.toNotRegisteredOrNull
 import org.sprind.wallet.corelogic.model.toRelyingPartyRegistrationStatus
 import java.net.URI
+import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.time.Duration.Companion.seconds
 
 sealed class PresentationControllerConfig(val initiatorRoute: String) {
@@ -288,6 +299,7 @@ class WalletCorePresentationControllerImpl(
     private val resourceProvider: ResourceProvider,
     private val logController: LogController,
     private val telemetry: Telemetry,
+    private val activityLog: ActivityLogRepository,
     private val dispatcher: CoroutineDispatcher = Dispatchers.IO,
 ) : WalletCorePresentationController {
     private val logTag = "WaCorePresContrImpl" // tags are limited to 23 characters
@@ -310,6 +322,12 @@ class WalletCorePresentationControllerImpl(
      * null until the consent UI reports a selection, so nothing is disclosed without it.
      */
     private var presentmentSelection: CredentialPresentmentSelection? = null
+
+    /** Whether the outcome of the current request is already in the activity log. */
+    private val activityRecorded = AtomicBoolean(true)
+
+    @Volatile
+    private var responseSent = false
 
     /** Unlock data gathered by [checkForKeyUnlock], keyed by `match.credential.identifier`. */
     private val keyUnlockData: MutableMap<String, KeyUnlockData> = mutableMapOf()
@@ -383,6 +401,8 @@ class WalletCorePresentationControllerImpl(
                         presentmentSelection = null
                         disclosedDocuments = null
                         keyUnlockData.clear()
+                        responseSent = false
+                        activityRecorded.set(false)
 
                         // trustMetadata is populated only for readers that validated against the
                         // reader trust store; its displayName is the verifier's legal name. For
@@ -560,9 +580,11 @@ class WalletCorePresentationControllerImpl(
                         throwable = it,
                         traceId = telemetry.currentTraceId(),
                     )
+                    recordPresentation(ActivityResult.NOT_COMPLETED, reason = it.message)
 
                 }.onSuccess {
                     eudiWallet.sendResponse(it.response)
+                    responseSent = true
                     result = SendRequestedDocumentsPartialState.RequestSent
                 }
             result
@@ -651,26 +673,21 @@ class WalletCorePresentationControllerImpl(
             when (response) {
 
                 // Fix: Wallet core should return Success state here
-                is TransferEventPartialState.Error -> {
-                    if (response.error.displayMessage == "Peer disconnected without proper session termination") {
-                        ResponseReceivedPartialState.Success
-                    } else {
-                        ResponseReceivedPartialState.Failure(error = response.error)
-                    }
-                }
+                is TransferEventPartialState.Error if
+                    response.error.displayMessage == "Peer disconnected without proper session termination"
+                    -> ResponseReceivedPartialState.Success
 
-                is TransferEventPartialState.Redirect -> {
-                    ResponseReceivedPartialState.Redirect(uri = response.uri)
-                }
+                is TransferEventPartialState.Error -> ResponseReceivedPartialState.Failure(error = response.error)
 
-                is TransferEventPartialState.Disconnected -> {
-                    when {
-                        events.replayCache.firstOrNull() is TransferEventPartialState.Redirect -> null
-                        else -> ResponseReceivedPartialState.Success
-                    }
-                }
+                is TransferEventPartialState.Redirect -> ResponseReceivedPartialState.Redirect(uri = response.uri)
 
-                is TransferEventPartialState.ResponseSent -> ResponseReceivedPartialState.Success
+                is TransferEventPartialState.Disconnected if
+                    events.replayCache.firstOrNull() is TransferEventPartialState.Redirect
+                    -> null
+
+                is TransferEventPartialState.Disconnected,
+                is TransferEventPartialState.ResponseSent,
+                    -> ResponseReceivedPartialState.Success
 
                 else -> null
             }
@@ -682,8 +699,87 @@ class WalletCorePresentationControllerImpl(
                     genericErrorMessage = genericErrorMessage,
                 )
             )
+        }.recordPresentationState()
+    }
+
+    private fun Flow<ResponseReceivedPartialState>.recordPresentationState(): Flow<ResponseReceivedPartialState> =
+        onEach { state ->
+            when (state) {
+                is ResponseReceivedPartialState.Failure if state.error.isRelyingPartyRejection() -> recordPresentation(
+                    ActivityResult.NOT_COMPLETED,
+                    reason = state.error.displayMessage,
+                    rejection = ActivityRejection.BY_SERVICE,
+                )
+
+                // The data already left the wallet.
+                is ResponseReceivedPartialState.Failure if responseSent -> recordPresentation(ActivityResult.COMPLETED)
+
+                is ResponseReceivedPartialState.Failure -> recordPresentation(
+                    ActivityResult.NOT_COMPLETED,
+                    reason = state.error.displayMessage,
+                )
+
+                // A proximity session also ends with a disconnect when nothing was sent.
+                ResponseReceivedPartialState.Success,
+                is ResponseReceivedPartialState.Redirect,
+                    -> if (responseSent) recordPresentation(ActivityResult.COMPLETED)
+            }
+        }
+
+    private fun recordPresentation(
+        result: ActivityResult,
+        reason: String? = null,
+        rejection: ActivityRejection? = null,
+    ) {
+        val request = processedRequest ?: return
+        if (!activityRecorded.compareAndSet(false, true)) return
+
+        val presented = if (result == ActivityResult.COMPLETED) {
+            presentmentSelection?.matches.orEmpty()
+        } else {
+            emptyList()
+        }
+        val requested = fullPresentmentSelection?.matches.orEmpty()
+        val interactingParty = relyingParty(
+            name = verifierName,
+            isTrusted = verifierIsTrusted == true,
+            registration = request.wrpRegistration,
+        )
+
+        // Callers include ViewModel teardown on the main thread; the snapshot reads documents.
+        activityLog.recordFrom {
+            val credentials = requested
+                .groupBy { it.credential.document.identifier }
+                .mapNotNull { (documentId, matches) ->
+                    eudiWallet.getDocumentById(documentId)?.toActivityCredential(
+                        requestedClaims = matches.claimPaths(),
+                        presentedClaims = presented
+                            .filter { it.credential.document.identifier == documentId }
+                            .claimPaths(),
+                    )
+                }
+            newActivityLogEntry(
+                type = ActivityType.PRESENTATION,
+                result = result,
+                interactingParty = interactingParty,
+                credentials = credentials,
+                reasonOfNoncompletion = reason,
+                rejection = rejection,
+                purpose = request.wrpRegistration.registeredPurpose(),
+            )
         }
     }
+
+    /** Why the wallet declines the current request; null when no credential matched it. */
+    private fun walletRejection(): ActivityRejection? = when {
+        relyingPartyRegistration is RelyingPartyRegistrationStatus.OverAsking -> ActivityRejection.OVERASKING
+        relyingPartyRegistration is RelyingPartyRegistrationStatus.NotRegistered -> ActivityRejection.UNKNOWN_SERVICE
+        fullPresentmentSelection?.matches.isNullOrEmpty() -> null
+        else -> ActivityRejection.BY_USER
+    }
+
+    private fun List<CredentialPresentmentSetOptionMemberMatch>.claimPaths(): List<List<String>> =
+        flatMap { match -> match.claims.keys.map { it.toNamespacedPath() } }.distinct()
 
     override fun observeSentDocumentsRequest(): Flow<WalletCorePartialState> =
         merge(checkForKeyUnlock(), mappedCallbackStateFlow()).mapNotNull {
@@ -725,6 +821,15 @@ class WalletCorePresentationControllerImpl(
         }
 
     override fun stopPresentation() {
+        if (responseSent) {
+            recordPresentation(ActivityResult.COMPLETED)
+        } else {
+            recordPresentation(
+                ActivityResult.NOT_COMPLETED,
+                reason = SESSION_INTERRUPTED,
+                rejection = ActivityRejection.BY_USER,
+            )
+        }
         coroutineScope.cancel()
         CoroutineScope(dispatcher).launch {
             stopActivePresentation()
@@ -732,6 +837,12 @@ class WalletCorePresentationControllerImpl(
     }
 
     override suspend fun rejectPresentation(): RejectPresentationPartialState {
+        val rejection = walletRejection()
+        recordPresentation(
+            ActivityResult.NOT_COMPLETED,
+            reason = rejection?.name ?: NO_MATCHING_CREDENTIAL,
+            rejection = rejection,
+        )
         if (!::_config.isInitialized || _config !is PresentationControllerConfig.OpenId4VP) {
             return RejectPresentationPartialState.Delivered
         }
@@ -820,6 +931,13 @@ class WalletCorePresentationControllerImpl(
 }
 
 private val REJECTION_TIMEOUT = 30.seconds
+
+private fun PresentationError.isRelyingPartyRejection(): Boolean =
+    (this as? PresentationError.RelyingPartySide)?.subType ==
+        PresentationError.RelyingPartySideSubType.RELYING_PARTY_REJECTED
+
+private const val NO_MATCHING_CREDENTIAL = "no matching credential"
+private const val SESSION_INTERRUPTED = "session interrupted"
 
 private fun RequestProcessor.ProcessedRequest.Success.requestedCredentialSets(): List<RequestedCredentialSet>? =
     (this as? ProcessedDcqlRequest)?.resolvedRequestObject?.query?.toRequestedCredentialSets()

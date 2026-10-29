@@ -63,6 +63,7 @@ import org.mockito.Mockito.never
 import org.mockito.Mockito.verify
 import org.mockito.MockitoAnnotations
 import org.mockito.kotlin.any
+import org.mockito.kotlin.anyOrNull
 import org.mockito.kotlin.doNothing
 import org.mockito.kotlin.times
 import org.mockito.kotlin.whenever
@@ -1260,6 +1261,53 @@ class ReadCardViewModelTest {
                 // one that was entered and must not flash the entry screen over the read.
                 assertEquals(CardReaderRoute.NFC_SCAN_EID_PIN, currentRoute)
                 assertEquals(CardScanStatus.READY, scanStatus)
+            }
+            // The request is still answered, or the SDK waits on it until the workflow times out.
+            verify(cardReaderInteractor, times(1)).providePin(null)
+        }
+
+    @Test
+    fun `when a simulated card is recognised before the SDK asks for the PIN, then the PIN is sent once on the request`() =
+        coroutineRule.runTest {
+            whenever(userRuntimeConfig.eidCardType).thenReturn(EidCardType.VIRTUAL)
+            viewModel = createViewModel()
+            viewModel.setEvent(Event.Init)
+            viewModel.goToNfcPromptForEidPin()
+            viewModel.setEvent(Event.OnStartScanningClick)
+
+            workflowEventsFlow.value = WorkflowEvent.CardRecognized
+
+            // Sent now, before the SDK has reached its PIN entry, the answer would be refused.
+            verify(cardReaderInteractor, never()).providePin(anyOrNull())
+            assertEquals(0, viewModel.viewState.value.pinState.buffer.length)
+
+            workflowEventsFlow.value = WorkflowEvent.PinRequested(pinRetryCounter = 3)
+
+            verify(cardReaderInteractor, times(1)).providePin(null)
+            with(viewModel.viewState.value) {
+                assertEquals(CardReaderRoute.NFC_SCAN_EID_PIN, currentRoute)
+                assertEquals(CardScanStatus.IN_PROGRESS, scanStatus)
+            }
+        }
+
+    @Test
+    fun `when a simulated card is asked for the PIN after the scan sheet was closed, then the request is still answered`() =
+        coroutineRule.runTest {
+            whenever(userRuntimeConfig.eidCardType).thenReturn(EidCardType.VIRTUAL)
+            viewModel = createViewModel()
+            viewModel.setEvent(Event.Init)
+            viewModel.goToNfcPromptForEidPin()
+            viewModel.setEvent(Event.OnStartScanningClick)
+            // Closing the sheet clears the scan status but leaves the simulator running.
+            viewModel.setEvent(Event.OnCancelScanClick)
+
+            workflowEventsFlow.value = WorkflowEvent.PinRequested(pinRetryCounter = 3)
+
+            verify(cardReaderInteractor, times(1)).providePin(null)
+            with(viewModel.viewState.value) {
+                // The simulator refused nothing, so there is no wrong-PIN warning to show.
+                assertEquals(CardReaderRoute.NFC_SCAN_EID_PIN, currentRoute)
+                assertNull(pinState.supportingText)
             }
         }
 

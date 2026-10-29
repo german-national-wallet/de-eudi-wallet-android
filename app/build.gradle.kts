@@ -18,8 +18,8 @@ import org.cyclonedx.Version as CycloneDxSchema
 import org.cyclonedx.gradle.CyclonedxDirectTask
 import org.cyclonedx.model.Component as CycloneDxComponent
 import project.convention.logic.AppBuildType
+import project.convention.logic.appVersionName
 import project.convention.logic.config.LibraryModule
-import java.util.Properties
 
 plugins {
     id("project.android.application")
@@ -57,16 +57,9 @@ android {
         applicationId = "org.sprind.wallet"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
-        testInstrumentationRunnerArguments += mapOf(
-            "clearPackageData" to "true"
-        )
         vectorDrawables {
             useSupportLibrary = true
         }
-    }
-
-    testOptions {
-        execution = "ANDROIDX_TEST_ORCHESTRATOR"
     }
 
     buildTypes {
@@ -107,7 +100,6 @@ dependencies {
     androidTestImplementation(libs.espresso.core)
     androidTestImplementation(libs.android.junit)
     androidTestImplementation(libs.test.rules)
-    androidTestUtil(libs.androidx.test.orchestrator)
 }
 configurations.all {
     resolutionStrategy {
@@ -164,13 +156,7 @@ tasks.named<CyclonedxDirectTask>("cyclonedxDirectBom") {
     // after the Gradle project (":app", version "unspecified").
     componentGroup.set("org.sprind")
     componentName.set("org.sprind.wallet")
-    componentVersion.set(
-        providers.provider {
-            Properties()
-                .apply { rootProject.file("version.properties").reader().use(::load) }
-                .getProperty("VERSION_NAME")!!
-        }
-    )
+    componentVersion.set(appVersionName())
 
     // JSON only. An unenriched bom.xml written beside the enriched bom.json is
     // a trap: it looks like the same document and is missing the two fields the

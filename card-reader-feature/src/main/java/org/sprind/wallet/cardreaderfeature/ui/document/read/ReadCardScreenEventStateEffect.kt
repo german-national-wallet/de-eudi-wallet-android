@@ -23,7 +23,6 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.SheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.text.AnnotatedString
-import eu.europa.ec.businesslogic.BuildConfig
 import eu.europa.ec.commonfeature.ui.issuer_details.model.IssuerInfo
 import eu.europa.ec.uilogic.component.content.ContentErrorConfig
 import eu.europa.ec.uilogic.component.wrap.WrapModalBottomSheet
@@ -88,7 +87,6 @@ data class State(
     val pinState: CodeEntryState = CodeEntryState(CodeEntryBuffer(CodeLength.EID_PIN)),
     val canContinue: Boolean = false,
     val returnTarget: CardReaderReturnTarget? = null,
-    val onSimulator: Boolean = BuildConfig.IS_SIMULATOR.toBoolean(),
     val eidCardType: EidCardType = EidCardType.PHYSICAL,
     // Last reported platform NFC state; refreshed by the screen on every resume.
     // Defaults to enabled so the flow is never gated before the first report.

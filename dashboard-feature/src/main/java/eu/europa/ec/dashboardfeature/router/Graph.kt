@@ -27,6 +27,9 @@ import androidx.navigation.toRoute
 import eu.europa.ec.dashboardfeature.BuildConfig
 import eu.europa.ec.dashboardfeature.ui.dashboard.DashboardScreen
 import org.sprind.wallet.dashboardfeature.ui.activities.ActivitiesScreen
+import org.sprind.wallet.dashboardfeature.ui.activities.ActivityDetailRoute
+import org.sprind.wallet.dashboardfeature.ui.activities.CredentialActivitiesRoute
+import org.sprind.wallet.dashboardfeature.ui.activities.detail.ActivityDetailScreen
 import org.sprind.wallet.dashboardfeature.ui.documentdetail.DashboardDocumentDetailScreen
 import org.sprind.wallet.dashboardfeature.ui.settings.SettingsScreen
 import org.sprind.wallet.dashboardfeature.ui.settings.SettingsWebPageRoute
@@ -36,6 +39,7 @@ import eu.europa.ec.uilogic.navigation.DashboardScreens
 import eu.europa.ec.uilogic.navigation.ModuleRoute
 import org.koin.androidx.compose.koinViewModel
 import org.koin.core.parameter.parametersOf
+import org.sprind.wallet.dashboardfeature.ui.settings.debugconfig.DebugConfigScreen
 
 fun NavGraphBuilder.featureDashboardGraph(navController: NavController) {
     navigation(
@@ -59,7 +63,26 @@ fun NavGraphBuilder.featureDashboardGraph(navController: NavController) {
         }
 
         bottomNavigationTabDestination(route = DashboardScreens.Activities.screenRoute) {
-            ActivitiesScreen(navHostController = navController)
+            ActivitiesScreen(
+                navHostController = navController,
+                viewModel = koinViewModel(parameters = { parametersOf("") }),
+            )
+        }
+
+        composable<CredentialActivitiesRoute> { backStackEntry ->
+            val route = backStackEntry.toRoute<CredentialActivitiesRoute>()
+            ActivitiesScreen(
+                navHostController = navController,
+                viewModel = koinViewModel(parameters = { parametersOf(route.documentId) }),
+            )
+        }
+
+        composable<ActivityDetailRoute> { backStackEntry ->
+            val route = backStackEntry.toRoute<ActivityDetailRoute>()
+            ActivityDetailScreen(
+                navHostController = navController,
+                viewModel = koinViewModel(parameters = { parametersOf(route.activityId) }),
+            )
         }
 
         bottomNavigationTabDestination(route = DashboardScreens.Settings.screenRoute) {
@@ -73,6 +96,15 @@ fun NavGraphBuilder.featureDashboardGraph(navController: NavController) {
             SettingsWebPageScreen(
                 navController = navController,
                 route = backStackEntry.toRoute<SettingsWebPageRoute>(),
+            )
+        }
+
+        composable(
+            route = DashboardScreens.DebugConfig.screenRoute
+        ) {
+            DebugConfigScreen(
+                navController = navController,
+                viewModel = koinViewModel(),
             )
         }
 

@@ -56,6 +56,12 @@ class ThemeTextStyles {
             textAlign = ThemeTextAlign.Center,
         ).toTextStyle()
 
+        /** The banner headline per Figma: "M3/headline/small" set in Bold (700) rather than Medium. */
+        val bannerTitle get() = ThemeTypography.Companion.typo.headlineSmall.copy(
+            fontFamily = ThemeTypography.labelLargeProminent.fontFamily,
+            fontWeight = ThemeFontWeight.W700,
+        ).toTextStyle()
+
         val bottomNavigationLabelSelected get() = ThemeTextStyle(
             fontFamily = ThemeTypography.labelLargeProminent.fontFamily,
             fontWeight = ThemeFontWeight.W700,

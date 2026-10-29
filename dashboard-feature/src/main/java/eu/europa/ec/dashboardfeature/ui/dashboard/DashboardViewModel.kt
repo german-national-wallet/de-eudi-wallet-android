@@ -112,6 +112,8 @@ class DashboardViewModel(
     private val userRuntimeConfig: UserRuntimeConfig,
     private val routerHost: RouterHost,
 ) : MviViewModel<Event, State, Effect>() {
+    private var hasLoadedDocuments = false
+
     override fun setInitialState(): State {
         return State(
             appVersion = dashboardInteractor.getAppVersion(),
@@ -267,10 +269,15 @@ class DashboardViewModel(
     }
 
     private fun getIssuedDocuments() {
-        setState {
-            copy(
-                isLoading = true
-            )
+        // The documents are fetched again on every resume, e.g. when coming back from a document's
+        // details. Only the first fetch shows the loader; later ones update the content in place, so
+        // the dashboard doesn't flash a loader each time it is shown again.
+        if (!hasLoadedDocuments) {
+            setState {
+                copy(
+                    isLoading = true
+                )
+            }
         }
 
         viewModelScope.launch {
@@ -287,6 +294,7 @@ class DashboardViewModel(
 
                     is DashboardInteractorGetIssuedDocumentsPartialState.Success -> {
                         telemetry.endSpan(TelemetryConstants.ISSUANCE)
+                        hasLoadedDocuments = true
                         setState {
                             copy(
                                 error = null,

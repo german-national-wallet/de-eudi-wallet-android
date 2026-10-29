@@ -49,6 +49,7 @@ import org.sprind.wallet.corelogic.model.RelyingPartyRegistrationStatus
 import org.sprind.wallet.corelogic.model.forLocale
 import org.sprind.wallet.corelogic.model.rejectsRequest
 import org.sprind.wallet.corelogic.model.reportUri
+import org.sprind.wallet.corelogic.model.supportUri
 import java.net.URI
 
 sealed class PresentationRequestInteractorPartialState {
@@ -58,6 +59,7 @@ sealed class PresentationRequestInteractorPartialState {
         val requestDocuments: List<RequestDocumentItemUi>,
         val purpose: String? = null,
         val reportUri: String? = null,
+        val supportUri: String? = null,
     ) : PresentationRequestInteractorPartialState()
 
     data class NoData(
@@ -248,6 +250,7 @@ class PresentationRequestInteractorImpl(
                                         ?.purpose
                                         ?.forLocale(resourceProvider.getLocale()),
                                     reportUri = response.relyingPartyRegistration.reportUri,
+                                    supportUri = response.relyingPartyRegistration.supportUri,
                                 )
                             } else {
                                 PresentationRequestInteractorPartialState.NoData(

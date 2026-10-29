@@ -54,7 +54,14 @@ data class PresentationErrorAction(
 
         /** Close the error and return to the wallet overview. */
         TO_OVERVIEW,
+
+        /** Open the relying party's support contact, after a redirect confirmation. */
+        CONTACT_SERVICE,
     }
+
+    /** Whether the action leaves the app, which the button marks with a launch icon. */
+    val opensExternalLink: Boolean
+        get() = kind == Kind.REPORT_ISSUE || kind == Kind.CONTACT_SERVICE
 }
 
 /**
@@ -135,31 +142,45 @@ data class PresentationErrorUiConfig(
      * rendering of a [PresentationErrorLayout.DIALOG] state (request screen).
      *
      * @param onRetry Invoked when the primary action is [PresentationErrorAction.Kind.RETRY].
-     * @param onReportIssue Invoked when the primary action is
-     *   [PresentationErrorAction.Kind.REPORT_ISSUE]; opens the report-issue page.
+     * @param onReportIssue Invoked for [PresentationErrorAction.Kind.REPORT_ISSUE]; opens the
+     *   report-issue page.
+     * @param onContactService Invoked for [PresentationErrorAction.Kind.CONTACT_SERVICE]; opens
+     *   the relying party's support contact.
+     * @param onToOverview Invoked for [PresentationErrorAction.Kind.TO_OVERVIEW], and when a
+     *   dialog offering it is dismissed: the flow cannot continue behind it.
      * @param onDismiss Invoked for every other action and when the dialog is dismissed.
      */
     fun toGenericErrorDialogConfig(
         onRetry: () -> Unit,
         onReportIssue: () -> Unit,
         onDismiss: () -> Unit,
-    ): GenericErrorDialogConfig = GenericErrorDialogConfig(
-        titleRes = titleRes,
-        bodyTextRes = bodyRes,
-        errorCode = errorCode,
-        traceId = traceId,
-        primaryButtonTextRes = primaryAction.labelRes,
-        onPrimaryButtonClick = {
-            when (primaryAction.kind) {
+        onContactService: () -> Unit = onDismiss,
+        onToOverview: () -> Unit = onDismiss,
+    ): GenericErrorDialogConfig {
+        val onAction: (PresentationErrorAction) -> Unit = { action ->
+            when (action.kind) {
                 PresentationErrorAction.Kind.RETRY -> onRetry()
                 PresentationErrorAction.Kind.REPORT_ISSUE -> onReportIssue()
-                else -> onDismiss()
+                PresentationErrorAction.Kind.CONTACT_SERVICE -> onContactService()
+                PresentationErrorAction.Kind.TO_OVERVIEW -> onToOverview()
+                PresentationErrorAction.Kind.DISMISS -> onDismiss()
             }
-        },
-        secondaryButtonTextRes = secondaryAction?.labelRes,
-        onSecondaryButtonClick = onDismiss,
-        onDismiss = onDismiss,
-    )
+        }
+        val leavesForOverview = listOfNotNull(primaryAction, secondaryAction)
+            .any { it.kind == PresentationErrorAction.Kind.TO_OVERVIEW }
+        return GenericErrorDialogConfig(
+            titleRes = titleRes,
+            bodyTextRes = bodyRes,
+            errorCode = errorCode,
+            traceId = traceId,
+            primaryButtonTextRes = primaryAction.labelRes,
+            onPrimaryButtonClick = { onAction(primaryAction) },
+            primaryButtonOpensExternalLink = primaryAction.opensExternalLink,
+            secondaryButtonTextRes = secondaryAction?.labelRes,
+            onSecondaryButtonClick = { secondaryAction?.let(onAction) ?: onDismiss() },
+            onDismiss = if (leavesForOverview) onToOverview else onDismiss,
+        )
+    }
 
     /**
      * This state with any retry action replaced by a "Retry later" dismiss, for
@@ -176,6 +197,16 @@ data class PresentationErrorUiConfig(
                 ?: retryLater,
             secondaryAction = secondaryAction?.takeUnless { it.kind == PresentationErrorAction.Kind.RETRY },
         )
+    }
+
+    /**
+     * This state without its [PresentationErrorAction.Kind.CONTACT_SERVICE] action, for a relying
+     * party whose registration names no support contact; the remaining action becomes primary.
+     */
+    fun withoutContactService(): PresentationErrorUiConfig {
+        if (primaryAction.kind != PresentationErrorAction.Kind.CONTACT_SERVICE) return this
+        val remaining = secondaryAction ?: return this
+        return copy(primaryAction = remaining, secondaryAction = null)
     }
 
     companion object {
@@ -197,13 +228,19 @@ data class PresentationErrorUiConfig(
                 is PresentationError.Unclassified -> unclassified(traceId)
 
                 is PresentationError.RelyingPartySide -> when (error.subType) {
+                    // The verifier received the response and refused it: only the relying
+                    // party can help, and the flow cannot continue (WD-4714).
                     PresentationError.RelyingPartySideSubType.RELYING_PARTY_REJECTED ->
                         dialog(
-                            titleRes = R.string.eaa_presentation_dialog_rp_rejection_title,
-                            bodyRes = R.string.eaa_presentation_dialog_rp_rejection_paragraph,
+                            titleRes = R.string.pid_presentation_service_rejection_title,
+                            bodyRes = R.string.pid_presentation_service_rejection_paragraph,
                             primaryAction = PresentationErrorAction(
-                                labelRes = R.string.eaa_presentation_dialog_rp_rejection_sec_button_2,
-                                kind = PresentationErrorAction.Kind.DISMISS,
+                                labelRes = R.string.pid_presentation_service_rejection_prim_button,
+                                kind = PresentationErrorAction.Kind.CONTACT_SERVICE,
+                            ),
+                            secondaryAction = PresentationErrorAction(
+                                labelRes = R.string.pid_presentation_service_rejection_sec_button,
+                                kind = PresentationErrorAction.Kind.TO_OVERVIEW,
                             ),
                             errorCode = error.errorCode,
                             traceId = traceId,

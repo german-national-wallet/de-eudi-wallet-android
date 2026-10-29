@@ -35,10 +35,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import eu.europa.ec.resourceslogic.R
+import eu.europa.ec.resourceslogic.theme.values.ThemeColors
 import eu.europa.ec.uilogic.component.AppIcons
 import eu.europa.ec.uilogic.component.preview.PreviewTheme
 import eu.europa.ec.uilogic.component.preview.ThemeModeWithGermanAndEnglishPreviews
@@ -130,7 +132,9 @@ private fun IssuerRow(
             Box(contentAlignment = Alignment.Center) {
                 WrapIcon(
                     iconData = AppIcons.Building,
-                    modifier = Modifier.size(SIZE_LARGE.dp),
+                    modifier = Modifier
+                        .size(SIZE_LARGE.dp)
+                        .clearAndSetSemantics { },
                     customTint = MaterialTheme.colorScheme.onSurface,
                 )
             }
@@ -141,6 +145,20 @@ private fun IssuerRow(
             style = MaterialTheme.typography.bodyLarge,
             color = MaterialTheme.colorScheme.onSurface,
         )
+        Surface(
+            modifier = Modifier.size(ISSUER_MARK_SIZE),
+            shape = CircleShape,
+        ) {
+            Box(contentAlignment = Alignment.Center) {
+                WrapIcon(
+                    iconData = AppIcons.Info,
+                    modifier = Modifier
+                        .size(SIZE_LARGE.dp)
+                        .clearAndSetSemantics { },
+                    customTint = ThemeColors.onBackgroundVariant,
+                )
+            }
+        }
     }
 }
 

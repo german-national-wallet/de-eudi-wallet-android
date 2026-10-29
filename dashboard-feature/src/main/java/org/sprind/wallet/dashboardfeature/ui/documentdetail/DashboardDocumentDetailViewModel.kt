@@ -18,6 +18,7 @@ import eu.europa.ec.uilogic.navigation.helper.generateComposableNavigationLink
 import kotlinx.coroutines.launch
 import org.koin.android.annotation.KoinViewModel
 import org.koin.core.annotation.InjectedParam
+import org.sprind.wallet.dashboardfeature.ui.activities.CredentialActivitiesRoute
 
 data class State(
     val documentType: String = "",
@@ -31,6 +32,7 @@ data class State(
     val topBarBackgroundImageUri: String? = null,
     val topBarTextColor: String? = null,
     val eaaCardData: EaaCardData? = null,
+    val isPid: Boolean = false,
 ) : ViewState
 
 
@@ -47,6 +49,7 @@ sealed class Effect : ViewSideEffect {
     sealed class Navigation : Effect() {
         data object Pop : Navigation()
         data object Restart : Navigation()
+        data class OpenActivities(val route: CredentialActivitiesRoute) : Navigation()
         data class SwitchScreen(
             val screenRoute: String,
             val popUpToScreenRoute: String = DashboardScreens.Dashboard.screenRoute,
@@ -69,7 +72,9 @@ class DashboardDocumentDetailViewModel(
             Event.Init -> getMainDocument(documentId)
             is Event.GoToDocumentDetails -> goToDocumentDetailsData(event.docId)
             Event.DeleteDocument -> deleteDocument(documentId)
-            Event.GoToActivities -> {} //TODO add navigation
+            Event.GoToActivities -> setEffect {
+                Effect.Navigation.OpenActivities(CredentialActivitiesRoute(documentId))
+            }
             Event.GoToIssuerDetails -> {} //TODO add navigation
             Event.OnBackPressed -> setEffect { Effect.Navigation.Pop }
         }
@@ -128,7 +133,8 @@ class DashboardDocumentDetailViewModel(
                                 topBarBackgroundColor = response.topBarBackgroundColor,
                                 topBarBackgroundImageUri = response.topBarBackgroundImageUri,
                                 topBarTextColor = response.topBarTextColor,
-                                eaaCardData = response.eaaCardData
+                                eaaCardData = response.eaaCardData,
+                                isPid = response.isPid,
                             )
                         }
                     }

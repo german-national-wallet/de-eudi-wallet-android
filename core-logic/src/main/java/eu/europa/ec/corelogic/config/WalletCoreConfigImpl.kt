@@ -17,8 +17,14 @@
 package eu.europa.ec.corelogic.config
 
 import android.content.Context
+import com.nimbusds.jose.JWEAlgorithm
+import com.nimbusds.jose.EncryptionMethod as JweEncryptionMethod
+import com.nimbusds.jose.jwk.Curve
 import eu.europa.ec.businesslogic.BuildConfig
 import eu.europa.ec.businesslogic.config.ConfigLogic
+import eu.europa.ec.eudi.openid4vci.CredentialResponseEncryptionPolicy
+import eu.europa.ec.eudi.openid4vci.EcConfig
+import eu.europa.ec.eudi.openid4vci.EncryptionSupportConfig
 import eu.europa.ec.eudi.wallet.EudiWalletConfig
 import eu.europa.ec.eudi.wallet.issue.openid4vci.AuthorizationHandler
 import eu.europa.ec.eudi.wallet.issue.openid4vci.OpenId4VciManager
@@ -29,7 +35,8 @@ import eu.europa.ec.eudi.wallet.transfer.openId4vp.ClientIdScheme
 import eu.europa.ec.eudi.wallet.transfer.openId4vp.EncryptionAlgorithm
 import eu.europa.ec.eudi.wallet.transfer.openId4vp.EncryptionMethod
 import eu.europa.ec.eudi.wallet.transfer.openId4vp.Format
-import org.sprind.wallet.corelogic.config.readerTrustAnchors
+import org.sprind.wallet.corelogic.config.accessCaTrustAnchors
+import org.sprind.wallet.corelogic.config.registrationCaTrustAnchors
 import org.sprind.wallet.corelogic.config.requireSignedIssuerMetadata
 import org.sprind.wallet.corelogic.securearea.RwscaCreateKeySettings
 import kotlinx.io.bytestring.ByteString
@@ -60,6 +67,7 @@ internal class WalletCoreConfigImpl(
             withClientAuthenticationType(OpenId4VciManager.ClientAuthenticationType.None(BuildConfig.VCI_ISSUER_CLIENT_ID))
             withAuthFlowRedirectionURI(BuildConfig.ISSUE_AUTHORIZATION_DEEPLINK)
             withParUsage(OpenId4VciManager.Config.ParUsage.REQUIRED)
+            withResponseEncryptionConfig(RESPONSE_ENCRYPTION_CONFIG)
             withDPopConfig(keyAttestedDPopConfig())
             withIssuanceMetadataStorage(storage)
             withIssuerMetadataPolicy(signedIssuerMetadataPolicy)
@@ -105,14 +113,17 @@ internal class WalletCoreConfigImpl(
 
                     configureOpenId4Vci(defaultVciConfig)
 
-                    // The revocation policy is passed explicitly because core-lib 0.30 flipped
-                    // the default from RevocationPolicy.NoCheck to RevocationPolicy.HardFail,
-                    // which fails reader authentication whenever a CRL cannot be retrieved -
-                    // several of the development CAs below publish none.
+                    // Explicit because the core-lib default is HardFail, which rejects the
+                    // development CAs that publish no CRL.
                     configureReaderTrustStore(
                         context,
-                        *readerTrustAnchors,
-                        revocationPolicy = RevocationPolicy.NoCheck,
+                        *accessCaTrustAnchors,
+                        revocationPolicy = RevocationPolicy.SoftFail,
+                    )
+                    configureRegistrationCertificateTrustStore(
+                        context,
+                        *registrationCaTrustAnchors,
+                        revocationPolicy = RevocationPolicy.SoftFail,
                     )
                     configureWrpRegistrationPolicy(WrpRegistrationPolicy.Enabled)
                 }
@@ -126,6 +137,7 @@ internal class WalletCoreConfigImpl(
                 .withClientAuthenticationType(OpenId4VciManager.ClientAuthenticationType.None(BuildConfig.VCI_ISSUER_CLIENT_ID))
                 .withAuthFlowRedirectionURI(DEFAULT_AUTH_FLOW_REDIRECTION_URI)
                 .withParUsage(OpenId4VciManager.Config.ParUsage.REQUIRED)
+                .withResponseEncryptionConfig(RESPONSE_ENCRYPTION_CONFIG)
                 .withDPopConfig(keyAttestedDPopConfig())
                 .withIssuanceMetadataStorage(storage)
                 .withIssuerMetadataPolicy(signedIssuerMetadataPolicy)
@@ -149,6 +161,7 @@ internal class WalletCoreConfigImpl(
                 )
                 .withAuthFlowRedirectionURI(BuildConfig.ISSUE_AUTHORIZATION_DEEPLINK)
                 .withParUsage(OpenId4VciManager.Config.ParUsage.IF_SUPPORTED)
+                .withResponseEncryptionConfig(RESPONSE_ENCRYPTION_CONFIG)
                 .withDPopConfig(defaultDPopConfig)
                 .withIssuanceMetadataStorage(storage)
                 .withIssuerMetadataPolicy(signedIssuerMetadataPolicy)
@@ -190,6 +203,21 @@ internal class WalletCoreConfigImpl(
         const val EUDIW_ISSUER_URL = "https://issuer.eudiw.dev"
 
         val DOCUMENT_USER_AUTHENTICATION_TIMEOUT = 5.seconds
+
+        // HAIP: ECDH-ES on P-256 for alg, A256GCM (preferred) or A128GCM for enc.
+        val RESPONSE_ENCRYPTION_ALGORITHMS: List<JWEAlgorithm> = listOf(JWEAlgorithm.ECDH_ES)
+        val RESPONSE_ENCRYPTION_METHODS: List<JweEncryptionMethod> =
+            listOf(JweEncryptionMethod.A256GCM, JweEncryptionMethod.A128GCM)
+
+        val RESPONSE_ENCRYPTION_CONFIG = EncryptionSupportConfig(
+            credentialResponseEncryptionPolicy = CredentialResponseEncryptionPolicy.REQUIRED,
+            ecConfig = EcConfig(
+                ecKeyCurve = Curve.P_256,
+                supportedJWEAlgorithms = RESPONSE_ENCRYPTION_ALGORITHMS,
+            ),
+            rsaConfig = null,
+            supportedEncryptionMethods = RESPONSE_ENCRYPTION_METHODS,
+        )
 
     }
 }

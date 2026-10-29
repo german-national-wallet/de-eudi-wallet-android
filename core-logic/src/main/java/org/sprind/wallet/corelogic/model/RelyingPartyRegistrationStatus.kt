@@ -23,6 +23,7 @@ import eu.europa.ec.eudi.wallet.registration.LocalizedText
 import eu.europa.ec.eudi.wallet.registration.OverAskedClaim
 import eu.europa.ec.eudi.wallet.registration.RegistrationCertificateResult
 import eu.europa.ec.eudi.wallet.registration.RegistrationFailureReason
+import kotlinx.serialization.Serializable
 import java.util.Locale
 
 /** What the relying party's registration certificate said about the request. */
@@ -34,6 +35,7 @@ sealed interface RelyingPartyRegistrationStatus {
     data class WithinRegisteredScope(
         val purpose: List<LocalizedTextDomain> = emptyList(),
         val supervisoryAuthorityUri: String? = null,
+        val supportUri: String? = null,
     ) : RelyingPartyRegistrationStatus
 
     /** The certificate validated, but the request asks for claims it does not register. */
@@ -53,6 +55,7 @@ data class OverAskedClaimDomain(
     val path: String,
 )
 
+@Serializable
 data class LocalizedTextDomain(
     val language: String,
     val value: String,
@@ -79,6 +82,10 @@ val RelyingPartyRegistrationStatus.rejectsRequest: Boolean
         is RelyingPartyRegistrationStatus.WithinRegisteredScope,
             -> false
     }
+
+/** The relying party's own support contact (WRPRC `support_uri`), from a validated certificate only. */
+val RelyingPartyRegistrationStatus.supportUri: String?
+    get() = (this as? RelyingPartyRegistrationStatus.WithinRegisteredScope)?.supportUri
 
 val RelyingPartyRegistrationStatus.reportUri: String?
     get() = when (this) {
@@ -111,6 +118,7 @@ private fun RegistrationCertificateResult.toRelyingPartyRegistrationStatus(): Re
                 RelyingPartyRegistrationStatus.WithinRegisteredScope(
                     purpose = registration.purpose.map { it.toDomain() },
                     supervisoryAuthorityUri = supervisoryAuthorityUri,
+                    supportUri = registration.supportUri?.takeIf { it.isNotBlank() },
                 )
             } else {
                 RelyingPartyRegistrationStatus.OverAsking(
@@ -141,7 +149,7 @@ private fun OverAskedClaim.toDomain(): OverAskedClaimDomain = OverAskedClaimDoma
     path = path.joinToString(separator = "/"),
 )
 
-private fun LocalizedText.toDomain(): LocalizedTextDomain = LocalizedTextDomain(
+fun LocalizedText.toDomain(): LocalizedTextDomain = LocalizedTextDomain(
     language = language,
     value = value,
 )

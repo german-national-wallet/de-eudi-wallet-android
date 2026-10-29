@@ -30,9 +30,16 @@ import eu.europa.ec.resourceslogic.provider.ResourceProvider
 import org.koin.core.annotation.ComponentScan
 import org.koin.core.annotation.Factory
 import org.koin.core.annotation.Module
+import org.sprind.wallet.businesslogic.config.DebugConfigOverridesController
 import org.sprind.wallet.commonfeature.interactor.RwscaInteractor
+import org.sprind.wallet.corelogic.activity.ActivityLogRepository
+import org.sprind.wallet.dashboardfeature.interactor.ActivityInteractor
+import org.sprind.wallet.dashboardfeature.interactor.ActivityInteractorImpl
 import org.sprind.wallet.dashboardfeature.interactor.DashboardDocumentDetailInteractor
 import org.sprind.wallet.dashboardfeature.interactor.DashboardDocumentDetailInteractorImpl
+import org.sprind.wallet.dashboardfeature.interactor.DebugConfigInteractor
+import org.sprind.wallet.dashboardfeature.interactor.DebugConfigInteractorImpl
+import org.sprind.wallet.dashboardfeature.ui.activities.ActivityUiMapper
 
 @Module
 @ComponentScan("eu.europa.ec.dashboardfeature", "org.sprind.wallet.dashboardfeature")
@@ -79,3 +86,20 @@ fun provideDashboardDocumentDetailInteractorImpl(
 fun provideFiltersController(
     resourceProvider: ResourceProvider,
 ): FiltersController = FiltersControllerImpl(resourceProvider)
+
+@Factory
+fun provideDebugConfigInteractor(
+    debugConfigOverridesController: DebugConfigOverridesController,
+): DebugConfigInteractor =
+    DebugConfigInteractorImpl(debugConfigOverridesController)
+
+@Factory
+fun provideActivityInteractor(
+    activityLogRepository: ActivityLogRepository,
+    walletCoreDocumentsController: WalletCoreDocumentsController,
+    resourceProvider: ResourceProvider,
+): ActivityInteractor = ActivityInteractorImpl(
+    activityLogRepository,
+    walletCoreDocumentsController,
+    ActivityUiMapper(resourceProvider),
+)

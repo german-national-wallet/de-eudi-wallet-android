@@ -63,6 +63,8 @@ class AndroidLibraryConventionPlugin : Plugin<Project> {
         const val MDVM_SKIP_INTEGRITY_CHECKS_ALL = "all"
         const val MDVM_SKIP_INTEGRITY_CHECKS_FALSE = "false"
 
+        private const val REMOVED_IS_SIMULATOR = "IS_SIMULATOR"
+
         val MDVM_SKIP_INTEGRITY_CHECKS_VALUES = setOf(
             MDVM_SKIP_INTEGRITY_CHECKS_PLAY_INTEGRITY,
             MDVM_SKIP_INTEGRITY_CHECKS_KEY_ATTESTATION,
@@ -103,10 +105,21 @@ class AndroidLibraryConventionPlugin : Plugin<Project> {
             val openId4VciAuthorizationScheme = "eu.europa.ec.euidi"
             val openId4VciAuthorizationHost = "authorization"
 
-            val keyOnSimulator = "IS_SIMULATOR"
+            // Warn once per build (from a single module) if the removed flag is still set anywhere.
+            if (path == LibraryModule.BusinessLogic.path &&
+                (System.getenv(REMOVED_IS_SIMULATOR) != null || readProperty(REMOVED_IS_SIMULATOR) != null)
+            ) {
+                logger.warn(
+                    "$REMOVED_IS_SIMULATOR is no longer read. Software keys are enabled by default " +
+                        "on the dev flavor; override with -PenableSoftwareKeys=true|false. The " +
+                        "platform-authentication blocking screen is no longer suppressed (set a " +
+                        "screen lock on the device) and the eID card type no longer defaults to virtual."
+                )
+            }
 
-            val onSimulator =
-                System.getenv(keyOnSimulator) ?: readLocalProperty(target, keyOnSimulator, "false")
+            // Emulators only have a software keystore. Defaults to enabled on dev only.
+            val enableSoftwareKeysProperty =
+                readProperty("enableSoftwareKeys")?.toBooleanStrictOrNull()
 
             val enableEaaBiometricsProperty =
                 readProperty("enableEaaBiometrics")?.toBooleanStrictOrNull() ?: true
@@ -135,8 +148,6 @@ class AndroidLibraryConventionPlugin : Plugin<Project> {
                 with(defaultConfig) {
 
                     testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
-
-                    addConfigField("IS_SIMULATOR", onSimulator)
 
                     addConfigField("DEEPLINK", "$walletScheme://")
                     addConfigField("EUDI_OPENID4VP_SCHEME", eudiOpenId4VpScheme)
@@ -193,6 +204,7 @@ class AndroidLibraryConventionPlugin : Plugin<Project> {
 
                     val enableEaaBiometrics = variant.flavorName != AppFlavor.Dev.flavorName || enableEaaBiometricsProperty
                     val enablePnsPermissionPopUp = variant.flavorName != AppFlavor.Dev.flavorName || enablePnsPermissionPopUpProperty
+                    val enableSoftwareKeys = enableSoftwareKeysProperty ?: (variant.flavorName == AppFlavor.Dev.flavorName)
 
                     variant.buildConfigFields?.apply {
                         put(
@@ -205,6 +217,7 @@ class AndroidLibraryConventionPlugin : Plugin<Project> {
                         )
                         put("ENABLE_EAA_BIOMETRICS", BuildConfigField("boolean", "$enableEaaBiometrics", null))
                         put("ENABLE_PNS_PERMISSION_POP_UP", BuildConfigField("boolean", "$enablePnsPermissionPopUp", null))
+                        put("ENABLE_SOFTWARE_KEYS", BuildConfigField("boolean", "$enableSoftwareKeys", null))
                     }
                 }
             }
@@ -212,6 +225,7 @@ class AndroidLibraryConventionPlugin : Plugin<Project> {
             extensions.configure<SecretsPluginExtension> {
                 defaultPropertiesFileName = "secrets.defaults.properties"
                 ignoreList.add("sdk.*")
+                ignoreList.add(REMOVED_IS_SIMULATOR)
             }
             dependencies {
                 add("implementation", libs.findLibrary("kotlinx-coroutines-android").get())
@@ -228,14 +242,10 @@ class AndroidLibraryConventionPlugin : Plugin<Project> {
         }
     }
 
-    private fun readLocalProperty(project: Project, key: String, defaultValue: String): String {
-        return readPropertiesFile(project, "local.properties").getProperty(key, defaultValue)
-    }
-
+    // Build flags come from -P or local.properties only, never from the per-flavor secret files.
     private fun Project.readProperty(key: String): String? {
         return providers.gradleProperty(key).orNull
             ?: readPropertiesFile(this, "local.properties").getProperty(key)
-            ?: readPropertiesFile(this, "dev.properties").getProperty(key)
     }
 
     private fun readPropertiesFile(project: Project, fileName: String): Properties {

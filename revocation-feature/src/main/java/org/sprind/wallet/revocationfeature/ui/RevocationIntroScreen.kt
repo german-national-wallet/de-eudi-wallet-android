@@ -16,6 +16,7 @@
 
 package org.sprind.wallet.revocationfeature.ui
 
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -40,7 +41,6 @@ import eu.europa.ec.uilogic.component.wrap.ButtonConfig
 import eu.europa.ec.uilogic.component.wrap.ButtonType
 import eu.europa.ec.uilogic.component.wrap.TextConfig
 import eu.europa.ec.uilogic.component.wrap.WrapButton
-import eu.europa.ec.uilogic.component.wrap.WrapImage
 import eu.europa.ec.uilogic.navigation.RevocationScreens
 import org.sprind.wallet.resourceslogic.theme.values.ThemeTextStyles
 import org.sprind.wallet.uilogic.component.ContentChecklist
@@ -49,6 +49,7 @@ import org.sprind.wallet.uilogic.component.ContentIllustration
 import org.sprind.wallet.uilogic.component.ContentIllustrationPlacement
 import org.sprind.wallet.uilogic.component.ContentTemplateBody
 import org.sprind.wallet.uilogic.component.ContentTemplateConfig
+import org.sprind.wallet.uilogic.component.WrapLottieAnimation
 
 
 @Composable
@@ -105,11 +106,13 @@ private fun Content(
                 )
             },
             illustration = {
+                // Decorative: the title and the checklist say what the animation shows.
                 ContentIllustration(contentDescription = null) {
-                    WrapImage(
-                        iconData = AppIcons.LogoPlain,
-                        modifier = Modifier.size(184.dp), // Todo: extract into constant
-                        contentScale = ContentScale.Fit,
+                    WrapLottieAnimation(
+                        animation = R.raw.phone_lost,
+                        modifier = Modifier.fillMaxSize(),
+                        iterations = 1,
+                        contentScale = ContentScale.Crop,
                     )
                 }
             },

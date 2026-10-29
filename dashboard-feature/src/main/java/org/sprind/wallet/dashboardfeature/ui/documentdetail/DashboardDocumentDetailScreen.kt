@@ -32,6 +32,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.ui.graphics.Color
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -103,19 +104,28 @@ private fun MainScreen(
     ContentScreenWithPidTopBar(
         isLoading = state.isLoading,
         contentErrorConfig = state.error,
-        contentPidTopBarConfig = ContentPidTopBarConfig(
-            title = state.documentType,
-            onBackIconPress = { onEventSend(Event.OnBackPressed) },
-            backgroundColor = parseCssColor(
-                state.topBarBackgroundColor,
-                ThemeColors.primaryPid
-            ),
-            backgroundImageUri = state.topBarBackgroundImageUri,
-            textColor = parseCssColor(
-                state.topBarTextColor,
-                ThemeColors.onPrimaryPid
+        contentPidTopBarConfig = if (state.isPid) {
+            ContentPidTopBarConfig(
+                title = state.documentType,
+                onBackIconPress = { onEventSend(Event.OnBackPressed) },
             )
-        ),
+        } else {
+            ContentPidTopBarConfig(
+                title = state.documentType,
+                onBackIconPress = { onEventSend(Event.OnBackPressed) },
+                // Transparent until the issuer says otherwise, so nothing is drawn in a color of its own
+                // before the document has loaded.
+                backgroundColor = parseCssColor(
+                    state.topBarBackgroundColor,
+                    Color.Transparent
+                ),
+                backgroundImageUri = state.topBarBackgroundImageUri,
+                textColor = parseCssColor(
+                    state.topBarTextColor,
+                    MaterialTheme.colorScheme.onSurface
+                )
+            )
+        },
         onBack = { onEventSend(Event.OnBackPressed) },
         stickyBottom = { paddingValues ->
             WrapStickyBottomContent(
@@ -199,6 +209,8 @@ private fun DetailTopItems(
             value = stringResource(R.string.pid_inspection_pid_details_list_1),
             onClick = { onEventSend(Event.GoToDocumentDetails(docId)) }
         )
+        /**
+         * // TODO uncomment once we have the new designs WD-4527
         DetailItem(
             modifier = Modifier
                 .fillMaxWidth(),
@@ -212,7 +224,7 @@ private fun DetailTopItems(
             icon = AppIcons.History,
             value = stringResource(R.string.pid_inspection_pid_details_list_3),
             onClick = { onEventSend(Event.GoToActivities) }
-        )
+        )*/
     }
 }
 
@@ -327,6 +339,7 @@ private fun handleNavigationEffect(
         }
 
         Effect.Navigation.Restart -> restartApp(navController)
+        is Effect.Navigation.OpenActivities -> navController.navigate(navigationEffect.route)
     }
 }
 

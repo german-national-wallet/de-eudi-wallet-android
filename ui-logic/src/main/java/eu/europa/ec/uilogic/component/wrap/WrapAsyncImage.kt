@@ -38,6 +38,7 @@ fun WrapAsyncImage(
     fallback: IconData? = null,
     contentScale: ContentScale = ContentScale.Crop,
     imageLoader: ImageLoader = koinInject(),
+    onError: (() -> Unit)? = null,
 ) {
     val context = LocalContext.current
 
@@ -51,6 +52,7 @@ fun WrapAsyncImage(
         error = error?.resourceId?.let { painterResource(it) },
         fallback = fallback?.resourceId?.let { painterResource(it) },
         placeholder = placeholder?.resourceId?.let { painterResource(it) },
-        contentScale = contentScale
+        contentScale = contentScale,
+        onError = onError?.let { callback -> { callback() } },
     )
 }

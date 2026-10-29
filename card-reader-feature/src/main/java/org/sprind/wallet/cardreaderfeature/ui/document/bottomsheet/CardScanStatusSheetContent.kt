@@ -16,11 +16,11 @@
 
 package org.sprind.wallet.cardreaderfeature.ui.document.bottomsheet
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.CircularProgressIndicator
@@ -29,6 +29,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.LiveRegionMode
@@ -71,37 +72,42 @@ fun CardScanStatusSheetContent(
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .background(MaterialTheme.colorScheme.background)
-            .padding(horizontal = SPACING_LARGE.dp)
-            .padding(top = SPACING_LARGE.dp, bottom = SPACING_LARGE.dp),
-        verticalArrangement = Arrangement.spacedBy(SPACING_MEDIUM.dp),
+            // Every status takes the same height, so the dialog doesn't jump as the read moves on.
+            .heightIn(min = CARD_SCAN_STATUS_MIN_HEIGHT)
+            .padding(SPACING_LARGE.dp),
+        // The action stays at the bottom, below whatever space the status leaves.
+        verticalArrangement = Arrangement.SpaceBetween,
     ) {
-        ScanStatusMark(status = status, readingProgress = readingProgress)
+        Column(verticalArrangement = Arrangement.spacedBy(SPACING_MEDIUM.dp)) {
+            ScanStatusMark(status = status, readingProgress = readingProgress)
 
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .semantics { liveRegion = LiveRegionMode.Polite },
-            verticalArrangement = Arrangement.spacedBy(SPACING_EXTRA_SMALL.dp),
-        ) {
-            Text(
+            Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .semantics { heading() },
-                text = scanStatusTitle(status),
-                style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.onSurface,
-            )
-            Text(
-                modifier = Modifier.fillMaxWidth(),
-                text = scanStatusParagraph(status = status, scanReason = scanReason),
-                style = MaterialTheme.typography.bodyLarge,
-                color = MaterialTheme.colorScheme.onSurface,
-            )
+                    .semantics { liveRegion = LiveRegionMode.Polite },
+                verticalArrangement = Arrangement.spacedBy(SPACING_EXTRA_SMALL.dp),
+            ) {
+                Text(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .semantics { heading() },
+                    text = scanStatusTitle(status),
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.onSurface,
+                )
+                Text(
+                    modifier = Modifier.fillMaxWidth(),
+                    text = scanStatusParagraph(status = status, scanReason = scanReason),
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.onSurface,
+                )
+            }
         }
 
+        val actionModifier = Modifier.padding(top = SPACING_LARGE.dp)
         if (status == CardScanStatus.SUCCESS) {
             ScanStatusAction(
+                modifier = actionModifier,
                 text = stringResource(R.string.nfc_scanning_system_sheet_nfc_prim_button),
                 type = ButtonType.PRIMARY,
                 trailingIcon = AppIcons.ArrowRightLong,
@@ -109,6 +115,7 @@ fun CardScanStatusSheetContent(
             )
         } else {
             ScanStatusAction(
+                modifier = actionModifier,
                 text = stringResource(R.string.global_cancel_button),
                 type = ButtonType.SECONDARY,
                 onClick = onCancelClick,
@@ -129,6 +136,7 @@ private fun ScanStatusMark(
         ) {
             CircularProgressIndicator(
                 progress = { (readingProgress ?: 0) / PERCENT_FULL },
+                color = SCAN_SUCCESS_COLOR,
                 modifier = Modifier
                     .size(SCAN_MARK_SIZE)
                     // The percentage right next to it is what says how far the read is.
@@ -161,10 +169,11 @@ private fun ScanStatusAction(
     text: String,
     type: ButtonType,
     onClick: () -> Unit,
+    modifier: Modifier = Modifier,
     trailingIcon: IconData? = null,
 ) {
     WrapButton(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = modifier.fillMaxWidth(),
         buttonConfig = ButtonConfig(
             type = type,
             onClick = onClick,
@@ -256,8 +265,13 @@ private val NfcScanReason.errorParagraph: Int
         NfcScanReason.EID_NEW_PIN_SET -> R.string.nfc_scanning_system_sheet_nfc_error_paragraph
     }
 
-private val SCAN_MARK_SIZE = 48.dp
+/** The height of the status in its dialog, see [org.sprind.wallet.cardreaderfeature.ui.document.nfc.CardScanView]. */
+internal val CARD_SCAN_STATUS_MIN_HEIGHT = 280.dp
+
+private val SCAN_MARK_SIZE = 50.dp
 private const val PERCENT_FULL = 100f
+
+private val SCAN_SUCCESS_COLOR = Color(0xFF0C4A38)
 
 @ThemeModeWithGermanAndEnglishPreviews
 @Composable

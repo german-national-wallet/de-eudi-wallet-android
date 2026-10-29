@@ -20,6 +20,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -35,6 +36,7 @@ import eu.europa.ec.uilogic.component.preview.PreviewTheme
 import eu.europa.ec.uilogic.component.preview.ThemeModeWithGermanAndEnglishPreviews
 import eu.europa.ec.uilogic.component.utils.SPACING_LARGE
 import eu.europa.ec.uilogic.component.utils.SPACING_LARGE_32
+import eu.europa.ec.uilogic.component.utils.SPACING_MEDIUM
 import org.sprind.wallet.uilogic.component.ContentIllustrationPlacement
 import org.sprind.wallet.uilogic.component.ContentTemplateBody
 import org.sprind.wallet.uilogic.component.ContentTemplateConfig
@@ -46,6 +48,7 @@ import org.sprind.wallet.uilogic.component.ProvideContentTemplateStyle
 @Composable
 fun OnboardingCardView(
     modifier: Modifier,
+    onDocumentClick: () -> Unit,
 ) {
     val documents = listOf(
         EligibleDocument(
@@ -70,16 +73,23 @@ fun OnboardingCardView(
                 illustrationPlacement = ContentIllustrationPlacement.BELOW_TEXT,
             ),
             title = { Text(text = stringResource(R.string.pid_issuance_onboarding_cards_title)) },
-            extraContent = { EligibleDocuments(documents = documents) },
+            extraContent = {
+                EligibleDocuments(documents = documents, onDocumentClick = onDocumentClick)
+            },
         )
     }
 }
 
 
 @Composable
-private fun EligibleDocuments(modifier: Modifier = Modifier, documents: List<EligibleDocument>) {
+private fun EligibleDocuments(
+    documents: List<EligibleDocument>,
+    onDocumentClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
     Column(
         modifier = modifier
+            .padding(horizontal = SPACING_MEDIUM.dp)
             .fillMaxWidth()
             .semantics {
                 collectionInfo = CollectionInfo(rowCount = documents.size, columnCount = 1)
@@ -87,7 +97,11 @@ private fun EligibleDocuments(modifier: Modifier = Modifier, documents: List<Eli
         verticalArrangement = Arrangement.spacedBy(SPACING_LARGE.dp),
     ) {
         documents.forEachIndexed { index, document ->
-            EligibleDocumentRow(document = document, index = index)
+            EligibleDocumentRow(
+                document = document,
+                index = index,
+                onClick = onDocumentClick,
+            )
         }
     }
 }
@@ -98,7 +112,8 @@ private fun EligibleDocuments(modifier: Modifier = Modifier, documents: List<Eli
 private fun OnboardingCardContentPreview() {
     PreviewTheme {
         OnboardingCardView(
-            modifier = Modifier.fillMaxSize()
+            modifier = Modifier.fillMaxSize(),
+            onDocumentClick = {},
         )
     }
 }

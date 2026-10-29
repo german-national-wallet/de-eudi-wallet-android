@@ -16,8 +16,9 @@
 
 package org.sprind.wallet.cardreaderfeature.ui.document.onboarding
 
-import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -31,6 +32,7 @@ import eu.europa.ec.uilogic.component.AppIcons
 import eu.europa.ec.uilogic.component.preview.PreviewTheme
 import eu.europa.ec.uilogic.component.preview.ThemeModeWithGermanAndEnglishPreviews
 import eu.europa.ec.uilogic.component.utils.SPACING_LARGE_32
+import eu.europa.ec.uilogic.component.utils.SPACING_MEDIUM
 import eu.europa.ec.uilogic.component.wrap.WrapImage
 import org.sprind.wallet.uilogic.component.ContentIllustrationPlacement
 import org.sprind.wallet.uilogic.component.ContentTemplateBody
@@ -70,8 +72,9 @@ fun OnboardingPinView(
                 WrapImage(
                     iconData = AppIcons.StackedIdCardsWithPin,
                     modifier = Modifier
+                        .padding(SPACING_MEDIUM.dp)
                         .width(ILLUSTRATION_WIDTH)
-                        .aspectRatio(ILLUSTRATION_ASPECT_RATIO),
+                        .height(ILLUSTRATION_HEIGHT),
                     contentScale = ContentScale.Fit,
                 )
             },
@@ -79,8 +82,8 @@ fun OnboardingPinView(
     }
 }
 
-private val ILLUSTRATION_WIDTH = 207.dp
-private const val ILLUSTRATION_ASPECT_RATIO = 1.319f
+private val ILLUSTRATION_WIDTH = 204.dp
+private val ILLUSTRATION_HEIGHT = 126.dp
 
 @ThemeModeWithGermanAndEnglishPreviews
 @Composable

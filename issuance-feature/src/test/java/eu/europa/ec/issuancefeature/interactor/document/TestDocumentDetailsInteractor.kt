@@ -125,7 +125,8 @@ class TestDocumentDetailsInteractor {
                         documentIsBookmarked = false,
                         issuerName = null,
                         issuerLogo = null,
-                        documentFormat = getMockedMdlWithBasicFields().format
+                        documentFormat = getMockedMdlWithBasicFields().format,
+                        isPid = true,
                     ),
                     awaitItem()
                 )
@@ -284,7 +285,8 @@ class TestDocumentDetailsInteractor {
                         documentIsBookmarked = false,
                         issuerName = null,
                         issuerLogo = null,
-                        documentFormat = MsoMdocFormat(mockedPidNameSpace)
+                        documentFormat = MsoMdocFormat(mockedPidNameSpace),
+                        isPid = true,
                     ),
                     awaitItem()
                 )

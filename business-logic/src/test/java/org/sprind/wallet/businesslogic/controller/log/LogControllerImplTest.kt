@@ -17,16 +17,14 @@
 package org.sprind.wallet.businesslogic.controller.log
 
 import androidx.test.core.app.ApplicationProvider
-import eu.europa.ec.businesslogic.config.ConfigLogic
+import eu.europa.ec.businesslogic.config.LogConfigImpl
 import eu.europa.ec.businesslogic.controller.log.LogControllerImpl
 import fr.bipi.treessence.file.FileLoggerTree
 import org.junit.After
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
-import org.mockito.Mock
 import org.mockito.MockitoAnnotations
-import org.mockito.kotlin.whenever
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import timber.log.Timber
@@ -36,9 +34,6 @@ import kotlin.test.assertTrue
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [34])
 class LogControllerImplTest {
-
-    @Mock
-    private lateinit var configLogic: ConfigLogic
 
     private lateinit var closeable: AutoCloseable
 
@@ -56,11 +51,9 @@ class LogControllerImplTest {
     }
 
     private fun buildSubject(isLogcatEnabled: Boolean, isLogWriterEnabled: Boolean) {
-        whenever(configLogic.isLogcatEnabled).thenReturn(isLogcatEnabled)
-        whenever(configLogic.isLogWriterEnabled).thenReturn(isLogWriterEnabled)
         LogControllerImpl(
             context = ApplicationProvider.getApplicationContext(),
-            configLogic = configLogic,
+            logConfig = LogConfigImpl(isLogcatEnabled = isLogcatEnabled, isLogWriterEnabled),
         )
     }
 

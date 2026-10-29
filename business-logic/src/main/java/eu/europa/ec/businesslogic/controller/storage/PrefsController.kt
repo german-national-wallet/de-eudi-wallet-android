@@ -169,11 +169,10 @@ interface PrefsController {
  */
 class PrefsControllerImpl(
     private val resourceProvider: ResourceProvider,
-    private val logController: LogController
+    private val logController: LogController,
 ) : PrefsController {
 
     private val logTag = javaClass.simpleName
-
     /**
      * Master key used to encrypt/decrypt shared preferences.
      */

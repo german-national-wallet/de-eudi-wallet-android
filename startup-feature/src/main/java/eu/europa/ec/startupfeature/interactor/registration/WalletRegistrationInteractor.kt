@@ -5,6 +5,7 @@ import eu.europa.ec.authenticationlogic.controller.appattestation.WalletRegistra
 import eu.europa.ec.authenticationlogic.controller.storage.WalletRegistrationStorageController
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
+import org.sprind.wallet.analyticslogic.controller.Telemetry
 import org.sprind.wallet.businesslogic.controller.revocation.WalletRevocationStore
 import org.sprind.wallet.commonfeature.interactor.MdvmInteractor
 import org.sprind.wallet.networklogic.common.model.ApiResult
@@ -52,6 +53,7 @@ class WalletRegistrationInteractorImpl(
     private val walletRegistrationStorageController: WalletRegistrationStorageController,
     private val mdvmInteractor: MdvmInteractor,
     private val walletRevocationStore: WalletRevocationStore,
+    private val telemetry: Telemetry,
 ) : WalletRegistrationInteractor {
     override suspend fun registerWallet(): Flow<WalletInitialRegistrationPartialState> = flow {
         if (walletRevocationStore.isRevoked()) {
@@ -59,7 +61,17 @@ class WalletRegistrationInteractorImpl(
             return@flow
         }
 
-        if (walletRegistrationStorageController.getWalletRegistration() != null) {
+        val storedRegistration = walletRegistrationStorageController.getWalletRegistration()
+            .getOrElse {
+                emit(
+                    WalletInitialRegistrationPartialState.Failure(
+                        errorCode = WalletInitialRegistrationPartialState.ErrorCode.UNKNOWN,
+                        traceId = telemetry.currentTraceId(),
+                    )
+                )
+                return@flow
+            }
+        if (storedRegistration != null) {
             emit(WalletInitialRegistrationPartialState.AlreadyRegistered)
             return@flow
         }

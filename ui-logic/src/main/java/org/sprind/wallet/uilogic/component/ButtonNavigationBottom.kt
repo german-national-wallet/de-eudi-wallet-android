@@ -172,7 +172,7 @@ private fun CardButton(
     }
 }
 
-private val CARD_BUTTON_MIN_HEIGHT = 56.dp
+private val CARD_BUTTON_MIN_HEIGHT = 78.dp
 private val CARD_BUTTON_CORNER = 12.dp
 private const val DISABLED_BORDER_ALPHA = 0.12f
 

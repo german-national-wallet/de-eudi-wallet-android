@@ -20,10 +20,16 @@ import androidx.navigation.NavController
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.compose.composable
 import androidx.navigation.navigation
+import androidx.navigation.toRoute
 import eu.europa.ec.uilogic.navigation.ModuleRoute
 import org.koin.androidx.compose.koinViewModel
 import org.sprind.wallet.onboardingfeature.setup.model.SetupStep
-import org.sprind.wallet.onboardingfeature.setup.ui.SetupStepPlaceholder
+import org.sprind.wallet.onboardingfeature.setup.notifications.NotificationConsentScreen
+import org.sprind.wallet.onboardingfeature.setup.platformauth.PlatformAuthSetupScreen
+import org.sprind.wallet.onboardingfeature.setup.privacypolicy.PrivacyPolicySetupScreen
+import org.sprind.wallet.onboardingfeature.setup.privacypolicy.SetupWebPageRoute
+import org.sprind.wallet.onboardingfeature.setup.privacypolicy.SetupWebPageScreen
+import org.sprind.wallet.onboardingfeature.setup.success.SetupSuccessScreen
 import org.sprind.wallet.onboardingfeature.setup.ui.SetupStepRoute
 
 /**
@@ -42,9 +48,40 @@ fun NavGraphBuilder.featureSetupGraph(navController: NavController) {
                     step = step,
                     viewModel = koinViewModel(),
                 ) { onComplete, onBack ->
-                    SetupStepPlaceholder(step = step, onComplete = onComplete, onBack = onBack)
+                    when (step) {
+                        SetupStep.NOTIFICATIONS -> NotificationConsentScreen(
+                            viewModel = koinViewModel(),
+                            onComplete = onComplete,
+                            onBack = onBack,
+                        )
+
+                        SetupStep.PLATFORM_AUTH -> PlatformAuthSetupScreen(
+                            viewModel = koinViewModel(),
+                            onComplete = onComplete,
+                            onBack = onBack,
+                        )
+
+                        SetupStep.PRIVACY_POLICY -> PrivacyPolicySetupScreen(
+                            viewModel = koinViewModel(),
+                            navController = navController,
+                            onComplete = onComplete,
+                            onBack = onBack,
+                        )
+
+                        SetupStep.SUCCESS -> SetupSuccessScreen(
+                            onComplete = onComplete,
+                            onBack = onBack,
+                        )
+                    }
                 }
             }
+        }
+
+        composable<SetupWebPageRoute> { backStackEntry ->
+            SetupWebPageScreen(
+                navController = navController,
+                route = backStackEntry.toRoute<SetupWebPageRoute>(),
+            )
         }
     }
 }

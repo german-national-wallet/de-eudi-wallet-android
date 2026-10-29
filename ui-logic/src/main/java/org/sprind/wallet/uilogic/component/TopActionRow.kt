@@ -20,7 +20,6 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -32,7 +31,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
-import eu.europa.ec.uilogic.component.utils.BUTTON_HEIGHT
 import eu.europa.ec.uilogic.component.utils.SIZE_MEDIUM_LARGE
 import eu.europa.ec.uilogic.component.utils.SPACING_EXTRA_MEDIUM
 import eu.europa.ec.uilogic.component.utils.SPACING_MEDIUM
@@ -82,7 +80,6 @@ fun TopActionRow(action: NavigationTopAction) {
     if (onClick == null) {
         Row(
             modifier = Modifier
-                .heightIn(min = BUTTON_HEIGHT.dp)
                 .padding(horizontal = SPACING_EXTRA_MEDIUM.dp)
                 .semantics(mergeDescendants = true) { },
             horizontalArrangement = Arrangement.spacedBy(SPACING_SMALL.dp),

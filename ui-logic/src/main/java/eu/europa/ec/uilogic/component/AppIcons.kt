@@ -353,6 +353,13 @@ object AppIcons {
         contentDescriptionId = R.string.content_description_check,
         imageVector = null
     )
+
+    /** The design system's thinner checkmark, drawn at 24dp (an 18dp glyph in a 24dp frame). */
+    val Checkmark: IconData = IconData(
+        resourceId = R.drawable.ic_checkmark,
+        contentDescriptionId = R.string.content_description_check,
+        imageVector = null
+    )
     val Certificate: IconData = IconData(
         resourceId = R.drawable.certificate,
         contentDescriptionId = R.string.content_description_certified_icon,
@@ -415,12 +422,6 @@ object AppIcons {
         imageVector = null
     )
 
-    val NoPAOnDevice = IconData(
-        resourceId = R.drawable.no_pa_on_device,
-        contentDescriptionId = R.string.content_description_unlock_phone_icon,
-        imageVector = null
-    )
-
     val OnboardingSampleIdCard = IconData(
         resourceId = R.drawable.onboarding_card,
         contentDescriptionId = R.string.card_onboarding_image_description,
@@ -430,12 +431,6 @@ object AppIcons {
     val OnboardingWithEidAndPin = IconData(
         resourceId = R.drawable.onboarding_eid_pin_logo,
         contentDescriptionId = R.string.onboarding_eid_pin_logo_description,
-        imageVector = null
-    )
-
-    val ArrowOutward = IconData(
-        resourceId = R.drawable.arrow_outward,
-        contentDescriptionId = R.string.content_description_arrow_outward,
         imageVector = null
     )
 
@@ -696,5 +691,11 @@ object AppIcons {
         resourceId = R.drawable.ic_character_whole_number,
         contentDescriptionId = R.string.eaa_inspection_eaa_issuer_label_id,
         imageVector = null
+    )
+
+    val Renew = IconData(
+        resourceId = R.drawable.ic_renew,
+        contentDescriptionId = R.string.content_description_renew_icon,
+        imageVector = null,
     )
 }

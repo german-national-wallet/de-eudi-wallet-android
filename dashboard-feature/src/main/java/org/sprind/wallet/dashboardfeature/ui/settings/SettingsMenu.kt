@@ -52,6 +52,7 @@ import eu.europa.ec.uilogic.component.utils.SPACING_EXTRA_SMALL
 import eu.europa.ec.uilogic.component.utils.SPACING_MEDIUM
 import eu.europa.ec.uilogic.component.utils.SPACING_SMALL
 import eu.europa.ec.uilogic.component.wrap.TextConfig
+import org.sprind.wallet.businesslogic.config.debugConfigAvailable
 
 /**
  * A row of the settings menu.
@@ -87,6 +88,10 @@ enum class SettingsMenuEntry(
     EXPORT_LOGS(
         labelRes = R.string.dashboard_drawer_log_export,
         leadingIcon = AppIcons.Edit,
+    ),
+    DEBUG_CONFIG(
+        labelRes = R.string.settings_debug_config_title,
+        leadingIcon = AppIcons.Sign,
     ),
 }
 
@@ -129,11 +134,15 @@ fun settingsMenuGroups(isLogExportAvailable: Boolean): List<SettingsMenuGroup> =
             ),
         )
     )
-    if (isLogExportAvailable) {
+    @Suppress("SimplifyBooleanWithConstants", "KotlinConstantConditions")
+    if (isLogExportAvailable || debugConfigAvailable) {
         add(
             SettingsMenuGroup(
                 titleRes = R.string.dashboard_drawer_title,
-                entries = listOf(SettingsMenuEntry.EXPORT_LOGS),
+                entries = buildList {
+                    if (isLogExportAvailable) add(SettingsMenuEntry.EXPORT_LOGS)
+                    if (debugConfigAvailable) add(SettingsMenuEntry.DEBUG_CONFIG)
+                },
             )
         )
     }

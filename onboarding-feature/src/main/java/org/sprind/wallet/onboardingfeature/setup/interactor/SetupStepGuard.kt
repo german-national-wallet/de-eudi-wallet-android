@@ -18,14 +18,11 @@ package org.sprind.wallet.onboardingfeature.setup.interactor
 
 import eu.europa.ec.uilogic.navigation.ModuleRoute
 import org.sprind.wallet.onboardingfeature.setup.model.SetupStep
-import org.sprind.wallet.onboardingfeature.setup.provider.SetupFlowAvailability
 import org.sprind.wallet.onboardingfeature.setup.provider.SetupStorageProvider
 import org.sprind.wallet.uilogic.navigation.NavigationGuard
 
 /**
  * Guards the dashboard until [step] is completed, pointing to the step's screen instead.
- * While [setupFlowAvailability] is disabled the step is skipped and the guard points to the
- * dashboard.
  *
  * Each step has its own subclass so that every guard is a distinct DI definition bound to
  * [NavigationGuard].
@@ -33,7 +30,6 @@ import org.sprind.wallet.uilogic.navigation.NavigationGuard
 sealed class SetupStepGuard(
     private val step: SetupStep,
     private val setupStorageProvider: SetupStorageProvider,
-    private val setupFlowAvailability: SetupFlowAvailability,
 ) : NavigationGuard {
     override val priority: Int
         get() = step.priority
@@ -42,7 +38,7 @@ sealed class SetupStepGuard(
         get() = ModuleRoute.DashboardModule.route
 
     override fun getDirection(): String =
-        if (!setupFlowAvailability.isEnabled() || setupStorageProvider.isStepCompleted(step)) {
+        if (setupStorageProvider.isStepCompleted(step)) {
             destination
         } else {
             step.screen.screenRoute
@@ -51,20 +47,16 @@ sealed class SetupStepGuard(
 
 class PlatformAuthSetupGuard(
     setupStorageProvider: SetupStorageProvider,
-    setupFlowAvailability: SetupFlowAvailability,
-) : SetupStepGuard(SetupStep.PLATFORM_AUTH, setupStorageProvider, setupFlowAvailability)
+) : SetupStepGuard(SetupStep.PLATFORM_AUTH, setupStorageProvider)
 
 class PrivacyPolicySetupGuard(
     setupStorageProvider: SetupStorageProvider,
-    setupFlowAvailability: SetupFlowAvailability,
-) : SetupStepGuard(SetupStep.PRIVACY_POLICY, setupStorageProvider, setupFlowAvailability)
+) : SetupStepGuard(SetupStep.PRIVACY_POLICY, setupStorageProvider)
 
 class NotificationsSetupGuard(
     setupStorageProvider: SetupStorageProvider,
-    setupFlowAvailability: SetupFlowAvailability,
-) : SetupStepGuard(SetupStep.NOTIFICATIONS, setupStorageProvider, setupFlowAvailability)
+) : SetupStepGuard(SetupStep.NOTIFICATIONS, setupStorageProvider)
 
 class SuccessSetupGuard(
     setupStorageProvider: SetupStorageProvider,
-    setupFlowAvailability: SetupFlowAvailability,
-) : SetupStepGuard(SetupStep.SUCCESS, setupStorageProvider, setupFlowAvailability)
+) : SetupStepGuard(SetupStep.SUCCESS, setupStorageProvider)

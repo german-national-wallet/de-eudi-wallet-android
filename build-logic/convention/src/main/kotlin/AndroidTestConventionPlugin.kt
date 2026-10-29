@@ -37,10 +37,6 @@ class AndroidTestConventionPlugin : Plugin<Project> {
 
             dependencies {
                 add("api", kotlin("test"))
-                add(
-                    "api",
-                    libs.findLibrary("androidx-test-orchestrator").get()
-                )
                 add("api", libs.findLibrary("androidx-test-ext").get())
                 add("api", libs.findLibrary("androidx-test-rules").get())
                 add("api", libs.findLibrary("androidx-test-runner").get())

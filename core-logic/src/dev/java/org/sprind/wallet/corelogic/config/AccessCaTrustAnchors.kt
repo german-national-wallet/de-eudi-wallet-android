@@ -1,0 +1,27 @@
+/*
+ * Copyright (c) 2026 European Commission
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.sprind.wallet.corelogic.config
+
+import eu.europa.ec.resourceslogic.R
+
+internal val accessCaTrustAnchors = intArrayOf(
+    R.raw.netlight_eudi_hub_sandbox_access_ca_01,
+    R.raw.netlight_eudi_hub_sandbox_access_ca_01_v2,
+    R.raw.common_codes_sandbox_registrar_01,
+    R.raw.common_codes_sandbox_registrar_02,
+    R.raw.common_codes_sandbox_registrar_access_ca_01,
+    R.raw.common_codes_sandbox_registrar_03_access,
+)

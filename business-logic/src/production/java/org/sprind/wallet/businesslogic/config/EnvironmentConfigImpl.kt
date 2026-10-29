@@ -16,7 +16,13 @@
 
 package org.sprind.wallet.businesslogic.config
 
-internal class EnvironmentConfigImpl : WalletBackendEnvironmentConfig() {
+import eu.europa.ec.businesslogic.config.EnvironmentConfig
+import eu.europa.ec.businesslogic.config.LogConfig
+import eu.europa.ec.businesslogic.config.LogConfigImpl
+import org.koin.core.annotation.Single
+
+internal class EnvironmentConfigImpl(override val logConfig: LogConfig) :
+    WalletBackendEnvironmentConfig() {
 
     override val serverHostURL: String
         get() = "https://production.wallet-backend.example.invalid"
@@ -27,3 +33,10 @@ internal class EnvironmentConfigImpl : WalletBackendEnvironmentConfig() {
     override val otelServiceName: String
         get() = "prod-android"
 }
+
+@Single
+fun provideLogConfig(): LogConfig = LogConfigImpl()
+
+@Single
+fun provideEnvironmentConfig(logConfig: LogConfig): EnvironmentConfig =
+    EnvironmentConfigImpl(logConfig)

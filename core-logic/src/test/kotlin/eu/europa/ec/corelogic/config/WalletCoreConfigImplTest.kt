@@ -16,13 +16,22 @@
 
 package eu.europa.ec.corelogic.config
 
+import com.nimbusds.jose.EncryptionMethod
+import com.nimbusds.jose.JWEAlgorithm
+import com.nimbusds.jose.jwk.Curve
 import eu.europa.ec.businesslogic.config.ConfigLogic
+import eu.europa.ec.eudi.openid4vci.CredentialResponseEncryptionPolicy
+import eu.europa.ec.eudi.openid4vci.EcConfig
+import eu.europa.ec.eudi.openid4vci.EncryptionSupportConfig
 import eu.europa.ec.eudi.openid4vci.IssuerMetadataPolicy
 import eu.europa.ec.eudi.wallet.issue.openid4vci.AuthorizationHandler
 import eu.europa.ec.eudi.wallet.issue.openid4vci.dpop.DPopConfig
 import io.mockk.every
 import io.mockk.mockk
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotEquals
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertSame
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -86,7 +95,37 @@ class WalletCoreConfigImplTest {
         assertTrue(subject.defaultVciConfig.issuerMetadataPolicy is IssuerMetadataPolicy.RequireSigned)
     }
 
+    @Test
+    fun `every vci config uses the approved response encryption allowlist`() {
+        (subject.vciConfig.values + subject.defaultVciConfig).forEach {
+            val encryption = it.responseEncryptionConfig
+            assertNull(encryption.rsaConfig)
+            assertEquals(CredentialResponseEncryptionPolicy.REQUIRED, encryption.credentialResponseEncryptionPolicy)
+            assertEquals(Curve.P_256, encryption.ecConfig?.ecKeyCurve)
+            assertEquals(APPROVED_ALGORITHMS, encryption.supportedEncryptionAlgorithms)
+            assertEquals(APPROVED_METHODS, encryption.supportedEncryptionMethods)
+        }
+    }
+
+    @Test
+    fun `weak JWE primitives are not allowed`() {
+        val encryption = WalletCoreConfigImpl.RESPONSE_ENCRYPTION_CONFIG
+        listOf(JWEAlgorithm.RSA1_5, JWEAlgorithm.RSA_OAEP_256, JWEAlgorithm.A128KW, JWEAlgorithm.DIR)
+            .forEach { assertFalse(it in encryption.supportedEncryptionAlgorithms) }
+        listOf(EncryptionMethod.A128CBC_HS256, EncryptionMethod.A256CBC_HS512)
+            .forEach { assertFalse(it in encryption.supportedEncryptionMethods) }
+    }
+
+    @Test
+    fun `the approved allowlist is still supported by the nimbus version in use`() {
+        assertTrue(EcConfig.SUPPORTED_ENCRYPTION_ALGORITHMS.containsAll(APPROVED_ALGORITHMS))
+        assertTrue(EncryptionSupportConfig.SUPPORTED_ENCRYPTION_METHODS.containsAll(APPROVED_METHODS))
+    }
+
     private companion object {
+        val APPROVED_ALGORITHMS = listOf(JWEAlgorithm.ECDH_ES)
+        val APPROVED_METHODS = listOf(EncryptionMethod.A256GCM, EncryptionMethod.A128GCM)
+
         const val PID_ISSUER_URL = "https://pid-issuer.example.com"
     }
 }

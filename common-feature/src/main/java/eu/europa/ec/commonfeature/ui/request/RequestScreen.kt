@@ -483,7 +483,10 @@ private fun RpInfoFooter(
         ContentNotice {
             Column(verticalArrangement = Arrangement.spacedBy(SPACING_SMALL.dp)) {
                 Text(
-                    text = stringResource(R.string.pid_presentation_rp_info_paragraph_1),
+                    text = stringResource(
+                        if (purpose != null) R.string.pid_presentation_rp_info_label
+                        else R.string.pid_presentation_rp_info_paragraph_1
+                    ),
                     style = MaterialTheme.typography.headlineSmall
                 )
                 Text(
