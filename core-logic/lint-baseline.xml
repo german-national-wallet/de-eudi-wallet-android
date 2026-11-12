@@ -5,14 +5,14 @@
         id="InvalidPackage"
         message="Invalid package reference in library; not included in Android: `javax.naming.directory`. Referenced from `org.bouncycastle.cert.dane.fetcher.JndiDANEFetcherFactory`.">
         <location
-            file="$GRADLE_USER_HOME/caches/modules-2/files-2.1/org.bouncycastle/bcpkix-jdk18on/1.83/3f4300d0441459bfa64a481c80062b002ff0cf65/bcpkix-jdk18on-1.83.jar"/>
+            file="$GRADLE_USER_HOME/caches/modules-2/files-2.1/org.bouncycastle/bcpkix-jdk18on/1.84/dab889a3259e27caec6e6c2f3bde94af036b2fcc/bcpkix-jdk18on-1.84.jar"/>
     </issue>
 
     <issue
         id="InvalidPackage"
         message="Invalid package reference in library; not included in Android: `javax.naming`. Referenced from `org.bouncycastle.cert.dane.fetcher.JndiDANEFetcherFactory.1`.">
         <location
-            file="$GRADLE_USER_HOME/caches/modules-2/files-2.1/org.bouncycastle/bcpkix-jdk18on/1.83/3f4300d0441459bfa64a481c80062b002ff0cf65/bcpkix-jdk18on-1.83.jar"/>
+            file="$GRADLE_USER_HOME/caches/modules-2/files-2.1/org.bouncycastle/bcpkix-jdk18on/1.84/dab889a3259e27caec6e6c2f3bde94af036b2fcc/bcpkix-jdk18on-1.84.jar"/>
     </issue>
 
     <issue
@@ -128,7 +128,7 @@
         id="TrustAllX509TrustManager"
         message="`checkServerTrusted` is empty, which could cause insecure network traffic due to trusting arbitrary TLS/SSL certificates presented by peers">
         <location
-            file="$GRADLE_USER_HOME/caches/modules-2/files-2.1/org.bouncycastle/bcpkix-jdk18on/1.83/3f4300d0441459bfa64a481c80062b002ff0cf65/bcpkix-jdk18on-1.83.jar"/>
+            file="$GRADLE_USER_HOME/caches/modules-2/files-2.1/org.bouncycastle/bcpkix-jdk18on/1.84/dab889a3259e27caec6e6c2f3bde94af036b2fcc/bcpkix-jdk18on-1.84.jar"/>
     </issue>
 
 </issues>

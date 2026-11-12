@@ -16,7 +16,7 @@
 
 package org.sprind.wallet.businesslogic.controller.revocation
 
-import eu.europa.ec.businesslogic.controller.storage.PrefsController
+import org.sprind.wallet.businesslogic.controller.storage.PlainPrefsController
 import kotlinx.coroutines.flow.MutableStateFlow
 import org.koin.core.annotation.Single
 import kotlinx.coroutines.flow.StateFlow
@@ -32,15 +32,18 @@ import kotlinx.coroutines.flow.asStateFlow
  * revoked wallet cannot silently re-register as a fresh instance.
  *
  * The recheck-pending flag records that a revocation push arrived but its authenticated renewal
- * did not reach a conclusive MDVM response (e.g. the device was offline). It is only ever set by
- * the push handler — the wallet performs no unconditional revocation checks.
+ * did not reach a conclusive MDVM response (e.g. the device was offline, or the encrypted
+ * preferences were locked because the user had not unlocked the device recently). It is only
+ * ever set by the push handler — the wallet performs no unconditional revocation checks.
+ *
+ * Both flags live in [PlainPrefsController]: the push handler runs with no user present and
+ * must be able to read and write them without the encrypted preferences master key.
  */
 interface WalletRevocationStore {
 
     /**
      * Emits the current revoked state; seeded from preferences at construction. In-process
-     * observers (the blocking-screen host) use this because preference change listeners never
-     * fire for this app's encrypted preferences.
+     * observers (the blocking-screen host) use this rather than a preference change listener.
      */
     val revokedFlow: StateFlow<Boolean>
 
@@ -60,7 +63,7 @@ interface WalletRevocationStore {
 
 @Single(binds = [WalletRevocationStore::class])
 class WalletRevocationStoreImpl(
-    private val prefsController: PrefsController,
+    private val prefsController: PlainPrefsController,
 ) : WalletRevocationStore {
 
     private val revoked = MutableStateFlow(readRevoked())
@@ -90,7 +93,8 @@ class WalletRevocationStoreImpl(
         prefsController.clear(RECHECK_PENDING_KEY)
     }
 
-    private fun readRevoked(): Boolean = prefsController.getBool(WALLET_REVOKED_KEY, false)
+    private fun readRevoked(): Boolean =
+        prefsController.getBool(WALLET_REVOKED_KEY, false)
 
     companion object {
         /** Same key name as the iOS wallet uses for its self-lock flag. */

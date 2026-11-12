@@ -29,7 +29,6 @@ import org.koin.core.annotation.Module
 import org.sprind.wallet.analyticslogic.controller.Telemetry
 import org.sprind.wallet.businesslogic.controller.revocation.WalletRevocationStore
 import org.sprind.wallet.commonfeature.interactor.MdvmInteractor
-import kotlin.time.Clock
 
 @Module
 @ComponentScan("eu.europa.ec.startupfeature")
@@ -58,5 +57,3 @@ fun provideWalletRegistrationInteractor(
         telemetry,
     )
 
-@Factory
-fun provideClock(): Clock = Clock.System

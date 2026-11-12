@@ -17,24 +17,37 @@
 package org.sprind.wallet.presentationfeature.error
 
 import android.net.Uri
+import androidx.lifecycle.viewModelScope
 import eu.europa.ec.businesslogic.config.ConfigLogic
+import eu.europa.ec.corelogic.controller.ResolvePreferredPidConfigurationsPartialState
+import eu.europa.ec.corelogic.controller.WalletCoreDocumentsController
+import eu.europa.ec.corelogic.di.AppCoroutineScope
 import eu.europa.ec.uilogic.mvi.MviViewModel
 import eu.europa.ec.uilogic.mvi.ViewEvent
 import eu.europa.ec.uilogic.mvi.ViewSideEffect
 import eu.europa.ec.uilogic.mvi.ViewState
 import eu.europa.ec.uilogic.navigation.PresentationScreens
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.async
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
 import org.koin.android.annotation.KoinViewModel
 import org.koin.core.annotation.InjectedParam
+import org.sprind.wallet.commonfeature.interactor.DocumentDeletionPartialState
+import org.sprind.wallet.commonfeature.navigation.cardReaderIssuanceRoute
+import org.sprind.wallet.presentationfeature.interactor.PidDeletionInteractor
 
 /**
  * The blocking error screen renders exactly the resolved [config].
  *
  * @property pendingReportUrl The report target the user is asked to confirm before
  *   leaving the app; `null` while no confirmation is shown.
+ * @property isLoading Whether the locked Digital ID is being deleted.
  */
 data class State(
     val config: PresentationErrorUiConfig,
     val pendingReportUrl: String? = null,
+    val isLoading: Boolean = false,
 ) : ViewState
 
 sealed class Event : ViewEvent {
@@ -55,6 +68,9 @@ sealed class Effect : ViewSideEffect {
 
         /** Open [url] outside the app; the blocking screen stays in place. */
         data class OpenUrl(val url: String) : Navigation()
+
+        /** Leave the presentation flow for PID issuance at [screenRoute]. */
+        data class ToPidIssuance(val screenRoute: String) : Navigation()
     }
 }
 
@@ -71,7 +87,12 @@ class PresentationErrorViewModel(
     @InjectedParam private val reason: BlockingErrorReason,
     @InjectedParam private val traceId: String,
     private val configLogic: ConfigLogic,
+    private val walletCoreDocumentsController: WalletCoreDocumentsController,
+    private val pidDeletionInteractor: PidDeletionInteractor,
+    private val appCoroutineScope: AppCoroutineScope,
 ) : MviViewModel<Event, State, Effect>() {
+
+    private var addPidJob: Job? = null
 
     override fun setInitialState(): State = State(
         config = PresentationErrorUiConfig.blocking(
@@ -81,6 +102,9 @@ class PresentationErrorViewModel(
     )
 
     override fun handleEvents(event: Event) {
+        // Every event is ignored while the locked Digital ID is being deleted, so the user does not
+        // reach the overview while the Digital ID is still disappearing from it.
+        if (viewState.value.isLoading) return
         when (event) {
             Event.PrimaryActionPressed -> onAction(viewState.value.config.primaryAction.kind)
             Event.SecondaryActionPressed ->
@@ -108,13 +132,71 @@ class PresentationErrorViewModel(
                 return
             }
 
+            PresentationErrorAction.Kind.ADD_PID -> {
+                addPid()
+                return
+            }
+
+            PresentationErrorAction.Kind.REPLACE_PID -> {
+                replacePid()
+                return
+            }
+
             PresentationErrorAction.Kind.DISMISS -> Effect.Navigation.Pop
 
             // Blocking screens never offer retry or a service contact: the presentation
             // session is already torn down when we navigate here.
             PresentationErrorAction.Kind.RETRY,
             PresentationErrorAction.Kind.CONTACT_SERVICE,
+            PresentationErrorAction.Kind.BACK_TO_SERVICE_PROVIDER,
                 -> Effect.Navigation.Pop
+        }
+        setEffect { navigation }
+    }
+
+    /**
+     * Starts PID issuance like the dashboard does: resolve the PID configurations to request,
+     * then read the eID card. When they cannot be resolved, falls back to the overview, whose
+     * Digital ID onboarding offers the same entry point to try again.
+     */
+    private fun addPid() {
+        if (addPidJob?.isActive == true) return
+        addPidJob = viewModelScope.launch { startPidIssuance() }
+    }
+
+    /**
+     * Deletes the locked Digital ID through [PidDeletionInteractor], then starts PID issuance like
+     * [addPid]: a new Digital ID comes with a new code. When the deletion fails, falls back to the
+     * overview, where the Digital ID can still be deleted from its details.
+     *
+     * There is no "Delete Digital ID?" confirmation: the account is locked server-side, so the
+     * Digital ID is already unusable and deleting it loses nothing.
+     */
+    private fun replacePid() {
+        if (addPidJob?.isActive == true) return
+        addPidJob = viewModelScope.launch {
+            setState { copy(isLoading = true) }
+            // The deletion runs in the app scope: leaving this screen must not cancel it part-way,
+            // e.g. after the RWSCA account but before the local PID.
+            val deletion = appCoroutineScope.async { pidDeletionInteractor.deletePid().first() }
+            if (deletion.await() is DocumentDeletionPartialState.Success) {
+                startPidIssuance()
+            } else {
+                setEffect { Effect.Navigation.ToDashboard }
+            }
+        }
+    }
+
+    private suspend fun startPidIssuance() {
+        val navigation = when (
+            val result = walletCoreDocumentsController.resolvePreferredPidConfigurations()
+        ) {
+            is ResolvePreferredPidConfigurationsPartialState.Success ->
+                Effect.Navigation.ToPidIssuance(cardReaderIssuanceRoute(result.configurationIds))
+
+            is ResolvePreferredPidConfigurationsPartialState.NoPidConfigurationsAdvertised,
+            is ResolvePreferredPidConfigurationsPartialState.Failure,
+                -> Effect.Navigation.ToDashboard
         }
         setEffect { navigation }
     }

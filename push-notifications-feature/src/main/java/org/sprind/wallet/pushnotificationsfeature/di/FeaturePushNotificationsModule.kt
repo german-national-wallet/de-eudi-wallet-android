@@ -16,21 +16,42 @@
 
 package org.sprind.wallet.pushnotificationsfeature.di
 
+import com.google.firebase.messaging.FirebaseMessaging
 import eu.europa.ec.businesslogic.controller.log.LogController
 import org.koin.core.annotation.ComponentScan
 import org.koin.core.annotation.Factory
 import org.koin.core.annotation.Module
+import org.sprind.wallet.authenticationlogic.controller.storage.MdvmRegistrationStorageController
 import org.sprind.wallet.authenticationlogic.provider.MdvmAuthContextProvider
 import org.sprind.wallet.commonfeature.interactor.MdvmInteractor
 import org.sprind.wallet.businesslogic.controller.revocation.WalletRevocationStore
+import org.sprind.wallet.businesslogic.controller.storage.PlainPrefsController
 import org.sprind.wallet.networklogic.pushnotifications.api.PushNotificationsApiClient
 import org.sprind.wallet.pushnotificationsfeature.dispatcher.FcmMessageDispatcher
 import org.sprind.wallet.pushnotificationsfeature.interactor.PushNotificationsInteractor
 import org.sprind.wallet.pushnotificationsfeature.interactor.PushNotificationsInteractorImpl
+import org.sprind.wallet.pushnotificationsfeature.service.FcmRegistrationRecovery
+import org.sprind.wallet.pushnotificationsfeature.service.await
 
 @Module
 @ComponentScan("org.sprind.wallet.pushnotificationsfeature")
 class FeaturePushNotificationsModule {
+
+    @Factory
+    fun provideFcmRegistrationRecovery(
+        plainPrefsController: PlainPrefsController,
+        walletRevocationStore: WalletRevocationStore,
+        mdvmRegistrationStorageController: MdvmRegistrationStorageController,
+        pushNotificationsInteractor: PushNotificationsInteractor,
+        logController: LogController,
+    ): FcmRegistrationRecovery = FcmRegistrationRecovery(
+        plainPrefsController = plainPrefsController,
+        walletRevocationStore = walletRevocationStore,
+        mdvmRegistrationStorageController = mdvmRegistrationStorageController,
+        pushNotificationsInteractor = pushNotificationsInteractor,
+        tokenProvider = { FirebaseMessaging.getInstance().token.await() },
+        logController = logController,
+    )
 
     @Factory
     fun providePushNotificationsInteractor(

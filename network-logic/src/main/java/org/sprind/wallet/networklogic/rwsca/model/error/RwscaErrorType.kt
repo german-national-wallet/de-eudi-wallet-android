@@ -17,6 +17,11 @@
 package org.sprind.wallet.networklogic.rwsca.model.error
 
 import org.sprind.wallet.networklogic.common.NetEntity
+import org.sprind.wallet.networklogic.utils.HSM_UNAVAILABLE_ERROR_CODE
+import org.sprind.wallet.networklogic.utils.NO_INTERNET_ERROR_CODE
+import org.sprind.wallet.networklogic.utils.RATE_LIMITED_ERROR_CODE
+import org.sprind.wallet.networklogic.utils.UNKNOWN_ERROR_CODE
+import org.sprind.wallet.networklogic.utils.getErrorCode
 
 /**
  * The error codes that might be returned from rWSCA endpoints.
@@ -44,7 +49,7 @@ class RwscaErrorType internal constructor(
         val BAD_REQUEST = RwscaErrorType("BAD_REQUEST")
         val CHALLENGE_VERIFICATION_FAILURE = RwscaErrorType("CHALLENGE_VERIFICATION_FAILURE")
         val DB_UNAVAILABLE = RwscaErrorType("DB_UNAVAILABLE")
-        val HSM_UNAVAILABLE = RwscaErrorType("HSM_UNAVAILABLE")
+        val HSM_UNAVAILABLE = RwscaErrorType(HSM_UNAVAILABLE_ERROR_CODE)
         val INTERNAL_SERVER_ERROR = RwscaErrorType("INTERNAL_SERVER_ERROR")
         val MALFORMED_DATA_HASH = RwscaErrorType("MALFORMED_DATA_HASH")
         val MALFORMED_PIN_PUB_KEY = RwscaErrorType("MALFORMED_PIN_PUB_KEY")
@@ -59,8 +64,16 @@ class RwscaErrorType internal constructor(
 
         // Client-side errors
         val ACCOUNT_NOT_FOUND_LOCALLY = RwscaErrorType("ACCOUNT_NOT_FOUND_LOCALLY", errorSource = NetEntity.CLIENT)
+        val PIN_KEY_DERIVATION_FAILED = RwscaErrorType("PIN_KEY_DERIVATION_FAILED", errorSource = NetEntity.CLIENT)
+        val NO_INTERNET = RwscaErrorType(NO_INTERNET_ERROR_CODE, errorSource = NetEntity.CLIENT)
+        val RATE_LIMITED = RwscaErrorType(RATE_LIMITED_ERROR_CODE, errorSource = NetEntity.CLIENT)
+        val UNKNOWN = RwscaErrorType(UNKNOWN_ERROR_CODE, errorSource = NetEntity.CLIENT)
     }
 }
+
+/** Returns the client-side [RwscaErrorType] for a failure that produced no server response. */
+fun Throwable.toRwscaErrorType(): RwscaErrorType =
+    RwscaErrorType(getErrorCode(), errorSource = NetEntity.CLIENT)
 
 /** Returns the [RwscaErrorType] for this server-sent error response. */
 fun RwscaErrorResponse.toRwscaErrorType(): RwscaErrorType = RwscaErrorType(code)

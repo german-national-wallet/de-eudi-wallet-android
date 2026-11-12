@@ -30,6 +30,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
+import androidx.compose.runtime.key
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.clearAndSetSemantics
@@ -64,6 +65,8 @@ data class CardScanConfig(
     val status: CardScanStatus,
     val scanReason: NfcScanReason,
     val readingProgress: Int? = null,
+    /** Counts the times the card has been asked for again; each one replays the animation. */
+    val readyAgainCount: Int = 0,
 )
 
 /**
@@ -84,6 +87,7 @@ fun CardScanView(
     config: CardScanConfig,
     onCancelClick: () -> Unit,
     onContinueClick: () -> Unit,
+    onRetryClick: () -> Unit,
 ) {
     Box(
         // The dialog covers the lower part of the screen, so the animation is centred in what is
@@ -91,13 +95,16 @@ fun CardScanView(
         modifier = modifier.padding(bottom = CARD_SCAN_STATUS_MIN_HEIGHT + SCAN_DIALOG_MARGIN),
         contentAlignment = Alignment.Center,
     ) {
-        WrapLottieAnimation(
-            animation = config.antennaPosition.tappingAnimation,
-            iterations = 1,
-            modifier = Modifier
-                .size(SCAN_ANIMATION_SIZE)
-                .clearAndSetSemantics { },
-        )
+        // Shown again from the start each time the card has to be put back, and only then.
+        key(config.readyAgainCount) {
+            WrapLottieAnimation(
+                animation = config.antennaPosition.tappingAnimation,
+                iterations = 1,
+                modifier = Modifier
+                    .size(SCAN_ANIMATION_SIZE)
+                    .clearAndSetSemantics { },
+            )
+        }
     }
 
     Dialog(
@@ -128,6 +135,7 @@ fun CardScanView(
                     readingProgress = config.readingProgress,
                     onCancelClick = onCancelClick,
                     onContinueClick = onContinueClick,
+                    onRetryClick = onRetryClick,
                 )
             }
         }
@@ -160,6 +168,7 @@ private fun CardScanPreview() {
             ),
             onCancelClick = {},
             onContinueClick = {},
+            onRetryClick = {},
         )
     }
 }

@@ -15,4 +15,8 @@
   ~ governing permissions and limitations under the Licence.
   -->
 
-<manifest/>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!-- ConnectivityChecker reads the active network's capabilities. -->
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+</manifest>

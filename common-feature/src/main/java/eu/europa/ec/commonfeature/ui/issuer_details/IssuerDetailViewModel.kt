@@ -18,7 +18,6 @@ data class State(
 sealed class Event : ViewEvent {
     data object Pop : Event()
     data object Report : Event()
-    data object HelpPressed : Event()
     data object PrivacyPolicyPressed : Event()
 }
 
@@ -46,7 +45,6 @@ class IssuerDetailsViewModel(
         when (event) {
             Event.Pop -> doNavigation(NavigationType.Pop)
             Event.Report -> { /* TODO: Nothing to do now */ }
-            Event.HelpPressed -> { /* TODO: Nothing to do now */ }
             Event.PrivacyPolicyPressed -> openPrivacyPolicy()
         }
     }

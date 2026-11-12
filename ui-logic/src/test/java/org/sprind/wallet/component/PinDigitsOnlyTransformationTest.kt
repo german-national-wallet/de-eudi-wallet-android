@@ -45,6 +45,13 @@ class PinDigitsOnlyTransformationTest {
     }
 
     @Test
+    fun `transformInput removes non-ASCII digits`() {
+        val actual = transform("1\u0662\u09673", pinLength = 6)
+
+        assertEquals("13", actual)
+    }
+
+    @Test
     fun `transformInput truncates to max length`() {
         val actual = transform("123456789", pinLength = 6)
 

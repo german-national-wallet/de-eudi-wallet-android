@@ -1,0 +1,74 @@
+name: Bug Report
+description: Report a bug in the application
+title: "[Bug]: "
+labels: ["bug"]
+assignees: []
+
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to fill out this bug report!
+        Please provide as much detail as possible.
+
+  - type: input
+    id: version
+    attributes:
+      label: App Version
+      description: What version are you running?
+      placeholder: "e.g. 0.74.6"
+    validations:
+      required: true
+
+  - type: input
+    id: androidversion
+    attributes:
+      label: Android Version
+      description: Which Android version are you on?
+      placeholder: "e.g. 14"
+    validations:
+      required: true
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Bug Description
+      description: A clear description of what the bug is.
+      placeholder: "When I click X, Y happens instead of Z..."
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Steps to Reproduce
+      description: How can we reproduce this?
+      placeholder: |
+        1. Go to '...'
+        2. Click on '...'
+        3. See error
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected Behavior
+      placeholder: "What did you expect to happen?"
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Relevant Logs or Screenshots
+      placeholder: "Paste redacted logs here"
+      description: Optional. **Do not post unredacted logs or screenshots.**
+
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: Pre-submission Checklist
+      options:
+        - label: I have searched for existing issues
+          required: true

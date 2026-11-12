@@ -70,7 +70,6 @@
         android:name="eu.europa.ec.assemblylogic.Application"
         android:allowBackup="false"
         android:dataExtractionRules="@xml/data_extraction_rules"
-        android:fullBackupContent="@xml/backup_rules"
         android:icon="@mipmap/ic_launcher"
         android:roundIcon="@mipmap/ic_launcher"
         android:label="${appName}${appNameSuffix}"
@@ -216,9 +215,10 @@
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
 
-                <data
-                    android:host="${openId4VciAuthorizationHost}"
-                    android:scheme="${openId4VciAuthorizationScheme}" />
+                <!-- OpenID4VCI authorization redirect: <applicationId>:/authorization.
+                     The URI has no host, so Android matches on the scheme alone (path attributes
+                     are ignored without a host); DeepLinkType.ISSUANCE checks the path. -->
+                <data android:scheme="${openId4VciAuthorizationScheme}" />
 
             </intent-filter>
         </activity>

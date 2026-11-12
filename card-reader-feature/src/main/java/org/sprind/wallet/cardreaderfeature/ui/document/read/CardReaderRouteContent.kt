@@ -82,9 +82,11 @@ internal fun CardReaderRouteScreen(
                     status = scanStatus,
                     scanReason = route.toNfcScanReason(),
                     readingProgress = state.readingProgress,
+                    readyAgainCount = state.readyAgainCount,
                 ),
                 onCancelClick = { onEventSend(Event.OnCancelScanClick) },
                 onContinueClick = { onEventSend(Event.OnScanContinueClick) },
+                onRetryClick = { onEventSend(Event.OnScanRetryClick) },
             )
             return
         }
@@ -123,7 +125,8 @@ internal fun CardReaderRouteScreen(
                 sheetState = bottomSheetState,
                 onEventSend = onEventSend,
                 title = ""
-            )
+            ),
+            flowType = state.activeFlowType,
         )
 
         CardReaderRoute.ENTER_CAN -> {
@@ -159,7 +162,7 @@ internal fun CardReaderRouteScreen(
             modifier = Modifier.fillMaxSize()
         )
 
-        CardReaderRoute.ENTER_PUK -> Unit // TODO add a dedicated PUK entry screen once the SDK branch is modeled.
+        CardReaderRoute.ENTER_PUK -> Unit // TODO WD-4778 a blocked PIN is not unblocked in this app.
 
         CardReaderRoute.ENTER_TRANSPORT_PIN -> {
             CodeEntryBody(

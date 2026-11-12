@@ -52,6 +52,7 @@ class HttpMessageSigningInterceptor(
     private val extraHeaderNamesToConsiderForSignature: Set<String>,
     private val signatureName: String,
     private val keyId: String,
+    private val encryptSignature: ((ByteArray) -> ByteArray)? = null,
 ) : Interceptor {
     override fun intercept(chain: Interceptor.Chain): Response {
         val request = chain.request()
@@ -103,7 +104,8 @@ class HttpMessageSigningInterceptor(
             val signer = Signature.getInstance("SHA256withECDSA")
             signer.initSign(signingKey)
             signer.update(base.serialize().encodeToByteArray())
-            signer.sign().toByteString().base64()
+            val signature = signer.sign()
+            (encryptSignature?.invoke(signature) ?: signature).toByteString().base64()
         } catch (e: GeneralSecurityException) {
             throw RequestSigningException(e)
         } catch (e: ProviderException) {

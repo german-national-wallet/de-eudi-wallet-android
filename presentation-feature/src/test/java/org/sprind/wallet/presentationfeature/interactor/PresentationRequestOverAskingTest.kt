@@ -46,7 +46,6 @@ import org.mockito.kotlin.never
 import org.mockito.kotlin.verify
 import org.mockito.kotlin.whenever
 import org.multipaz.presentment.CredentialPresentmentSetOptionMemberMatch
-import org.sprind.wallet.commonfeature.interactor.RwscaInteractor
 import org.sprind.wallet.corelogic.model.OverAskedClaimDomain
 import org.sprind.wallet.corelogic.model.RelyingPartyRegistrationStatus
 
@@ -71,9 +70,6 @@ class PresentationRequestOverAskingTest {
     @Mock
     private lateinit var logController: LogController
 
-    @Mock
-    private lateinit var rwscaInteractor: RwscaInteractor
-
     private lateinit var interactor: PresentationRequestInteractor
     private lateinit var closeable: AutoCloseable
 
@@ -90,7 +86,6 @@ class PresentationRequestOverAskingTest {
             walletCoreDocumentsController = walletCoreDocumentsController,
             walletPinUnBlockTimeStorageController = walletPinUnBlockTimeStorageController,
             logController = logController,
-            rwscaInteractor = rwscaInteractor,
         )
     }
 

@@ -57,6 +57,20 @@ abstract class WalletBackendEnvironmentConfig : EnvironmentConfig() {
     override val reportIssueUrl: String
         get() = "https://eudi-wallet.gov.de"
 
+    override val settingsLinks: SettingsLinks
+        get() = SettingsLinks(
+            faqAndSupport = LocalizedUrl(en = SUPPORT_URL_EN, de = SUPPORT_URL_DE),
+            about = LocalizedUrl(en = ABOUT_URL_EN, de = ABOUT_URL_DE),
+            accessibilityDeclaration = LocalizedUrl(en = ACCESSIBILITY_DECLARATION_URL_EN, de = ACCESSIBILITY_DECLARATION_URL_DE),
+            imprint = LocalizedUrl(en = IMPRINT_URL_EN, de = IMPRINT_URL_DE),
+            pidPrivacyPolicy = LocalizedUrl(en = PID_PRIVACY_POLICY_URL_EN, de = PID_PRIVACY_POLICY_URL_DE),
+            privacyPolicy = LocalizedUrl(en = PRIVACY_POLICY_URL_EN, de = PRIVACY_POLICY_URL_DE),
+            termsAndConditions = LocalizedUrl(en = TERMS_OF_USE_URL_EN, de = TERMS_OF_USE_URL_DE),
+        )
+
+    override val credentialCatalogueUrl: LocalizedUrl
+        get() = LocalizedUrl(en = CREDENTIAL_CATALOGUE_URL_EN, de = CREDENTIAL_CATALOGUE_URL_DE)
+
     companion object {
 
         private val LETS_ENCRYPT_ROOT_PINS = setOf(
@@ -70,5 +84,41 @@ abstract class WalletBackendEnvironmentConfig : EnvironmentConfig() {
             OkCertificatePinnerSpec(pattern = "**.wallet-backend.example.invalid", pins = LETS_ENCRYPT_ROOT_PINS),
             OkCertificatePinnerSpec(pattern = "**.eudi-wallet.example.invalid", pins = LETS_ENCRYPT_ROOT_PINS),
         )
+
+        private const val SUPPORT_URL_EN = "https://d-you.gov.de/en/faq"
+        private const val SUPPORT_URL_DE = "https://d-you.gov.de/faq"
+
+        private const val ABOUT_URL_EN = "https://d-you.gov.de/en/background"
+        private const val ABOUT_URL_DE = "https://d-you.gov.de/hintergrund"
+
+        private const val ACCESSIBILITY_DECLARATION_URL_EN = SettingsLinks.BLANK_PAGE
+        private const val ACCESSIBILITY_DECLARATION_URL_DE = SettingsLinks.BLANK_PAGE
+
+        private const val IMPRINT_URL_EN = "https://d-you.gov.de/en/imprint"
+        private const val IMPRINT_URL_DE = "https://d-you.gov.de/impressum"
+
+        // English Privacy Policy page url
+        private const val PRIVACY_POLICY_URL_EN =
+            "https://eudi-wallet.gov.de/en/"
+        // German Privacy Policy page url
+        private const val PRIVACY_POLICY_URL_DE =
+            "https://eudi-wallet.gov.de/de/"
+
+        // English - PID Setup - Privacy Policy page url
+        private const val PID_PRIVACY_POLICY_URL_EN = SettingsLinks.BLANK_PAGE
+        // German - PID Setup - Privacy Policy page url
+        private const val PID_PRIVACY_POLICY_URL_DE = SettingsLinks.BLANK_PAGE
+
+        // English Terms and Conditions page url
+        private const val TERMS_OF_USE_URL_EN =
+            "https://eudi-wallet.gov.de/en/"
+        // German Terms and Conditions page url
+        private const val TERMS_OF_USE_URL_DE =
+            "https://eudi-wallet.gov.de/de/"
+
+        private const val CREDENTIAL_CATALOGUE_URL_EN =
+            "https://eudi-hub.gov.de/en/credentials/credential-overview?showNavigation=false"
+        private const val CREDENTIAL_CATALOGUE_URL_DE =
+            "https://eudi-hub.gov.de/de/credentials/nachweisuebersicht?showNavigation=false"
     }
 }

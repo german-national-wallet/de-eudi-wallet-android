@@ -228,9 +228,10 @@ class PresentationLoadingViewModel(
         onRetry: () -> Unit,
         onCancel: () -> Unit,
     ) {
-        // The loading screen holds no relying party registration to contact.
+        // The loading screen holds no relying party registration to contact or return to.
         val uiConfig = PresentationErrorUiConfig.from(error) { telemetry.currentTraceId() }
             .withoutContactService()
+            .withoutBackToServiceProvider()
         val blockingReason = uiConfig.blockingReason
 
         if (blockingReason != null) {

@@ -8,6 +8,7 @@ import kotlinx.coroutines.flow.flow
 import org.sprind.wallet.analyticslogic.controller.Telemetry
 import org.sprind.wallet.businesslogic.controller.revocation.WalletRevocationStore
 import org.sprind.wallet.commonfeature.interactor.MdvmInteractor
+import org.sprind.wallet.networklogic.common.NetworkFailure
 import org.sprind.wallet.networklogic.common.model.ApiResult
 import org.sprind.wallet.networklogic.mdvm.model.error.MdvmErrorType
 
@@ -25,11 +26,14 @@ sealed class WalletInitialRegistrationPartialState {
      * @property backendErrorCode The code exactly as the backend reported it, so that a code this
      * app does not recognise is still shown to the user instead of being flattened to
      * [ErrorCode.UNKNOWN].
+     * @property networkFailure Set when a request timed out or was rate limited; it has its own
+     * dialog, which takes precedence over the one for [errorCode].
      */
     data class Failure(
         val errorCode: ErrorCode,
         val traceId: String?,
         val backendErrorCode: String = errorCode.name,
+        val networkFailure: NetworkFailure? = null,
     ) : WalletInitialRegistrationPartialState()
 
     enum class ErrorCode {
@@ -87,6 +91,7 @@ class WalletRegistrationInteractorImpl(
                         },
                         traceId = mdvmResult.error.traceId,
                         backendErrorCode = mdvmResult.error.code,
+                        networkFailure = mdvmResult.error.networkFailure,
                     )
                 )
                 return@flow
@@ -110,6 +115,7 @@ class WalletRegistrationInteractorImpl(
                         }.getOrDefault(WalletInitialRegistrationPartialState.ErrorCode.UNKNOWN),
                         traceId = registrationResult.traceId,
                         backendErrorCode = registrationResult.errorCode,
+                        networkFailure = registrationResult.networkFailure,
                     )
                 )
             }

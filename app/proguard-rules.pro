@@ -146,8 +146,30 @@
     <methods>;
 }
 
+# Obfuscation
+# R8 renames classes not kept above or by library consumer rules. Member
+# names stay, because of the -keepclassmembers class * rule above; the rasp tool
+# renames members in the sensitive packages (shared-ci rules-android.cfg).
+# The AusweisApp SDK (com.governikus.**, org.qtproject.**) and
+# multipaz-longfellow (libzkp) ship their own keeps for their JNI surface.
+# Keep the line table so the mapping retraces crashes, without leaking the
+# original file names.
+-keepattributes SourceFile,LineNumberTable
+-renamesourcefileattribute SourceFile
+
+# Class names written to storage. Renaming them would orphan data written
+# by an earlier release.
+# document-manager stores CredentialPolicy javaClass.name in each document
+# and matches on it when reading the document back.
+-keepnames class eu.europa.ec.eudi.wallet.document.CreateDocumentSettings$CredentialPolicy$*
+# wallet-core stores the simpleName of the selected reuse policy in the
+# issuance metadata (selectedReusePolicyType; nothing reads it yet). R8 drops
+# the InnerClass annotation of these nested classes even though InnerClasses
+# is kept, so a release build stores "EudiReusePolicy$OnceOnly", not
+# "OnceOnly". Match on both forms if a reader is ever added.
+-keepnames class * implements eu.europa.ec.eudi.openid4vci.EudiReusePolicy
+
 # Keep SDK Libs
--dontobfuscate
 -keep class kotlin.Metadata { *; }
 -keepattributes RuntimeVisibleAnnotations
 -keep class androidx.databinding.** { *; }
@@ -185,25 +207,19 @@
 }
 
 # Keep each of the specified classes and their members
--keep class eu.europa.ec.analyticslogic.BuildConfig { *; }
 -keep class eu.europa.ec.analyticslogic.R { *; }
 -keep class eu.europa.ec.analyticslogic.provider.AnalyticsProvider { *; }
--keep class eu.europa.ec.assemblylogic.BuildConfig { *; }
 -keep class eu.europa.ec.assemblylogic.R { *; }
--keep class eu.europa.ec.authenticationlogic.BuildConfig { *; }
 -keep class eu.europa.ec.authenticationlogic.R { *; }
 -keep class eu.europa.ec.authenticationlogic.controller.appattestation.jwt.JwtBuilder$Companion$ClaimNames { *; }
 -keep class eu.europa.ec.authenticationlogic.controller.appattestation.jwt.JwtBuilder$Companion$JwtTypes { *; }
 -keep class eu.europa.ec.authenticationlogic.storage.PrefsHardwareKeyStorageProviderKt { *; }
 -keep class eu.europa.ec.authenticationlogic.storage.PrefsWalletRegistrationStorageProviderKt { *; }
--keep class eu.europa.ec.businesslogic.BuildConfig { *; }
 -keep class eu.europa.ec.businesslogic.R$xml { *; }
 -keep class eu.europa.ec.businesslogic.R { *; }
 -keep class eu.europa.ec.businesslogic.extension.ResultExtensionsKt { *; }
 -keep class eu.europa.ec.businesslogic.util.SafeLetKt { *; }
--keep class org.sprind.wallet.card.reader.feature.BuildConfig { *; }
 -keep class org.sprind.wallet.card.reader.feature.R { *; }
--keep class eu.europa.ec.commonfeature.BuildConfig { *; }
 -keep class eu.europa.ec.commonfeature.R { *; }
 -keep class eu.europa.ec.commonfeature.ui.qr_scan.QrScanViewModelKt { *; }
 -keep class eu.europa.ec.commonfeature.ui.request.Event$BottomSheet$Badge { *; }
@@ -211,34 +227,24 @@
 -keep class eu.europa.ec.commonfeature.util.TestsData$TestFieldUi { *; }
 -keep class eu.europa.ec.commonfeature.util.TestsData$TestTransformedRequestDataUi { *; }
 -keep class eu.europa.ec.commonfeature.util.TestsData { *; }
--keep class eu.europa.ec.corelogic.BuildConfig { *; }
 -keep class eu.europa.ec.corelogic.R { *; }
 -keep class eu.europa.ec.corelogic.controller.WalletCoreDocumentsController$DefaultImpls { *; }
 -keep class eu.europa.ec.corelogic.util.CoreActions { *; }
--keep class eu.europa.ec.dashboardfeature.BuildConfig { *; }
 -keep class eu.europa.ec.dashboardfeature.R { *; }
--keep class eu.europa.ec.issuancefeature.BuildConfig { *; }
 -keep class eu.europa.ec.issuancefeature.R { *; }
 -keep class eu.europa.ec.issuancefeature.ui.document.code.DocumentOfferCodeViewModelKt { *; }
 -keep class eu.europa.ec.issuancefeature.ui.document.offer.DocumentOfferScreenKt$MainContent$1$invoke$$inlined$items$default$2 { *; }
--keep class eu.europa.ec.loginfeature.BuildConfig { *; }
 -keep class eu.europa.ec.loginfeature.R { *; }
--keep class eu.europa.ec.networklogic.BuildConfig { *; }
 -keep class eu.europa.ec.networklogic.R$xml { *; }
 -keep class eu.europa.ec.networklogic.R { *; }
--keep class eu.europa.ec.presentationfeature.BuildConfig { *; }
 -keep class eu.europa.ec.presentationfeature.R { *; }
--keep class eu.europa.ec.proximityfeature.BuildConfig { *; }
 -keep class eu.europa.ec.proximityfeature.R { *; }
--keep class eu.europa.ec.resourceslogic.BuildConfig { *; }
 -keep class eu.europa.ec.resourceslogic.R$color { *; }
 -keep class eu.europa.ec.resourceslogic.R$mipmap { *; }
 -keep class eu.europa.ec.resourceslogic.R$style { *; }
 -keep class eu.europa.ec.resourceslogic.R$xml { *; }
 -keep class eu.europa.ec.resourceslogic.R { *; }
--keep class eu.europa.ec.startupfeature.BuildConfig { *; }
 -keep class eu.europa.ec.startupfeature.R { *; }
--keep class eu.europa.ec.uilogic.BuildConfig { *; }
 -keep class eu.europa.ec.uilogic.R { *; }
 -keep class eu.europa.ec.uilogic.component.preview.TextLengthPreviewProvider { *; }
 -keep class eu.europa.ec.uilogic.component.preview.ThemeModePreviews { *; }
@@ -257,7 +263,6 @@
 -keep class eu.europa.ec.uilogic.navigation.StartupScreens { *; }
 -keep class eu.europa.ec.uilogic.serializer.UiSerializableParser$DefaultImpls { *; }
 -keep class eu.europa.ec.uilogic.serializer.adapter.SerializableAdapterType { *; }
--keep class eu.europa.ec.wallet.BuildConfig { *; }
 -keep class eu.europa.ec.wallet.R { *; }
 
 # Bouncycastle

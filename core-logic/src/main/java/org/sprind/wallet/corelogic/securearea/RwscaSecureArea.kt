@@ -34,6 +34,7 @@ import org.multipaz.securearea.CreateKeySettings
 import org.multipaz.securearea.KeyAttestation
 import org.multipaz.securearea.KeyInfo
 import org.multipaz.securearea.KeyLockedException
+import org.multipaz.securearea.KeyUnlockData
 import org.multipaz.securearea.SecureArea
 import org.multipaz.storage.Storage
 import org.multipaz.storage.StorageTable
@@ -261,6 +262,9 @@ class RwscaSecureArea(
     }
 
     override suspend fun getKeyInvalidated(alias: String): Boolean = false
+
+    // The rWSCA PIN session is opened outside the secure area; sign() fails without one.
+    override suspend fun unlockKey(alias: String, unlockReason: Reason): List<KeyUnlockData> = emptyList()
 
     private suspend fun saveKey(
         alias: String,

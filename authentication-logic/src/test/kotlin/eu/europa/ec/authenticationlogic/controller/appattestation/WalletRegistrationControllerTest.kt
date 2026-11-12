@@ -19,10 +19,14 @@ import org.mockito.kotlin.any
 import org.mockito.kotlin.eq
 import org.mockito.kotlin.verify
 import org.mockito.kotlin.whenever
+import org.sprind.wallet.networklogic.common.HttpRateLimitedException
+import org.sprind.wallet.networklogic.common.NetworkFailure
 import org.sprind.wallet.networklogic.common.model.ApiResult
 import org.sprind.wallet.networklogic.trace.TracedIOException
+import java.net.SocketTimeoutException
 import java.net.UnknownHostException
 import java.security.PrivateKey
+import kotlin.time.Instant
 
 private const val CLIENT_TRACE_ID = "4bf92f3577b34da6a3ce929d0e0e4736"
 
@@ -134,6 +138,53 @@ class WalletRegistrationControllerTest {
                 awaitComplete()
             }
         }
+
+    @Test
+    fun `getChallenge - reports a timed-out request as a timeout`() = runTest {
+        val timedOut = TracedIOException(
+            traceId = CLIENT_TRACE_ID,
+            cause = SocketTimeoutException("timeout"),
+        )
+        whenever(apiClient.getChallenge()).thenAnswer { throw timedOut }
+
+        subject.getChallenge().test {
+            assertEquals(
+                RegistrationChallengePartialState.Failure(
+                    errorCode = "NO_INTERNET",
+                    traceId = CLIENT_TRACE_ID,
+                    networkFailure = NetworkFailure.Timeout,
+                ),
+                awaitItem()
+            )
+            awaitComplete()
+        }
+    }
+
+    @Test
+    fun `getWalletInstanceId - reports a rate-limited request with when to retry`() = runTest {
+        val retryAt = Instant.parse("2026-10-24T10:05:00Z")
+        val rateLimited = TracedIOException(
+            traceId = CLIENT_TRACE_ID,
+            cause = HttpRateLimitedException(retryAt = retryAt, fromGateway = true),
+        )
+        whenever(apiClient.signingApi(any())).thenAnswer { throw rateLimited }
+
+        subject.getWalletInstanceId(
+            authChallenge = "test_challenge",
+            mdvmToken = "test_token",
+            mdvmAuthPrvk = mdvmAuthPrvk,
+        ).test {
+            assertEquals(
+                WalletInstancePartialState.Failure(
+                    errorCode = "RATE_LIMITED",
+                    traceId = CLIENT_TRACE_ID,
+                    networkFailure = NetworkFailure.RateLimited(retryAt),
+                ),
+                awaitItem()
+            )
+            awaitComplete()
+        }
+    }
 
     @Test
     fun `getWalletInstanceId - emits Success with wallet instance id on API success`() = runTest {

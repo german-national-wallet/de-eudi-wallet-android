@@ -43,9 +43,11 @@ import org.sprind.wallet.cardreaderfeature.domain.CardScanStatus
 import org.sprind.wallet.cardreaderfeature.domain.NfcAntennaPosition
 import java.util.Locale
 
+/** Where back leads off a detour; [previous] is the detour this one was taken from, if any. */
 data class CardReaderReturnTarget(
     val route: CardReaderRoute,
     val flowType: CardReaderFlowType,
+    val previous: CardReaderReturnTarget? = null,
 )
 
 /**
@@ -93,7 +95,11 @@ data class State(
     val isNfcEnabled: Boolean = true,
     val nfcAntennaPosition: NfcAntennaPosition = NfcAntennaPosition.MIDDLE,
     val scanStatus: CardScanStatus? = null,
+    /** How often the scan has asked for the card again, so the sheet can replay its animation. */
+    val readyAgainCount: Int = 0,
     val onboardingPin: OnboardingPinConfig = OnboardingPinConfig(),
+    /** Set while the patience screen for a slow or overloaded HSM is shown instead of the flow (WD-5013). */
+    val hsmDelay: HsmDelay? = null,
 ) : ViewState {
     /**
      * Updates the active step and refreshes the route-derived metadata that the
@@ -181,7 +187,17 @@ sealed class Event : ViewEvent {
     /** The finished scan was acknowledged, which is what carries the flow to its next screen. */
     data object OnScanContinueClick : Event()
 
+    /** The failed scan is to be run again, on a workflow started afresh. */
+    data object OnScanRetryClick : Event()
+
     data object OnEnableNfcButtonClick : Event()
+
+    /** The patience screen's "Try again later" button: starts the issuance over. */
+    data object RetryAfterHsmDelay : Event()
+
+    /** The patience screen was closed: leaves the issuance for the dashboard. */
+    data object CloseHsmDelay : Event()
+
     data object OnSetNewPinPrimaryButtonClick : Event()
     data object OnContinueClickOnSetNewPin : Event()
     data object OnContinueClickOnConfirmNewPin : Event()
@@ -270,3 +286,10 @@ fun ReadCardBottomSheet(
         content()
     }
 }
+
+/**
+ * The patience screen shown while the wallet backend's HSM is slow or overloaded (WD-5013).
+ *
+ * @property canRetry Whether the retry button is shown yet.
+ */
+data class HsmDelay(val canRetry: Boolean = false)

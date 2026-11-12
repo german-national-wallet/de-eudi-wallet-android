@@ -18,6 +18,7 @@ package org.sprind.wallet.onboardingfeature.setup.privacypolicy
 
 import eu.europa.ec.businesslogic.config.ConfigLogic
 import eu.europa.ec.resourceslogic.R
+import eu.europa.ec.resourceslogic.provider.ResourceProvider
 import eu.europa.ec.uilogic.mvi.MviViewModel
 import eu.europa.ec.uilogic.mvi.ViewEvent
 import eu.europa.ec.uilogic.mvi.ViewSideEffect
@@ -61,6 +62,7 @@ sealed class PrivacyPolicySetupEffect : ViewSideEffect {
 @KoinViewModel
 class PrivacyPolicySetupViewModel(
     private val configLogic: ConfigLogic,
+    private val resourceProvider: ResourceProvider
 ) : MviViewModel<PrivacyPolicySetupEvent, PrivacyPolicySetupState, PrivacyPolicySetupEffect>() {
 
     override fun setInitialState(): PrivacyPolicySetupState = PrivacyPolicySetupState()
@@ -74,12 +76,12 @@ class PrivacyPolicySetupViewModel(
             }
 
             PrivacyPolicySetupEvent.OpenPrivacyPolicy -> openWebPage(
-                url = configLogic.settingsLinks.privacyPolicy,
+                url = configLogic.settingsLinks.privacyPolicy.forLocale(resourceProvider.getLocale()),
                 titleRes = R.string.settings_overview_list_privacy_policy,
             )
 
             PrivacyPolicySetupEvent.OpenTermsOfUse -> openWebPage(
-                url = configLogic.settingsLinks.termsAndConditions,
+                url = configLogic.settingsLinks.termsAndConditions.forLocale(resourceProvider.getLocale()),
                 titleRes = R.string.settings_overview_list_terms_and_conditions,
             )
         }

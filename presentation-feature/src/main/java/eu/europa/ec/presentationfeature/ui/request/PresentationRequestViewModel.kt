@@ -5,6 +5,7 @@ import androidx.core.net.toUri
 import androidx.lifecycle.viewModelScope
 import eu.europa.ec.authenticationlogic.jwt.InstantProvider
 import eu.europa.ec.businesslogic.config.ConfigLogic
+import eu.europa.ec.commonfeature.config.PresentationMode
 import eu.europa.ec.commonfeature.config.RequestUriConfig
 import eu.europa.ec.commonfeature.interactor.RwscaPinHandler
 import eu.europa.ec.commonfeature.interactor.StartPinSessionResult
@@ -19,14 +20,16 @@ import eu.europa.ec.commonfeature.ui.request.model.RequestDocumentItemUi
 import eu.europa.ec.corelogic.di.AppCoroutineScope
 import eu.europa.ec.corelogic.di.closePresentationScope
 import eu.europa.ec.presentationfeature.interactor.PresentationDocumentSubmissionPartialState
-import eu.europa.ec.presentationfeature.interactor.PresentationRequestDeleteDocumentPartialState
 import eu.europa.ec.presentationfeature.interactor.PresentationRequestInteractor
 import eu.europa.ec.presentationfeature.interactor.PresentationRejectionPartialState
 import eu.europa.ec.presentationfeature.interactor.PresentationRequestInteractorPartialState
 import eu.europa.ec.presentationfeature.interactor.PresentationRequestProcessPartialState
 import eu.europa.ec.presentationfeature.interactor.RequestRejectionReason
+import org.sprind.wallet.presentationfeature.error.BlockingErrorReason
 import org.sprind.wallet.presentationfeature.error.PresentationErrorUiConfig
 import org.sprind.wallet.presentationfeature.error.presentationErrorRoute
+import org.sprind.wallet.presentationfeature.interactor.PidDeletionInteractor
+import org.sprind.wallet.commonfeature.interactor.DocumentDeletionPartialState
 import eu.europa.ec.resourceslogic.R
 import eu.europa.ec.resourceslogic.provider.ResourceProvider
 import eu.europa.ec.uilogic.component.content.ContentHeaderConfig
@@ -46,8 +49,10 @@ import org.sprind.wallet.analyticslogic.controller.TelemetryConstants
 import org.sprind.wallet.authenticationlogic.model.RwscaError
 import org.sprind.wallet.businesslogic.model.UserPin
 import org.sprind.wallet.businesslogic.util.SpanAttributes
+import org.sprind.wallet.networklogic.connectivity.ConnectivityChecker
 import org.sprind.wallet.networklogic.rwsca.model.error.RwscaErrorType
 import org.sprind.wallet.uilogic.component.cleared
+import org.sprind.wallet.uilogic.component.dialog.offlineErrorDialogConfig
 import org.sprind.wallet.uilogic.extension.isSafeRedirectLink
 import org.sprind.wallet.corelogic.presentationerror.PresentationError
 import java.time.Instant
@@ -58,6 +63,7 @@ import kotlin.time.toDuration
 @KoinViewModel
 class PresentationRequestViewModel(
     private val presentationRequestInteractor: PresentationRequestInteractor,
+    private val pidDeletionInteractor: PidDeletionInteractor,
     override val resourceProvider: ResourceProvider,
     override val uiSerializer: UiSerializer,
     private val rwscaPinHandler: RwscaPinHandler,
@@ -65,6 +71,7 @@ class PresentationRequestViewModel(
     private val telemetry: Telemetry,
     private val appCoroutineScope: AppCoroutineScope,
     private val configLogic: ConfigLogic,
+    private val connectivityChecker: ConnectivityChecker,
     @InjectedParam private val requestUriConfigRaw: String,
 ) : RequestViewModel(resourceProvider, uiSerializer, instantProvider) {
 
@@ -72,11 +79,19 @@ class PresentationRequestViewModel(
     private var isNavigatingToPresentationContinuation = false
     private var isPresentationStopped = false
 
+    private val requestUriConfig: RequestUriConfig by lazy {
+        uiSerializer.fromBase64(
+            requestUriConfigRaw,
+            RequestUriConfig::class.java,
+            RequestUriConfig.Parser
+        ) ?: throw RuntimeException("RequestUriConfig:: is Missing or invalid")
+    }
+
     override fun onStickyButtonPressed() {
         if (shouldEnterWalletPin()) {
             setEvent(Event.ShowPinView)
         } else {
-            navigateToPresentationLoading()
+            runWhenOnline(action = ::navigateToPresentationLoading)
         }
     }
 
@@ -84,8 +99,18 @@ class PresentationRequestViewModel(
         if (shouldEnterWalletPin()) {
             setEvent(Event.ShowPinView)
         } else {
-            navigateToPresentationLoading()
+            runWhenOnline(action = ::navigateToPresentationLoading)
         }
+    }
+
+    /**
+     * WD-4685: starting the PIN session needs the rWSCA backend, also for a BLE presentation.
+     * Offline, the offline dialog explains why the PIN was not submitted.
+     */
+    override fun canSubmitPin(): Boolean {
+        if (connectivityChecker.isOnline()) return true
+        showPinOffline()
+        return false
     }
 
     override fun getHeaderConfig(): ContentHeaderConfig {
@@ -108,6 +133,18 @@ class PresentationRequestViewModel(
     }
 
     override fun doWork() {
+        // WD-4685: fetching an OpenID4VP request needs the internet; closing leaves the screen.
+        if (needsInternetForRequest() && !connectivityChecker.isOnline()) {
+            showOfflineDialog(
+                onRetry = ::doWork,
+                onClose = {
+                    setEvent(Event.DismissError)
+                    setEvent(Event.Pop)
+                },
+            )
+            return
+        }
+
         setState {
             copy(
                 isLoading = true,
@@ -122,12 +159,6 @@ class PresentationRequestViewModel(
                 }
             )
         }
-
-        val requestUriConfig = uiSerializer.fromBase64(
-            requestUriConfigRaw,
-            RequestUriConfig::class.java,
-            RequestUriConfig.Parser
-        ) ?: throw RuntimeException("RequestUriConfig:: is Missing or invalid")
 
         telemetry.startSpan(
             spanName = TelemetryConstants.PRESENTATION,
@@ -166,6 +197,7 @@ class PresentationRequestViewModel(
                                 purpose = response.purpose,
                                 reportUrl = response.reportUri,
                                 supportUrl = response.supportUri,
+                                serviceProviderUrl = response.serviceProviderUri,
                             )
                         }
                     }
@@ -175,10 +207,15 @@ class PresentationRequestViewModel(
                     }
 
                     is PresentationRequestInteractorPartialState.NoData -> {
-                        declineUnmatchedRequest { _, _ ->
+                        declineUnmatchedRequest { _, traceId ->
+                            val reason = if (response.missingPid) {
+                                BlockingErrorReason.MISSING_PID
+                            } else {
+                                BlockingErrorReason.MISSING_CREDENTIAL
+                            }
                             doNavigation(
                                 NavigationType.PushRoute(
-                                    PresentationScreens.PresentationNoDocument.screenRoute
+                                    presentationErrorRoute(reason = reason, traceId = traceId)
                                 )
                             )
                         }
@@ -313,13 +350,6 @@ class PresentationRequestViewModel(
                 description = null,
             )
 
-            RequestScreenStep.AccountLocked -> current.copy(
-                title = resourceProvider.getString(R.string.pid_presentation_retry_counter_locked_title),
-                subTitle = null,
-                purposeText = null,
-                description = null,
-            )
-
             RequestScreenStep.DocumentDeletedConfirmation -> current.copy(
                 title = resourceProvider.getString(R.string.pid_presentation_retry_counter_reset_success),
             )
@@ -411,6 +441,8 @@ class PresentationRequestViewModel(
         rwscaPinHandler.clearPinSession()
         val error = result.error
         when {
+            // WD-4685: no answer from rWSCA or MDVM, so the PIN must not be reported as wrong.
+            error.isNoInternet -> showPinOffline()
             error is RwscaError.FromRwsca && error.type == RwscaErrorType.PIN_VERIFICATION_FAILED -> setState {
                 copy(
                     isLoading = false,
@@ -420,17 +452,7 @@ class PresentationRequestViewModel(
                     ),
                 )
             }
-            error is RwscaError.FromRwsca && error.type == RwscaErrorType.ACCOUNT_LOCKED -> setState {
-                copy(
-                    error = null,
-                    isLoading = false,
-                    currentStep = RequestScreenStep.AccountLocked,
-                    headerConfig = getHeaderForStep(RequestScreenStep.AccountLocked),
-                    onContinueAction = getContinueActionForStep(RequestScreenStep.AccountLocked),
-                    pinState = pinState.cleared(),
-                    sheetContent = getBottomSheetContentForStep(RequestScreenStep.AccountLocked)
-                )
-            }
+            error is RwscaError.FromRwsca && error.type == RwscaErrorType.ACCOUNT_LOCKED -> showPidLocked()
             error is RwscaError.FromRwsca && error.type == RwscaErrorType.PIN_RETRY_BLOCKED -> {
                 val triesRemaining = error.serverResponse?.tryCounter ?: 0
                 val unblockTime = error.serverResponse?.tryAllowedAfter ?: ""
@@ -468,11 +490,77 @@ class PresentationRequestViewModel(
     }
 
     private fun retrySendRequestedDocuments() {
+        // WD-4685: closing the offline dialog returns to this failure, with its error code,
+        // trace ID and Retry, instead of leaving the user without a way forward.
+        val failedSendDialog = viewState.value.errorDialog
         setState {
-            copy(isLoading = true, errorDialog = null)
+            copy(errorDialog = null)
         }
-        viewModelScope.launch {
-            sendRequestedDocuments()
+        runWhenOnline(onClose = { setState { copy(errorDialog = failedSendDialog) } }) {
+            setState {
+                copy(isLoading = true)
+            }
+            viewModelScope.launch {
+                sendRequestedDocuments()
+            }
+        }
+    }
+
+    /**
+     * WD-4685: the PIN cannot be checked without the backend, either because the OS reports no
+     * internet before the PIN is submitted or because the PIN session got no answer (captive
+     * portal, VPN without a route, DNS failure). The PIN never outlives this: the field is
+     * cleared, and Retry, once online, lets the user enter it again.
+     */
+    private fun showPinOffline() {
+        setState { copy(error = null, pinState = pinState.cleared()) }
+        showOfflineDialog(
+            onRetry = {
+                if (!connectivityChecker.isOnline()) showPinOffline()
+            },
+        )
+    }
+
+    /** An OpenID4VP presentation talks to the verifier over the internet; a BLE one does not. */
+    private fun needsInternetForRequest(): Boolean =
+        requestUriConfig.mode is PresentationMode.OpenId4Vp
+
+    /**
+     * WD-4685: runs [action] when the OS reports internet, or there is no verifier to reach
+     * over it. Otherwise shows the offline dialog, whose Retry checks again and whose Close
+     * runs [onClose].
+     */
+    private fun runWhenOnline(
+        onClose: () -> Unit = { setEvent(Event.DismissError) },
+        action: () -> Unit,
+    ) {
+        if (!needsInternetForRequest() || connectivityChecker.isOnline()) {
+            action()
+            return
+        }
+        showOfflineDialog(onRetry = { runWhenOnline(onClose, action) }, onClose = onClose)
+    }
+
+    /**
+     * Shows the "You're offline" dialog (WD-4685). Retry closes it before [onRetry] runs, so
+     * [onRetry] may show it again; "Open internet settings" leaves it open for the return.
+     */
+    private fun showOfflineDialog(
+        onRetry: () -> Unit,
+        onClose: () -> Unit = { setEvent(Event.DismissError) },
+    ) {
+        setState {
+            copy(
+                isLoading = false,
+                errorDialog = offlineErrorDialogConfig(
+                    onRetry = {
+                        setState { copy(errorDialog = null) }
+                        onRetry()
+                    },
+                    onOpenSettings = { setEffect { Effect.OpenInternetSettings } },
+                    onClose = onClose,
+                ),
+            )
         }
     }
 
@@ -492,22 +580,6 @@ class PresentationRequestViewModel(
                     error = result.error,
                     onRetry = ::retrySendRequestedDocuments,
                 )
-            }
-
-            is PresentationDocumentSubmissionPartialState.Failure.AccountLocked -> {
-                rwscaPinHandler.clearPinSession()
-                setState {
-                    copy(
-                        error = null,
-                        isLoading = false,
-                        currentStep = RequestScreenStep.AccountLocked,
-                        headerConfig = getHeaderForStep(RequestScreenStep.AccountLocked),
-                        onContinueAction = getContinueActionForStep(RequestScreenStep.AccountLocked),
-                        pinState = pinState.cleared(),
-                        sheetContent = getBottomSheetContentForStep(RequestScreenStep.AccountLocked)
-                    )
-                }
-
             }
 
             is PresentationDocumentSubmissionPartialState.Failure.PinVerificationBlocked -> {
@@ -595,9 +667,9 @@ class PresentationRequestViewModel(
         }
 
         viewModelScope.launch {
-            presentationRequestInteractor.deletePidDocuments().collect { response ->
+            pidDeletionInteractor.deletePid().collect { response ->
                 when (response) {
-                    is PresentationRequestDeleteDocumentPartialState.Success -> {
+                    is DocumentDeletionPartialState.Success -> {
                         setState {
                             copy(
                                 currentStep = RequestScreenStep.DocumentDeletedConfirmation,
@@ -616,7 +688,7 @@ class PresentationRequestViewModel(
                         }
                     }
 
-                    is PresentationRequestDeleteDocumentPartialState.Failure -> {
+                    is DocumentDeletionPartialState.Failure -> {
                         setState {
                             copy(
                                 isLoading = false,
@@ -722,9 +794,27 @@ class PresentationRequestViewModel(
     }
 
     /**
-     * Answers a request no credential in the wallet can satisfy with `access_denied`,
-     * so the verifier can close its session. The answer is awaited before [then] runs,
-     * because leaving the flow stops the presentation and cancels it.
+     * The Digital ID code is locked for good (WD-4980): declines the request, tears the
+     * presentation down and opens the blocking screen, which offers adding the Digital ID again.
+     * The presentation scope is closed (right after the navigation is dispatched) because the PID
+     * issuance started from there must not reuse it.
+     */
+    private fun showPidLocked() {
+        setState { copy(error = null, isLoading = true, pinState = pinState.cleared()) }
+        declineUnmatchedRequest { _, traceId ->
+            doNavigation(
+                NavigationType.PushRoute(
+                    presentationErrorRoute(reason = BlockingErrorReason.PID_LOCKED, traceId = traceId)
+                )
+            )
+            onRequestAbandoned()
+        }
+    }
+
+    /**
+     * Answers a request no credential in the wallet can satisfy (or that a locked Digital ID
+     * cannot answer) with `access_denied`, so the verifier can close its session. The answer is
+     * awaited before [then] runs, because leaving the flow stops the presentation and cancels it.
      */
     private fun declineUnmatchedRequest(then: (redirectUri: String?, traceId: String) -> Unit) {
         unsubscribe()
@@ -816,9 +906,11 @@ class PresentationRequestViewModel(
     ) {
         // Links openUrl would drop (mailto:, tel:, ...) are not offered.
         val supportUrl = viewState.value.supportUrl?.takeIf { it.toUri().isSafeRedirectLink() }
+        val serviceProviderUrl = viewState.value.serviceProviderUrl?.takeIf { it.toUri().isSafeRedirectLink() }
         val uiConfig = PresentationErrorUiConfig.from(error) { telemetry.currentTraceId() }
             .let { if (onRetry == null) it.withoutRetry() else it }
             .let { if (supportUrl == null) it.withoutContactService() else it }
+            .let { if (serviceProviderUrl == null) it.withoutBackToServiceProvider() else it }
         if (navigateToBlockingErrorScreen(uiConfig)) return
 
         val errorDialog = uiConfig.toGenericErrorDialogConfig(
@@ -828,13 +920,14 @@ class PresentationRequestViewModel(
                 setState {
                     copy(
                         errorDialog = null,
-                        pendingReportIssueUrl = configLogic.environmentConfig.reportIssueUrl,
+                        pendingRedirectUrl = configLogic.environmentConfig.reportIssueUrl,
                     )
                 }
             },
             onDismiss = onDismiss,
             // The error dialog stays open behind the redirect confirmation.
-            onContactService = { setState { copy(pendingReportIssueUrl = supportUrl) } },
+            onContactService = { setState { copy(pendingRedirectUrl = supportUrl) } },
+            onBackToServiceProvider = { setState { copy(pendingRedirectUrl = serviceProviderUrl) } },
             onToOverview = {
                 setState { copy(errorDialog = null) }
                 unsubscribe()

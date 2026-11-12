@@ -103,5 +103,14 @@ C=DE, O=D-Trust GmbH, CN=D-TRUST BR Root CA 2 2023
                 pins = setOf("sha256/rHb2OkbnYbWswyWXBckgy38FY9JI2NGA+TSvaAmaFfk=")
             )
         )
+
+        val PENTEST = PidIssuerSpec(
+            url = "https://demo.pid-issuer.bundesdruckerei.de",
+            okCertificatePinnerSpec = OkCertificatePinnerSpec(
+                pattern = "**.pid-issuer.bundesdruckerei.de",
+                // root CA from the chain from above
+                pins = setOf("sha256/rHb2OkbnYbWswyWXBckgy38FY9JI2NGA+TSvaAmaFfk=")
+            )
+        )
     }
 }

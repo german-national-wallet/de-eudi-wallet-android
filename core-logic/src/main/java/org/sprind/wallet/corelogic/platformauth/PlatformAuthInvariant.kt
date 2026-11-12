@@ -17,7 +17,7 @@
 package org.sprind.wallet.corelogic.platformauth
 
 import android.app.KeyguardManager
-import eu.europa.ec.corelogic.controller.WalletCoreDocumentsController
+import java.io.File
 
 /**
  * Checks the Platform Authentication (PA) invariant: the wallet must not hold any
@@ -30,14 +30,20 @@ import eu.europa.ec.corelogic.controller.WalletCoreDocumentsController
  * lock, [KeyguardManager.isDeviceSecure] becomes false and the encryption-at-rest
  * key is no longer meaningfully protected, so all wallet data must be wiped.
  *
- * The invariant is violated when wallet data exists (there is at least one issued
- * or deferred document) AND the device is not secure. A device with no lock screen
- * and no wallet data is not a violation (the user is simply nudged to set up a lock
- * screen before using the wallet).
+ * The invariant is violated when wallet data exists AND the device is not secure. A
+ * device with no lock screen and no wallet data is not a violation (the user is
+ * simply nudged to set up a lock screen before using the wallet).
+ *
+ * "Wallet data exists" is decided by the presence of the encrypted storage database
+ * file ([walletStorageDatabaseFile]) on disk, not by querying the documents: this
+ * check runs in `Application.onCreate`, also for background starts, and opening the
+ * storage needs the encrypted preferences, whose master key may be unavailable
+ * then. The file is created when the storage is first initialised, so an onboarded
+ * wallet without documents counts as holding data and is wiped rather than warned.
  */
 class PlatformAuthInvariant(
     private val keyguardManager: KeyguardManager,
-    private val walletCoreDocumentsController: WalletCoreDocumentsController,
+    private val walletStorageDatabaseFile: File,
 ) {
 
     /**
@@ -46,7 +52,7 @@ class PlatformAuthInvariant(
      * longer bound to Platform Authentication.
      */
     fun shouldWipe(): Boolean =
-        !isDeviceSecure() && hasDocuments()
+        !isDeviceSecure() && hasWalletData()
 
     /**
      * True when the device has no secure lock screen but there is no wallet data to
@@ -54,17 +60,15 @@ class PlatformAuthInvariant(
      * wallet, rather than having data wiped.
      */
     fun shouldWarn(): Boolean =
-        !isDeviceSecure() && !hasDocuments()
+        !isDeviceSecure() && !hasWalletData()
 
-    // True when the device has a secure lock screen (PIN/passcode/pattern or
-    // biometric set up). Used to decide whether to show the "set up a lock screen"
-    // warning instead of (or after) a wipe.
-    private fun isDeviceSecure(): Boolean = keyguardManager.isDeviceSecure
+    /**
+     * True when the device has a secure lock screen (PIN/passcode/pattern or biometric set
+     * up). Without one the Platform Authentication screen applies, whether the wallet is empty
+     * ([shouldWarn]) or holds data ([shouldWipe]); callers that only need that distinction
+     * use this instead of evaluating both.
+     */
+    fun isDeviceSecure(): Boolean = keyguardManager.isDeviceSecure
 
-    // True when the wallet has documents. This is a safeguard clause: it returns true also
-    // when there is an exception in reading the database, ensuring the database gets wiped-out
-    // in such a case.
-    private fun hasDocuments(): Boolean = runCatching {
-        walletCoreDocumentsController.getAllDocuments().isNotEmpty()
-    }.getOrDefault(true)
+    private fun hasWalletData(): Boolean = walletStorageDatabaseFile.exists()
 }

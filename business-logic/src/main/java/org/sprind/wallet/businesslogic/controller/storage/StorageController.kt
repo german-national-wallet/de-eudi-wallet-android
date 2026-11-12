@@ -18,7 +18,8 @@ package org.sprind.wallet.businesslogic.controller.storage
 
 import android.app.ActivityManager
 import android.content.Context
-import eu.europa.ec.businesslogic.controller.storage.PrefsController
+import eu.europa.ec.businesslogic.controller.storage.EncryptedPrefsController
+import java.util.concurrent.atomic.AtomicBoolean
 
 /**
  * Increment this compile-time constant when breaking changes occur in local storage
@@ -29,17 +30,22 @@ import eu.europa.ec.businesslogic.controller.storage.PrefsController
  * decrease over time, so that we never have to increase it again after our public
  * release.
  */
-const val CURRENT_APP_DATA_VERSION: AppDataVersion = 12
+const val CURRENT_APP_DATA_VERSION: AppDataVersion = 13
 
 typealias AppDataVersion = Int
 
 interface StorageController {
     /**
-     * This method expects to be called once during application startup, to perform
-     * any initialization of our persisted storage (e.g. clear it, if the app data
-     * version has changed incompatibly).
+     * Performs any initialization of our persisted storage (e.g. clear it, if the app data
+     * version has changed incompatibly). Reads the encrypted preferences, so it is called from
+     * `MainActivity`, not from `Application.onCreate`, and only with a secure lock screen; see
+     * [EncryptedPrefsController]. The check runs once per process; a call that fails does not
+     * count, so the next call runs it again.
+     *
+     * @param onBeforeWipe invoked right before [wipeAppData] when the check decides to wipe,
+     *   so the caller can give UI feedback (the wipe closes the app).
      */
-    fun onInitializeStorage()
+    fun onInitializeStorage(onBeforeWipe: () -> Unit = {})
 
     /**
      * Wipes all wallet app data by delegating to
@@ -59,12 +65,26 @@ interface StorageController {
     fun wipeAppData()
 }
 
-class StorageControllerImpl(val context: Context, private val prefsController: PrefsController) :
-    StorageController {
+class StorageControllerImpl(
+    val context: Context,
+    private val prefsController: EncryptedPrefsController,
+) : StorageController {
     val appDataCompatibility = AppDataCompatibility(prefsController, CURRENT_APP_DATA_VERSION)
 
-    override fun onInitializeStorage() {
-        if (appDataCompatibility.shouldClearAppData()) {
+    private val initialized = AtomicBoolean(false)
+
+    override fun onInitializeStorage(onBeforeWipe: () -> Unit) {
+        if (!initialized.compareAndSet(false, true)) return
+        val wipe = try {
+            shouldWipeOnInitialize(appDataCompatibility::shouldClearAppData)
+        } catch (e: Exception) {
+            // The check did not complete (e.g. the user has not authenticated recently), so it
+            // must not count as done for this process: the next call runs it again.
+            initialized.set(false)
+            throw e
+        }
+        if (wipe) {
+            onBeforeWipe()
             wipeAppData()
         }
     }
@@ -79,8 +99,15 @@ class StorageControllerImpl(val context: Context, private val prefsController: P
 
 }
 
+internal fun shouldWipeOnInitialize(shouldClearAppData: () -> Boolean): Boolean =
+    try {
+        shouldClearAppData()
+    } catch (_: EncryptedPrefsUnavailableException.KeysetLost) {
+        true
+    }
+
 class AppDataCompatibility(
-    private val prefsController: PrefsController,
+    private val prefsController: EncryptedPrefsController,
     private val currentAppDataVersion: Int
 ) {
     init {

@@ -34,6 +34,7 @@ import eu.europa.ec.eudi.wallet.document.IssuedDocument
 import eu.europa.ec.resourceslogic.provider.ResourceProvider
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
+import org.sprind.wallet.businesslogic.config.LocalizedUrl
 import java.util.Locale
 
 sealed class DashboardInteractorGetIssuedDocumentsPartialState {
@@ -53,6 +54,9 @@ interface DashboardInteractor {
     fun getAppVersion(): String
 
     fun isSimulatedEidCardEnabled(): Boolean
+
+    /** The credential catalogue's pages, one per supported language. */
+    fun getCredentialCatalogueUrl(): LocalizedUrl
 
     fun retrieveLogFileUris(): ArrayList<Uri>
     fun getIssuedDocuments(): Flow<DashboardInteractorGetIssuedDocumentsPartialState>
@@ -80,6 +84,8 @@ class DashboardInteractorImpl(
     override fun getAppVersion(): String = configLogic.appVersion
 
     override fun isSimulatedEidCardEnabled(): Boolean = configLogic.isSimulatedEidCardEnabled
+
+    override fun getCredentialCatalogueUrl(): LocalizedUrl = configLogic.credentialCatalogueUrl
 
     override fun retrieveLogFileUris(): ArrayList<Uri> {
         return ArrayList(logController.retrieveLogFileUris())

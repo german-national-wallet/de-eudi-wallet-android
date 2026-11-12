@@ -26,8 +26,8 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.sizeIn
 import androidx.compose.foundation.layout.width
@@ -53,11 +53,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.res.dimensionResource
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.core.net.toUri
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -70,8 +70,6 @@ import eu.europa.ec.resourceslogic.theme.values.parseCssColor
 import eu.europa.ec.uilogic.component.AppIcons
 import eu.europa.ec.uilogic.component.IconData
 import eu.europa.ec.uilogic.component.content.ContentScreen
-import eu.europa.ec.uilogic.component.content.ToolbarAction
-import eu.europa.ec.uilogic.component.content.ToolbarConfig
 import eu.europa.ec.uilogic.component.preview.PreviewTheme
 import eu.europa.ec.uilogic.component.preview.ThemeModeWithGermanAndEnglishPreviews
 import eu.europa.ec.uilogic.component.utils.BUTTON_HEIGHT
@@ -84,9 +82,10 @@ import eu.europa.ec.uilogic.component.wrap.ButtonConfig
 import eu.europa.ec.uilogic.component.wrap.ButtonType
 import eu.europa.ec.uilogic.component.wrap.WrapAsyncImage
 import eu.europa.ec.uilogic.component.wrap.WrapButton
-import eu.europa.ec.uilogic.component.wrap.WrapModalBottomSheet
 import eu.europa.ec.uilogic.component.wrap.WrapIcon
+import eu.europa.ec.uilogic.component.wrap.WrapModalBottomSheet
 import eu.europa.ec.uilogic.extension.openUrl
+import org.sprind.wallet.commonfeature.ui.ProtectedScreen
 import org.sprind.wallet.dashboardfeature.ui.activities.ActivityAvatar
 import org.sprind.wallet.dashboardfeature.ui.activities.ExternalLinkButton
 import org.sprind.wallet.dashboardfeature.ui.activities.contentColor
@@ -97,11 +96,11 @@ import org.sprind.wallet.dashboardfeature.ui.activities.model.ActivityLinkUi
 import org.sprind.wallet.dashboardfeature.ui.activities.model.PresentationOutcomeUi
 import org.sprind.wallet.dashboardfeature.ui.activities.model.SharedCredentialUi
 import org.sprind.wallet.uilogic.component.ContentTemplateBody
+import org.sprind.wallet.uilogic.component.ContentTemplateConfig
 import org.sprind.wallet.uilogic.component.CredentialClaimList
 import org.sprind.wallet.uilogic.component.CredentialClaimsCard
 import org.sprind.wallet.uilogic.component.CredentialClaimsHeader
 import org.sprind.wallet.uilogic.component.CredentialClaimsVariant
-import org.sprind.wallet.uilogic.component.ContentTemplateConfig
 import org.sprind.wallet.uilogic.component.EaaDocumentCard
 import org.sprind.wallet.uilogic.component.EaaDocumentCardAction
 import org.sprind.wallet.uilogic.component.NoticeBanner
@@ -118,31 +117,33 @@ fun ActivityDetailScreen(
     navHostController: NavController,
     viewModel: ActivityDetailViewModel,
 ) {
-    val state by viewModel.viewState.collectAsStateWithLifecycle()
-    val context = LocalContext.current
-    var pendingLink by rememberSaveable { mutableStateOf<String?>(null) }
+    ProtectedScreen(onDismiss = { navHostController.popBackStack() }) {
+        val state by viewModel.viewState.collectAsStateWithLifecycle()
+        val context = LocalContext.current
+        var pendingLink by rememberSaveable { mutableStateOf<String?>(null) }
 
-    MainScreen(state = state, onEventSend = viewModel::setEvent)
+        MainScreen(state = state, onEventSend = viewModel::setEvent)
 
-    pendingLink?.let { link ->
-        RedirectInfoDialog(
-            config = RedirectInfoDialogConfig(
-                target = link.toUri(),
-                onConfirm = {
-                    pendingLink = null
-                    context.openUrl(link.toUri())
-                },
-                onDismiss = { pendingLink = null },
+        pendingLink?.let { link ->
+            RedirectInfoDialog(
+                config = RedirectInfoDialogConfig(
+                    target = link.toUri(),
+                    onConfirm = {
+                        pendingLink = null
+                        context.openUrl(link.toUri())
+                    },
+                    onDismiss = { pendingLink = null },
+                )
             )
-        )
-    }
+        }
 
-    LaunchedEffect(Unit) {
-        viewModel.effect.collect { effect ->
-            when (effect) {
-                is ActivityDetailEffect.OpenUrl -> pendingLink = effect.uri
-                is ActivityDetailEffect.OpenWebPage -> navHostController.navigate(effect.route)
-                ActivityDetailEffect.Pop -> navHostController.popBackStack()
+        LaunchedEffect(Unit) {
+            viewModel.effect.collect { effect ->
+                when (effect) {
+                    is ActivityDetailEffect.OpenUrl -> pendingLink = effect.uri
+
+                    ActivityDetailEffect.Pop -> navHostController.popBackStack()
+                }
             }
         }
     }
@@ -156,11 +157,6 @@ private fun MainScreen(
     ContentScreen(
         isLoading = state.isLoading,
         onBack = { onEventSend(ActivityDetailEvent.BackPressed) },
-        toolBarConfig = ToolbarConfig(
-            actions = listOf(
-                ToolbarAction(icon = AppIcons.Help, onClick = { onEventSend(ActivityDetailEvent.HelpClicked) })
-            )
-        ),
     ) { paddingValues ->
         val detail = state.detail ?: return@ContentScreen
         ContentTemplateBody(

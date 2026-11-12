@@ -24,7 +24,7 @@ import org.multipaz.request.RequestedClaim
  * The claims of one document that the user consented to disclose.
  *
  * Replaces the `DisclosedDocument` that wallet-core exposed up to v0.29.0. Since v0.30.0 a
- * response is generated from a `CredentialPresentmentSelection`, which is narrowed to
+ * response is generated from a `CredentialSelection`, which is narrowed to
  * [disclosedClaims] before it is sent, so this carries the multipaz [RequestedClaim]s rather than
  * bare paths.
  *

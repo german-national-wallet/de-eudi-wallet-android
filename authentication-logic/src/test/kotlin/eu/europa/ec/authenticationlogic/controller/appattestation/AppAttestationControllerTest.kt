@@ -5,6 +5,7 @@ import app.cash.turbine.test
 import eu.europa.ec.authenticationlogic.controller.storage.RegistrationData
 import eu.europa.ec.authenticationlogic.controller.storage.WalletRegistrationStorageController
 import eu.europa.ec.authenticationlogic.jwt.JwtBuilder
+import eu.europa.ec.authenticationlogic.model.WalletWiaPopSpec
 import eu.europa.ec.businesslogic.controller.log.LogController
 import eu.europa.ec.testlogic.base.TestApplication
 import kotlinx.coroutines.flow.flowOf
@@ -20,11 +21,14 @@ import org.sprind.wallet.authenticationlogic.model.MdvmError
 import org.sprind.wallet.authenticationlogic.provider.MdvmAuthContext
 import org.sprind.wallet.authenticationlogic.provider.MdvmAuthContextProvider
 import org.sprind.wallet.businesslogic.controller.crypto.CryptoError
+import org.sprind.wallet.networklogic.common.NetworkFailure
 import org.sprind.wallet.networklogic.common.model.ApiResult
 import org.sprind.wallet.networklogic.mdvm.model.error.MdvmErrorType
 import org.mockito.Mock
 import org.mockito.MockitoAnnotations
 import org.mockito.kotlin.any
+import org.mockito.kotlin.anyOrNull
+import org.mockito.kotlin.mock
 import org.mockito.kotlin.verify
 import org.mockito.kotlin.whenever
 import org.robolectric.RobolectricTestRunner
@@ -38,7 +42,7 @@ private const val mockMdvmToken = "mockMdvmToken"
 private const val mockClientTraceId = "mockClientTraceId"
 
 @RunWith(RobolectricTestRunner::class)
-@Config(sdk = [28], application = TestApplication::class)
+@Config(sdk = [34], application = TestApplication::class)
 class AppAttestationControllerTest {
     @Mock
     private lateinit var walletRegistrationController: WalletRegistrationController
@@ -250,6 +254,112 @@ class AppAttestationControllerTest {
                     errorCode = "WALLET_REGISTRATION_STORAGE_ERROR",
                     traceId = mockClientTraceId
                 ), awaitItem()
+            )
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun `registerWallet passes on the network failure of the challenge request`() = runTest {
+        whenever(walletRegistrationController.getChallenge()).thenReturn(
+            flowOf(RegistrationChallengePartialState.Failure("NO_INTERNET", null, NetworkFailure.Timeout))
+        )
+
+        subject.registerWallet().test {
+            assertEquals(
+                WalletRegistrationPartialState.Failure("NO_INTERNET", null, NetworkFailure.Timeout),
+                awaitItem()
+            )
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun `registerWallet passes on the network failure of the MDVM registration`() = runTest {
+        whenever(walletRegistrationController.getChallenge()).thenReturn(
+            flowOf(RegistrationChallengePartialState.Success(mockChallenge))
+        )
+        whenever(mdvmAuthContextProvider.getMdvmAuthContext()).thenReturn(
+            ApiResult.Failure(
+                MdvmError(
+                    MdvmErrorType.NO_INTERNET,
+                    serverResponse = null,
+                    networkFailure = NetworkFailure.Timeout,
+                )
+            )
+        )
+
+        subject.registerWallet().test {
+            assertEquals(
+                WalletRegistrationPartialState.Failure("NO_INTERNET", null, NetworkFailure.Timeout),
+                awaitItem()
+            )
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun `registerWallet passes on the network failure of the wallet instance request`() = runTest {
+        val rateLimited = NetworkFailure.RateLimited(retryAt = null)
+        whenever(walletRegistrationController.getChallenge()).thenReturn(
+            flowOf(RegistrationChallengePartialState.Success(mockChallenge))
+        )
+        whenever(
+            walletRegistrationController.getWalletInstanceId(
+                authChallenge = mockChallenge,
+                mdvmToken = mockMdvmToken,
+                mdvmAuthPrvk = mockMdvmAuthPrivateKey,
+            )
+        ).thenReturn(flowOf(WalletInstancePartialState.Failure("RATE_LIMITED", null, rateLimited)))
+
+        subject.registerWallet().test {
+            assertEquals(
+                WalletRegistrationPartialState.Failure("RATE_LIMITED", null, rateLimited),
+                awaitItem()
+            )
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun `generateAttestation passes on the network failure of the challenge request`() = runTest {
+        whenever(walletRegistrationStorageController.getWalletRegistration()).thenReturn(
+            Result.success(RegistrationData(mockWalletInstanceId, mockWalletInstanceRevocationCode))
+        )
+        whenever(walletRegistrationController.getChallenge()).thenReturn(
+            flowOf(RegistrationChallengePartialState.Failure("NO_INTERNET", null, NetworkFailure.Timeout))
+        )
+
+        subject.generateAttestation().test {
+            assertEquals(
+                WalletAttestationGenerationResult.Failure("NO_INTERNET", null, NetworkFailure.Timeout),
+                awaitItem()
+            )
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun `generateAttestation passes on the network failure of the attestation request`() = runTest {
+        val rateLimited = NetworkFailure.RateLimited(retryAt = null)
+        whenever(walletRegistrationStorageController.getWalletRegistration()).thenReturn(
+            Result.success(RegistrationData(mockWalletInstanceId, mockWalletInstanceRevocationCode))
+        )
+        whenever(walletRegistrationController.getChallenge()).thenReturn(
+            flowOf(RegistrationChallengePartialState.Success(mockChallenge))
+        )
+        whenever(jwtBuilder.createOAuthClientAttestationJwt(any(), anyOrNull()))
+            .thenReturn(mock<WalletWiaPopSpec>())
+        whenever(
+            walletAttestationController.generateAttestation(any(), any(), any(), any(), any())
+        ).thenReturn(
+            flowOf(WalletAttestationGenerationFromServerResult.Failure("RATE_LIMITED", null, rateLimited))
+        )
+
+        subject.generateAttestation().test {
+            assertEquals(
+                WalletAttestationGenerationResult.Failure("RATE_LIMITED", null, rateLimited),
+                awaitItem()
             )
             cancelAndIgnoreRemainingEvents()
         }

@@ -18,6 +18,7 @@ package org.sprind.wallet.onboardingfeature.setup.privacypolicy
 
 import eu.europa.ec.businesslogic.config.ConfigLogic
 import eu.europa.ec.resourceslogic.R
+import eu.europa.ec.resourceslogic.provider.ResourceProvider
 import eu.europa.ec.testlogic.extension.runFlowTest
 import eu.europa.ec.testlogic.extension.runTest
 import eu.europa.ec.testlogic.rule.CoroutineTestRule
@@ -26,7 +27,9 @@ import org.junit.Rule
 import org.junit.Test
 import org.mockito.kotlin.mock
 import org.mockito.kotlin.whenever
+import org.sprind.wallet.businesslogic.config.LocalizedUrl
 import org.sprind.wallet.businesslogic.config.SettingsLinks
+import java.util.Locale
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
@@ -37,15 +40,17 @@ class PrivacyPolicySetupViewModelTest {
     val coroutineRule = CoroutineTestRule()
 
     private val configLogic: ConfigLogic = mock()
+    private val resourceProvider: ResourceProvider = mock()
 
     private lateinit var subject: PrivacyPolicySetupViewModel
 
     @Before
     fun setUp() {
         whenever(configLogic.settingsLinks).thenReturn(
-            SettingsLinks(privacyPolicy = PRIVACY_POLICY_URL, termsAndConditions = TERMS_URL),
+            SettingsLinks(privacyPolicy = PRIVACY_POLICY, termsAndConditions = TERMS),
         )
-        subject = PrivacyPolicySetupViewModel(configLogic)
+        whenever(resourceProvider.getLocale()).thenReturn(Locale.ENGLISH)
+        subject = PrivacyPolicySetupViewModel(configLogic, resourceProvider)
     }
 
     @Test
@@ -102,7 +107,7 @@ class PrivacyPolicySetupViewModelTest {
 
                 assertEquals(
                     PrivacyPolicySetupEffect.OpenWebPage(
-                        SetupWebPageRoute(url = TERMS_URL, titleRes = R.string.settings_overview_list_terms_and_conditions),
+                        SetupWebPageRoute(url = TERMS.en, titleRes = R.string.settings_overview_list_terms_and_conditions),
                     ),
                     awaitItem(),
                 )
@@ -110,11 +115,45 @@ class PrivacyPolicySetupViewModelTest {
             assertFalse(subject.viewState.value.isAccepted)
         }
 
+    @Test
+    fun `given a german locale when reading the privacy then the german page opens`() =
+        coroutineRule.runTest {
+            whenever(resourceProvider.getLocale()).thenReturn(Locale.GERMANY)
+
+            subject.effect.runFlowTest {
+                subject.setEvent(PrivacyPolicySetupEvent.OpenPrivacyPolicy)
+
+                assertEquals(
+                    PrivacyPolicySetupEffect.OpenWebPage(
+                        SetupWebPageRoute(url = PRIVACY_POLICY.de, titleRes = R.string.settings_overview_list_privacy_policy),
+                    ),
+                    awaitItem(),
+                )
+            }
+        }
+
+    @Test
+    fun `given a german locale when opening the terms then the german page opens`() =
+        coroutineRule.runTest {
+            whenever(resourceProvider.getLocale()).thenReturn(Locale.GERMANY)
+
+            subject.effect.runFlowTest {
+                subject.setEvent(PrivacyPolicySetupEvent.OpenTermsOfUse)
+
+                assertEquals(
+                    PrivacyPolicySetupEffect.OpenWebPage(
+                        SetupWebPageRoute(url = TERMS.de, titleRes = R.string.settings_overview_list_terms_and_conditions),
+                    ),
+                    awaitItem(),
+                )
+            }
+        }
+
     private companion object {
-        const val PRIVACY_POLICY_URL = "https://example.org/privacy"
-        const val TERMS_URL = "https://example.org/terms"
+        val PRIVACY_POLICY = LocalizedUrl(en = "https://example.org/privacy", de = "https://example.org/de/privacy")
+        val TERMS = LocalizedUrl(en = "https://example.org/terms", de = "https://example.org/de/terms")
         val PRIVACY_POLICY_ROUTE = SetupWebPageRoute(
-            url = PRIVACY_POLICY_URL,
+            url = PRIVACY_POLICY.en,
             titleRes = R.string.settings_overview_list_privacy_policy,
         )
     }

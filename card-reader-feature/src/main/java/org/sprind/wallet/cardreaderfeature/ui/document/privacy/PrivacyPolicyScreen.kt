@@ -24,15 +24,10 @@ import org.sprind.wallet.uilogic.component.WebPageScreen
 /**
  * Route to [PrivacyPolicyScreen].
  *
- * [url] is what the screen reads. The issuance policy page is still to be published, so the flow
- * passes [BLANK_PAGE] for now and the screen opens empty.
+ * [url] is what the screen reads. The issuance policy page is still to be published.
  */
 @Serializable
-data class PrivacyPolicyRoute(val url: String) {
-    companion object {
-        const val BLANK_PAGE = "about:blank"
-    }
-}
+data class PrivacyPolicyRoute(val url: String)
 
 /** The privacy policy, read inside the app rather than handed to a browser. */
 @Composable

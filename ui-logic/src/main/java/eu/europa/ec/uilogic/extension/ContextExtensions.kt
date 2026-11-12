@@ -16,6 +16,7 @@
 
 package eu.europa.ec.uilogic.extension
 
+import android.app.Activity
 import android.content.ActivityNotFoundException
 import android.content.Context
 import android.content.ContextWrapper
@@ -138,6 +139,32 @@ fun Context.openBleSettings() {
     val intent = Intent(Settings.ACTION_BLUETOOTH_SETTINGS)
     intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
     startActivity(intent)
+}
+
+/**
+ * Opens the system's Internet panel, where the user can turn on Wi-Fi or mobile data (WD-4685).
+ * Called with an activity context, the panel slides up over the app instead of opening a new
+ * task. A device without the panel is logged and ignored rather than crashing the caller.
+ */
+fun Context.openInternetSettings() {
+    val intent = Intent(Settings.Panel.ACTION_INTERNET_CONNECTIVITY)
+    if (!isActivityContext()) intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+    try {
+        startActivity(intent)
+    } catch (e: ActivityNotFoundException) {
+        Timber.e(e, "No internet settings panel on this device")
+    } catch (e: SecurityException) {
+        Timber.e(e, "Not allowed to open the internet settings panel")
+    }
+}
+
+private fun Context.isActivityContext(): Boolean {
+    var context = this
+    while (context is ContextWrapper) {
+        if (context is Activity) return true
+        context = context.baseContext
+    }
+    return false
 }
 
 fun Context.openIntentChooser(intent: Intent, title: String? = null) {

@@ -141,7 +141,8 @@ private fun Content(
         )
 
         WalletPinStep.Success -> {
-            WalletPinSetSuccessView(state.isLoading)
+            // the Success step is only entered once issuance has finished, so it never loads
+            WalletPinSetSuccessView(isLoading = false)
         }
     }
 }

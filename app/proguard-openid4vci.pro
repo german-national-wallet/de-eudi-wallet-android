@@ -1,11 +1,9 @@
--keep class eu.europa.ec.eudi.iso18013.transfer.BuildConfig { *; }
 -keep class eu.europa.ec.eudi.iso18013.transfer.R$string { *; }
 -keep class eu.europa.ec.eudi.iso18013.transfer.R$xml { *; }
 -keep class eu.europa.ec.eudi.iso18013.transfer.R { *; }
 -keep class eu.europa.ec.eudi.iso18013.transfer.RetrievalMethod { *; }
 -keep class eu.europa.ec.eudi.iso18013.transfer.TransferManager$DefaultImpls { *; }
 -keep class eu.europa.ec.eudi.iso18013.transfer.internal.ResponseDocumentExtKt { *; }
--keep class eu.europa.ec.eudi.iso18013.transfer.internal.readerauth.crl.CertificateCRLValidationKt { *; }
 -keep class eu.europa.ec.eudi.iso18013.transfer.internal.readerauth.profile.KeyExtendedKt { *; }
 -keep class eu.europa.ec.eudi.iso18013.transfer.response.ResponseGeneratorKt { *; }
 -keep class eu.europa.ec.eudi.openid4vci.ConfigKt { *; }
@@ -56,7 +54,6 @@
 -keep class eu.europa.ec.eudi.wallet.R { *; }
 -keep class eu.europa.ec.eudi.wallet.document.Algorithm$Companion { *; }
 -keep class eu.europa.ec.eudi.wallet.document.Algorithm { *; }
--keep class eu.europa.ec.eudi.wallet.document.BuildConfig { *; }
 -keep class eu.europa.ec.eudi.wallet.document.DocumentKt { *; }
 -keep class eu.europa.ec.eudi.wallet.document.R { *; }
 -keep class eu.europa.ec.eudi.wallet.issue.openid4vci.OpenId4VciManager$Config$ParUsage$Companion { *; }

@@ -18,7 +18,7 @@ package org.sprind.wallet.businesslogic.controller.storage
 
 import eu.europa.ec.businesslogic.controller.storage.PrefKeys
 import eu.europa.ec.businesslogic.controller.storage.PrefKeysImpl
-import eu.europa.ec.businesslogic.controller.storage.PrefsController
+import eu.europa.ec.businesslogic.controller.storage.EncryptedPrefsController
 import junit.framework.TestCase.assertEquals
 import org.junit.After
 import org.junit.Before
@@ -31,7 +31,7 @@ import org.mockito.kotlin.whenever
 class PrefKeysTest {
 
     @Mock
-    private lateinit var prefsController: PrefsController
+    private lateinit var prefsController: EncryptedPrefsController
 
     private lateinit var closeable: AutoCloseable
 

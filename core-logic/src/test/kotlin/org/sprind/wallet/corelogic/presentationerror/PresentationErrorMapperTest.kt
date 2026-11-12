@@ -26,7 +26,11 @@ import junit.framework.TestCase.assertNotNull
 import junit.framework.TestCase.assertNull
 import junit.framework.TestCase.assertTrue
 import org.junit.Test
+import org.sprind.wallet.networklogic.common.HttpRateLimitedException
+import org.sprind.wallet.networklogic.common.HttpRequestTimeoutException
+import org.sprind.wallet.networklogic.trace.TracedIOException
 import java.net.ConnectException
+import java.net.NoRouteToHostException
 import java.net.SocketTimeoutException
 import javax.net.ssl.SSLException
 
@@ -130,6 +134,20 @@ class PresentationErrorMapperTest {
     @Test
     fun `HttpError with SocketTimeoutException maps to Intermittent`() {
         val ioException = SocketTimeoutException("timeout")
+        val niscyError = HttpError(ioException)
+        val throwable = AuthorizationRequestException(niscyError)
+
+        val result = mapToPresentationError(throwable, traceId, genericMessage)
+
+        assertTrue(result is PresentationError.Intermittent)
+    }
+
+    @Test
+    fun `HttpError with a traced HTTP 408 maps to Intermittent`() {
+        val ioException = TracedIOException(
+            traceId = "client-trace",
+            cause = HttpRequestTimeoutException(fromGateway = false),
+        )
         val niscyError = HttpError(ioException)
         val throwable = AuthorizationRequestException(niscyError)
 
@@ -317,5 +335,93 @@ class PresentationErrorMapperTest {
             PresentationError.RelyingPartySideSubType.INVALID_REQUEST,
             (result as PresentationError.RelyingPartySide).subType,
         )
+    }
+    @Test
+    fun `a timeout fetching the request is a relying party timeout`() {
+        listOf(
+            AuthorizationRequestException(
+                ResolutionError.UnableToFetchRequestObject(SocketTimeoutException("timeout"))
+            ),
+            TracedIOException(traceId = "trace", cause = HttpRequestTimeoutException(fromGateway = false)),
+            ConnectException("connection refused"),
+        ).forEach { throwable ->
+            val result = mapToPresentationError(throwable, traceId, genericMessage, PresentationStage.REQUEST)
+
+            assertEquals(
+                "$throwable",
+                PresentationError.RelyingPartySideSubType.RELYING_PARTY_TIMEOUT,
+                (result as PresentationError.RelyingPartySide).subType,
+            )
+        }
+    }
+
+    @Test
+    fun `an unreachable response endpoint is a relying party timeout`() {
+        val throwable = IllegalStateException(TracedIOException("trace", ConnectException("refused")))
+
+        val result = mapToPresentationError(throwable, traceId, genericMessage, PresentationStage.RESPONSE)
+
+        assertEquals(
+            PresentationError.RelyingPartySideSubType.RELYING_PARTY_TIMEOUT,
+            (result as PresentationError.RelyingPartySide).subType,
+        )
+    }
+
+    @Test
+    fun `a slow response endpoint is still a slow connection`() {
+        val result = mapToPresentationError(
+            SocketTimeoutException("timeout"), traceId, genericMessage, PresentationStage.RESPONSE,
+        )
+
+        assertEquals(PresentationError.IntermittentSubType.NETWORK, (result as PresentationError.Intermittent).subType)
+    }
+
+    @Test
+    fun `a device without a route to the network is never blamed on the relying party`() {
+        listOf(
+            NoRouteToHostException("no route"),
+            // What Android throws when the device has no network at all.
+            ConnectException("failed to connect: connect failed: ENETUNREACH (Network is unreachable)"),
+        ).forEach { cause ->
+            val throwable = IllegalStateException(TracedIOException("trace", cause))
+            listOf(null, PresentationStage.REQUEST, PresentationStage.RESPONSE).forEach { stage ->
+                val result = mapToPresentationError(throwable, traceId, genericMessage, stage)
+
+                assertEquals(
+                    "$cause $stage",
+                    PresentationError.IntermittentSubType.NETWORK,
+                    (result as PresentationError.Intermittent).subType,
+                )
+            }
+        }
+    }
+
+    @Test
+    fun `outside the exchange with the relying party a timeout is not blamed on it`() {
+        listOf(SocketTimeoutException("timeout"), ConnectException("refused")).forEach { throwable ->
+            val result = mapToPresentationError(throwable, traceId, genericMessage)
+
+            assertEquals(
+                PresentationError.IntermittentSubType.NETWORK,
+                (result as PresentationError.Intermittent).subType,
+            )
+        }
+    }
+
+    @Test
+    fun `HTTP 429 is rate limiting in every stage`() {
+        val throwable = AuthorizationRequestException(
+            HttpError(TracedIOException("trace", HttpRateLimitedException(retryAt = null, fromGateway = false)))
+        )
+        listOf(null, PresentationStage.REQUEST, PresentationStage.RESPONSE).forEach { stage ->
+            val result = mapToPresentationError(throwable, traceId, genericMessage, stage)
+
+            assertEquals(
+                "$stage",
+                PresentationError.IntermittentSubType.RATE_LIMITED,
+                (result as PresentationError.Intermittent).subType,
+            )
+            assertEquals(PresentationError.RecommendedAction.RETRY_LATER, result.recommendedAction)
+        }
     }
 }

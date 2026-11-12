@@ -95,6 +95,8 @@ dependencies {
     implementation(libs.opentelemetry.extension.kotlin)
     implementation(libs.instrumentation.android.log.library)
     byteBuddy(libs.instrumentation.android.log.agent)
+    // Withheld from the open-source mirror, which therefore does not include the module.
+    findProject(LibraryModule.AutomationLogic.path)?.let { androidTestImplementation(it) }
     androidTestImplementation(libs.androidx.test.uiautomator)
     androidTestImplementation(libs.androidx.compose.ui.test)
     androidTestImplementation(libs.espresso.core)

@@ -30,6 +30,8 @@ import org.sprind.wallet.dashboardfeature.ui.activities.ActivitiesScreen
 import org.sprind.wallet.dashboardfeature.ui.activities.ActivityDetailRoute
 import org.sprind.wallet.dashboardfeature.ui.activities.CredentialActivitiesRoute
 import org.sprind.wallet.dashboardfeature.ui.activities.detail.ActivityDetailScreen
+import org.sprind.wallet.dashboardfeature.ui.dashboard.CredentialCatalogueRoute
+import org.sprind.wallet.dashboardfeature.ui.dashboard.CredentialCatalogueScreen
 import org.sprind.wallet.dashboardfeature.ui.documentdetail.DashboardDocumentDetailScreen
 import org.sprind.wallet.dashboardfeature.ui.settings.SettingsScreen
 import org.sprind.wallet.dashboardfeature.ui.settings.SettingsWebPageRoute
@@ -96,6 +98,13 @@ fun NavGraphBuilder.featureDashboardGraph(navController: NavController) {
             SettingsWebPageScreen(
                 navController = navController,
                 route = backStackEntry.toRoute<SettingsWebPageRoute>(),
+            )
+        }
+
+        composable<CredentialCatalogueRoute> { backStackEntry ->
+            CredentialCatalogueScreen(
+                navController = navController,
+                route = backStackEntry.toRoute<CredentialCatalogueRoute>(),
             )
         }
 

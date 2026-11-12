@@ -43,8 +43,11 @@ class DeviceAuthenticationControllerImpl(
     private val biometricAuthenticationController: BiometricAuthenticationController
 ) : DeviceAuthenticationController {
 
+    private val allowedAuthenticators = BiometricManager.Authenticators.BIOMETRIC_WEAK or
+            BiometricManager.Authenticators.DEVICE_CREDENTIAL
+
     override fun deviceSupportsBiometrics(listener: (BiometricsAvailability) -> Unit) {
-        biometricAuthenticationController.deviceSupportsBiometrics(listener)
+        biometricAuthenticationController.deviceSupportsBiometrics(allowedAuthenticators, listener)
     }
 
     override fun authenticate(
@@ -63,7 +66,7 @@ class DeviceAuthenticationControllerImpl(
                     promptInfo = BiometricPrompt.PromptInfo.Builder()
                         .setTitle(resourceProvider.getString(R.string.biometric_prompt_title))
                         .setSubtitle(resourceProvider.getString(R.string.biometric_prompt_subtitle))
-                        .setAllowedAuthenticators(BiometricManager.Authenticators.BIOMETRIC_WEAK or BiometricManager.Authenticators.DEVICE_CREDENTIAL)
+                        .setAllowedAuthenticators(allowedAuthenticators)
                         .build(),
                     notifyOnAuthenticationFailure = notifyOnAuthenticationFailure
                 )

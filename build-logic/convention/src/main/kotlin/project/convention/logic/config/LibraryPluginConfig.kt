@@ -34,6 +34,8 @@ enum class LibraryModule(val path: String) {
     ResourcesLogic(":resources-logic"),
     StorageLogic(":storage-logic"),
     BaselineProfileLogic(":baseline-profile"),
+    AutomationFeature(":automation-feature"),
+    AutomationLogic(":automation-logic"),
     CommonFeature(":common-feature"),
     StartupFeature(":startup-feature"),
     OnboardingFeature(":onboarding-feature"),

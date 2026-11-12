@@ -29,8 +29,8 @@ import eu.europa.ec.businesslogic.controller.log.LogController
 import eu.europa.ec.businesslogic.controller.log.LogControllerImpl
 import eu.europa.ec.businesslogic.controller.storage.PrefKeys
 import eu.europa.ec.businesslogic.controller.storage.PrefKeysImpl
-import eu.europa.ec.businesslogic.controller.storage.PrefsController
-import eu.europa.ec.businesslogic.controller.storage.PrefsControllerImpl
+import eu.europa.ec.businesslogic.controller.storage.EncryptedPrefsController
+import eu.europa.ec.businesslogic.controller.storage.EncryptedPrefsControllerImpl
 import eu.europa.ec.resourceslogic.provider.ResourceProvider
 import org.koin.core.annotation.ComponentScan
 import org.koin.core.annotation.Factory
@@ -39,6 +39,7 @@ import org.koin.core.annotation.Single
 import org.sprind.wallet.businesslogic.config.DebugConfigOverrides
 import org.sprind.wallet.businesslogic.config.DebugConfigOverridesController
 import org.sprind.wallet.businesslogic.config.DebugConfigOverridesControllerImpl
+import org.sprind.wallet.businesslogic.config.SimulatedEidCardKeyGenerator
 import org.sprind.wallet.businesslogic.config.UserRuntimeConfig
 import org.sprind.wallet.businesslogic.config.UserRuntimeConfigImpl
 import org.sprind.wallet.businesslogic.controller.crypto.CipherInstanceProvider
@@ -47,34 +48,43 @@ import org.sprind.wallet.businesslogic.controller.crypto.CryptoKeyGeneratorImpl
 import org.sprind.wallet.businesslogic.controller.crypto.EcKeyPairController
 import org.sprind.wallet.businesslogic.controller.crypto.EcKeyPairControllerImpl
 import org.sprind.wallet.businesslogic.controller.crypto.KeyStoreInstanceProvider
+import org.sprind.wallet.businesslogic.controller.session.SessionManager
+import org.sprind.wallet.businesslogic.controller.session.SessionManagerImpl
 import org.sprind.wallet.businesslogic.controller.storage.StorageController
 import org.sprind.wallet.businesslogic.controller.storage.StorageControllerImpl
 import org.sprind.wallet.businesslogic.util.RandomUUIDGenerator
+import kotlin.time.Clock
 
 @Module
 @ComponentScan("eu.europa.ec.businesslogic", "org.sprind.wallet.businesslogic")
 class LogicBusinessModule
 
 @Single
+fun provideClock(): Clock = Clock.System
+
+@Single
 fun provideConfigLogic(environmentConfig: EnvironmentConfig): ConfigLogic =
     ConfigLogicImpl(environmentConfig)
 
 @Single(binds = [DebugConfigOverrides::class])
-fun provideDebugConfigOverridesController(prefsController: PrefsController):
-        DebugConfigOverridesController = DebugConfigOverridesControllerImpl(prefsController)
+fun provideDebugConfigOverridesController(
+    prefsController: EncryptedPrefsController,
+    logController: LogController,
+): DebugConfigOverridesController = DebugConfigOverridesControllerImpl(prefsController, logController)
 
 @Single
 fun provideLogController(context: Context, logConfig: LogConfig): LogController =
     LogControllerImpl(context, logConfig)
 
 @Single
-fun providePrefsController(
+fun provideEncryptedPrefsController(
     resourceProvider: ResourceProvider,
     logController: LogController,
-): PrefsController = PrefsControllerImpl(resourceProvider, logController)
+    cryptoKeyGenerator: CryptoKeyGenerator,
+): EncryptedPrefsController = EncryptedPrefsControllerImpl(resourceProvider, logController, cryptoKeyGenerator)
 
 @Single
-fun providePrefKeys(prefsController: PrefsController): PrefKeys =
+fun providePrefKeys(prefsController: EncryptedPrefsController): PrefKeys =
     PrefKeysImpl(prefsController)
 
 @Factory
@@ -104,7 +114,7 @@ fun provideKeystoreController(
 @Single
 fun provideStorageController(
     context: Context,
-    prefsController: PrefsController
+    prefsController: EncryptedPrefsController
 ): StorageController =
     StorageControllerImpl(context, prefsController)
 @Single
@@ -124,5 +134,15 @@ fun provideCryptoKeyGenerator(): CryptoKeyGenerator =
     CryptoKeyGeneratorImpl()
 
 @Single
-fun provideUserRuntimeConfig(configLogic: ConfigLogic): UserRuntimeConfig =
-    UserRuntimeConfigImpl(configLogic)
+fun provideUserRuntimeConfig(
+    configLogic: ConfigLogic,
+    simulatedEidCardKeyGenerator: SimulatedEidCardKeyGenerator,
+): UserRuntimeConfig =
+    UserRuntimeConfigImpl(configLogic, simulatedEidCardKeyGenerator)
+
+@Factory
+fun provideSimulatedEidCardKeyGenerator(): SimulatedEidCardKeyGenerator =
+    SimulatedEidCardKeyGenerator()
+
+@Single
+fun provideSessionManager(): SessionManager = SessionManagerImpl()

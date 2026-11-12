@@ -31,26 +31,26 @@ import eu.europa.ec.corelogic.controller.WalletCoreDocumentsController
 import eu.europa.ec.corelogic.controller.WalletCorePartialState
 import eu.europa.ec.corelogic.controller.WalletCorePresentationController
 import eu.europa.ec.corelogic.model.AuthenticationData
+import eu.europa.ec.corelogic.model.DocumentIdentifier
+import eu.europa.ec.corelogic.model.isPid
+import eu.europa.ec.corelogic.model.toDocumentIdentifier
 import eu.europa.ec.corelogic.securearea.exception.RwscaServerException
-import eu.europa.ec.eudi.wallet.document.format.MsoMdocFormat
-import eu.europa.ec.eudi.wallet.document.format.SdJwtVcFormat
+import eu.europa.ec.eudi.wallet.document.IssuedDocument
 import eu.europa.ec.resourceslogic.provider.ResourceProvider
 import org.sprind.wallet.corelogic.presentationerror.PresentationError
 import org.sprind.wallet.corelogic.presentationerror.mapToPresentationError
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.withTimeoutOrNull
-import org.sprind.wallet.commonfeature.interactor.DocumentDeletionPartialState
-import org.sprind.wallet.commonfeature.interactor.RwscaInteractor
-import org.sprind.wallet.commonfeature.interactor.deletePidDocumentsWithRwscaCleanup
 import org.sprind.wallet.corelogic.model.RelyingPartyRegistrationStatus
 import org.sprind.wallet.corelogic.model.forLocale
 import org.sprind.wallet.corelogic.model.rejectsRequest
 import org.sprind.wallet.corelogic.model.reportUri
+import org.sprind.wallet.corelogic.model.serviceProviderUri
 import org.sprind.wallet.corelogic.model.supportUri
 import java.net.URI
+import kotlin.time.Clock
 
 sealed class PresentationRequestInteractorPartialState {
     data class Success(
@@ -60,11 +60,19 @@ sealed class PresentationRequestInteractorPartialState {
         val purpose: String? = null,
         val reportUri: String? = null,
         val supportUri: String? = null,
+        val serviceProviderUri: String? = null,
     ) : PresentationRequestInteractorPartialState()
 
+    /**
+     * Nothing in the wallet satisfies the request.
+     *
+     * @property missingPid The request cannot be satisfied without a PID and the wallet holds
+     *   no valid one, so the user has to add their Digital ID first (WD-4759).
+     */
     data class NoData(
         val verifierName: String?,
         val verifierIsTrusted: Boolean,
+        val missingPid: Boolean = false,
     ) : PresentationRequestInteractorPartialState()
 
     /** The wallet holds the requested credentials, but not the claims the request needs. */
@@ -117,7 +125,7 @@ sealed class PresentationDocumentSubmissionPartialState {
             Failure()
 
         data class WrongPin(val triesRemaining: Int, val iso8601utcTime: String) : Failure()
-        data object AccountLocked : Failure()
+
         /**
          * @property errorCode The recognised code, used to pick the message shown to the user.
          * @property backendErrorCode The code exactly as the backend reported it, so that a code
@@ -129,6 +137,7 @@ sealed class PresentationDocumentSubmissionPartialState {
             val traceId: String? = null,
             val backendErrorCode: String = errorCode.name,
         ) : Failure()
+
         data class Unknown(val error: PresentationError) : Failure()
 
         enum class ServerErrorCode {
@@ -142,11 +151,6 @@ sealed class PresentationDocumentSubmissionPartialState {
     data object Success : PresentationDocumentSubmissionPartialState()
 }
 
-sealed class PresentationRequestDeleteDocumentPartialState {
-    data object Success : PresentationRequestDeleteDocumentPartialState()
-    data class Failure(val error: String) : PresentationRequestDeleteDocumentPartialState()
-}
-
 interface PresentationRequestInteractor {
     val initiatorRoute: String
     fun getRequestDocuments(): Flow<PresentationRequestInteractorPartialState>
@@ -158,7 +162,6 @@ interface PresentationRequestInteractor {
     fun setConfig(config: RequestUriConfig)
     fun processRequest(): Flow<PresentationRequestProcessPartialState>
     suspend fun sendRequestedDocuments(): PresentationDocumentSubmissionPartialState
-    fun deletePidDocuments(): Flow<PresentationRequestDeleteDocumentPartialState>
     fun getWalletPinBlockTime(): String
     fun isLastPinTry(): Boolean
 
@@ -178,7 +181,6 @@ class PresentationRequestInteractorImpl(
     private val walletCoreDocumentsController: WalletCoreDocumentsController,
     private val walletPinUnBlockTimeStorageController: WalletPinUnBlockTimeStorageController,
     private val logController: LogController,
-    private val rwscaInteractor: RwscaInteractor,
 ) : PresentationRequestInteractor {
 
     private val logTag = this::class.java.simpleName
@@ -196,71 +198,7 @@ class PresentationRequestInteractorImpl(
     override fun getRequestDocuments(): Flow<PresentationRequestInteractorPartialState> =
         walletCorePresentationController.events.mapNotNull { response ->
             when (response) {
-                is TransferEventPartialState.RequestReceived -> {
-                    when {
-                        // First, so a rejected request never reaches the consent screen.
-                        response.relyingPartyRegistration.rejectsRequest -> {
-                            rejectRequest(
-                                verifierName = response.verifierName,
-                                registration = response.relyingPartyRegistration,
-                            )
-                        }
-
-                        // Nothing in the wallet can satisfy the request. Note this is not the
-                        // same as "the verifier named no claims": per OpenID4VP §6.4.1 a
-                        // Credential Query without `claims` asks for a presentation that
-                        // discloses nothing beyond holding the credential, which is a request
-                        // the user still has to consent to.
-                        response.requestData.isEmpty() -> {
-                            if (holdsRequestedCredentials(response.requestedCredentialSets)) {
-                                PresentationRequestInteractorPartialState.Unsatisfiable(
-                                    verifierName = response.verifierName,
-                                    verifierIsTrusted = response.verifierIsTrusted,
-                                )
-                            } else {
-                                PresentationRequestInteractorPartialState.NoData(
-                                    verifierName = response.verifierName,
-                                    verifierIsTrusted = response.verifierIsTrusted,
-                                )
-                            }
-                        }
-
-                        else -> {
-                            // request data contains n number of files can be mDL, PID, this might change in the future
-                            val transformer = RequestTransformer()
-                            val requestDataUi = transformer.transformToDomainItems(
-                                storageDocuments = walletCoreDocumentsController.getAllIssuedDocuments(),
-                                requestMatches = response.requestData,
-                                resourceProvider = resourceProvider,
-                                logController = logController,
-                            )
-
-                            val documentsDomain = requestDataUi.getOrThrow()
-
-                            if (documentsDomain.isNotEmpty()) {
-                                PresentationRequestInteractorPartialState.Success(
-                                    verifierName = response.verifierName,
-                                    verifierIsTrusted = response.verifierIsTrusted,
-                                    requestDocuments = transformer.transformToUiItems(
-                                        documentsDomain = documentsDomain,
-                                        resourceProvider = resourceProvider,
-                                    ),
-                                    purpose = (response.relyingPartyRegistration
-                                            as? RelyingPartyRegistrationStatus.WithinRegisteredScope)
-                                        ?.purpose
-                                        ?.forLocale(resourceProvider.getLocale()),
-                                    reportUri = response.relyingPartyRegistration.reportUri,
-                                    supportUri = response.relyingPartyRegistration.supportUri,
-                                )
-                            } else {
-                                PresentationRequestInteractorPartialState.NoData(
-                                    verifierName = response.verifierName,
-                                    verifierIsTrusted = response.verifierIsTrusted,
-                                )
-                            }
-                        }
-                    }
-                }
+                is TransferEventPartialState.RequestReceived -> response.toPartialState()
 
                 is TransferEventPartialState.RelyingPartyNotRegistered -> {
                     rejectRequest(
@@ -289,26 +227,147 @@ class PresentationRequestInteractorImpl(
             )
         }
 
+    private suspend fun TransferEventPartialState.RequestReceived.toPartialState() = when {
+        // First, so a rejected request never reaches the consent screen.
+        relyingPartyRegistration.rejectsRequest -> {
+            rejectRequest(
+                verifierName = verifierName,
+                registration = relyingPartyRegistration,
+            )
+        }
+
+        // Nothing in the wallet can satisfy the request. Note this is not the
+        // same as "the verifier named no claims": per OpenID4VP §6.4.1 a
+        // Credential Query without `claims` asks for a presentation that
+        // discloses nothing beyond holding the credential, which is a request
+        // the user still has to consent to.
+        // An expired PID is never matched, so it lands here too; it is checked
+        // first because holdsRequestedCredentials still counts it as held.
+        requestData.isEmpty() && isMissingRequiredPid(requestedCredentialSets) ->
+            PresentationRequestInteractorPartialState.NoData(
+                verifierName = verifierName,
+                verifierIsTrusted = verifierIsTrusted,
+                missingPid = true,
+            )
+
+        requestData.isEmpty() && holdsRequestedCredentials(requestedCredentialSets) ->
+            PresentationRequestInteractorPartialState.Unsatisfiable(
+                verifierName = verifierName,
+                verifierIsTrusted = verifierIsTrusted,
+            )
+
+        requestData.isEmpty() ->
+            PresentationRequestInteractorPartialState.NoData(
+                verifierName = verifierName,
+                verifierIsTrusted = verifierIsTrusted,
+            )
+
+        else -> {
+            // request data contains n number of files can be mDL, PID, this might change in the future
+            val transformer = RequestTransformer()
+            val requestDataUi = transformer.transformToDomainItems(
+                storageDocuments = walletCoreDocumentsController.getAllIssuedDocuments(),
+                requestMatches = requestData,
+                resourceProvider = resourceProvider,
+                logController = logController,
+            )
+
+            val documentsDomain = requestDataUi.getOrThrow()
+
+            if (documentsDomain.isNotEmpty()) {
+                PresentationRequestInteractorPartialState.Success(
+                    verifierName = verifierName,
+                    verifierIsTrusted = verifierIsTrusted,
+                    requestDocuments = transformer.transformToUiItems(
+                        documentsDomain = documentsDomain,
+                        resourceProvider = resourceProvider,
+                    ),
+                    purpose = (relyingPartyRegistration
+                            as? RelyingPartyRegistrationStatus.WithinRegisteredScope)
+                        ?.purpose
+                        ?.forLocale(resourceProvider.getLocale()),
+                    reportUri = relyingPartyRegistration.reportUri,
+                    supportUri = relyingPartyRegistration.supportUri,
+                    serviceProviderUri = relyingPartyRegistration.serviceProviderUri,
+                )
+            } else {
+                PresentationRequestInteractorPartialState.NoData(
+                    verifierName = verifierName,
+                    verifierIsTrusted = verifierIsTrusted,
+                    missingPid = isMissingRequiredPid(requestedCredentialSets),
+                )
+            }
+        }
+    }
+
+    /**
+     * Whether a valid PID is all the wallet lacks: the wallet holds no PID or only expired ones,
+     * the request cannot be satisfied without one (some required credential set has no option
+     * that does without it), and adding one would satisfy every required set. When something else
+     * is missing too, adding the Digital ID alone would not help, so it is not reported as a
+     * missing PID.
+     */
+    private suspend fun isMissingRequiredPid(requestedSets: List<RequestedCredentialSet>?): Boolean {
+        if (requestedSets.isNullOrEmpty()) return false
+        val heldTypes = walletCoreDocumentsController.getAllIssuedDocuments()
+            .mapNotNull { document ->
+                document.toDocumentIdentifier()
+                    .takeUnless { it.isPid && document.isExpired() }
+            }
+            .toSet()
+        if (heldTypes.any { it.isPid }) return false
+
+        val requiresPid = requestedSets.filter { it.required }.any { set ->
+            set.options.isNotEmpty() && set.options.all { option ->
+                option.any { acceptedTypes ->
+                    acceptedTypes.isNotEmpty() && acceptedTypes.all { it.toDocumentIdentifier().isPid }
+                }
+            }
+        }
+        return requiresPid && requestedSets.areSatisfiedBy(heldTypes + PID_IDENTIFIERS)
+    }
+
     /**
      * Whether the wallet holds, for every required credential set, all credential types of at
      * least one option, so that only the requested claims stand in the way.
      */
     private fun holdsRequestedCredentials(requestedSets: List<RequestedCredentialSet>?): Boolean {
         if (requestedSets.isNullOrEmpty()) return false
-        val heldTypes = walletCoreDocumentsController.getAllIssuedDocuments()
-            .map { document ->
-                when (val format = document.format) {
-                    is MsoMdocFormat -> format.docType
-                    is SdJwtVcFormat -> format.vct
+        val heldTypes = heldCredentialTypes()
+        return requestedSets.areSatisfiedBy(heldTypes)
+    }
+
+    /**
+     * Whether every credential of the document has expired. Not [IssuedDocument.getValidUntil]:
+     * it only reads a credential that is valid now, so it fails for exactly these documents. A
+     * document without credentials does not count as expired.
+     */
+    private suspend fun IssuedDocument.isExpired(): Boolean {
+        val credentials = getCredentials()
+        val now = Clock.System.now()
+        return credentials.isNotEmpty() && credentials.all { it.validUntil < now }
+    }
+
+    /** The identifiers of the credentials the wallet holds. */
+    private fun heldCredentialTypes(): Set<DocumentIdentifier> =
+        walletCoreDocumentsController.getAllIssuedDocuments()
+            .map { it.toDocumentIdentifier() }
+            .toSet()
+
+    /**
+     * Whether credentials of [heldTypes] cover, for every required set, all credential types of
+     * at least one option.
+     */
+    private fun List<RequestedCredentialSet>.areSatisfiedBy(
+        heldTypes: Set<DocumentIdentifier>,
+    ): Boolean =
+        filter { it.required }.all { set ->
+            set.options.any { option ->
+                option.all { acceptedTypes ->
+                    acceptedTypes.any { it.toDocumentIdentifier() in heldTypes }
                 }
             }
-            .toSet()
-        return requestedSets.filter { it.required }.all { set ->
-            set.options.any { option ->
-                option.all { acceptedTypes -> acceptedTypes.any { it in heldTypes } }
-            }
         }
-    }
 
     /** Must not stop the presentation, that would cancel the flow still delivering this state. */
     private fun rejectRequest(
@@ -405,31 +464,6 @@ class PresentationRequestInteractorImpl(
         }
     }
 
-    override fun deletePidDocuments(): Flow<PresentationRequestDeleteDocumentPartialState> =
-        flow {
-            when (
-                val response = deletePidDocumentsWithRwscaCleanup(
-                    rwscaInteractor = rwscaInteractor,
-                    walletCoreDocumentsController = walletCoreDocumentsController,
-                )
-            ) {
-                is DocumentDeletionPartialState.Failure ->
-                    emit(PresentationRequestDeleteDocumentPartialState.Failure(error = response.error))
-
-                is DocumentDeletionPartialState.Success -> {
-                    walletPinUnBlockTimeStorageController.clear()
-                    emit(PresentationRequestDeleteDocumentPartialState.Success)
-                }
-            }
-        }.safeAsync {
-            logController.d(logTag) {
-                "deletePidDocuments: ${it.localizedMessage}"
-            }
-            PresentationRequestDeleteDocumentPartialState.Failure(
-                error = it.localizedMessage ?: genericErrorMsg
-            )
-        }
-
     override fun getWalletPinBlockTime(): String =
         walletPinUnBlockTimeStorageController.retrievePinTime()
 
@@ -481,3 +515,9 @@ class PresentationRequestInteractorImpl(
         }
     }
 }
+
+/** The formats a PID comes in; adding the Digital ID issues it in both. */
+private val PID_IDENTIFIERS: Set<DocumentIdentifier> = setOf(
+    DocumentIdentifier.MdocPid,
+    DocumentIdentifier.SdJwtPid,
+)

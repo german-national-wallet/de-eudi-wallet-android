@@ -11,6 +11,7 @@ import kotlinx.coroutines.flow.flow
 import org.sprind.wallet.analyticslogic.controller.Telemetry
 import org.sprind.wallet.authenticationlogic.provider.MdvmAuthContext
 import org.sprind.wallet.authenticationlogic.provider.MdvmAuthContextProvider
+import org.sprind.wallet.networklogic.common.NetworkFailure
 import org.sprind.wallet.networklogic.common.model.ApiResult
 import java.security.PrivateKey
 
@@ -19,8 +20,12 @@ sealed class WalletAttestationGenerationResult {
     data class Success(val walletInstanceAttestationSpec: WalletInstanceAttestationSpec) :
         WalletAttestationGenerationResult()
 
-    data class Failure(val errorCode: String, val traceId: String?) :
-        WalletAttestationGenerationResult()
+    /** @property networkFailure Set when a request failed in transit (see [NetworkFailure]). */
+    data class Failure(
+        val errorCode: String,
+        val traceId: String?,
+        val networkFailure: NetworkFailure? = null,
+    ) : WalletAttestationGenerationResult()
 }
 
 /**
@@ -35,9 +40,13 @@ interface AppAttestationController {
     fun registerWallet(): Flow<WalletRegistrationPartialState>
 
     /**
-     * Generates attestation on server and stores it locally
+     * Requests a wallet instance attestation (WIA) from the wallet backend.
+     *
+     * @param popKeystoreAlias alias of an existing Android KeyStore key the WIA must be bound
+     *        to. When null, a new PoP key pair is generated under
+     *        KEYSTORE_ALIAS_WALLET_INSTANCE_ATTESTATION_KEYS, replacing the key stored there.
      * */
-    fun generateAttestation(): Flow<WalletAttestationGenerationResult>
+    fun generateAttestation(popKeystoreAlias: String? = null): Flow<WalletAttestationGenerationResult>
 }
 
 class AppAttestationControllerImpl(
@@ -64,7 +73,8 @@ class AppAttestationControllerImpl(
                         emit(
                             WalletRegistrationPartialState.Failure(
                                 errorCode = challengeResult.errorCode,
-                                traceId = challengeResult.traceId
+                                traceId = challengeResult.traceId,
+                                networkFailure = challengeResult.networkFailure,
                             )
                         )
                     }
@@ -75,7 +85,8 @@ class AppAttestationControllerImpl(
                                 emit(
                                     WalletRegistrationPartialState.Failure(
                                         errorCode = mdvmAuthContextResult.error.code,
-                                        traceId = mdvmAuthContextResult.error.traceId
+                                        traceId = mdvmAuthContextResult.error.traceId,
+                                        networkFailure = mdvmAuthContextResult.error.networkFailure,
                                     )
                                 )
                             }
@@ -93,7 +104,8 @@ class AppAttestationControllerImpl(
                                             emit(
                                                 WalletRegistrationPartialState.Failure(
                                                     errorCode = instanceRequestResult.errorCode,
-                                                    traceId = instanceRequestResult.traceId
+                                                    traceId = instanceRequestResult.traceId,
+                                                    networkFailure = instanceRequestResult.networkFailure,
                                                 )
                                             )
                                     }
@@ -140,7 +152,7 @@ class AppAttestationControllerImpl(
             }
         }
 
-    override fun generateAttestation(): Flow<WalletAttestationGenerationResult> =
+    override fun generateAttestation(popKeystoreAlias: String?): Flow<WalletAttestationGenerationResult> =
         flow {
             val registrationData = walletRegistrationStorageController.getWalletRegistration()
                 .getOrElse { error ->
@@ -166,7 +178,8 @@ class AppAttestationControllerImpl(
                             emit(
                                 WalletAttestationGenerationResult.Failure(
                                     errorCode = result.errorCode,
-                                    traceId = result.traceId
+                                    traceId = result.traceId,
+                                    networkFailure = result.networkFailure,
                                 )
                             )
                         }
@@ -178,7 +191,8 @@ class AppAttestationControllerImpl(
                                     emit(
                                         WalletAttestationGenerationResult.Failure(
                                             errorCode = mdvmAuthContextResult.error.code,
-                                            traceId = mdvmAuthContextResult.error.traceId
+                                            traceId = mdvmAuthContextResult.error.traceId,
+                                            networkFailure = mdvmAuthContextResult.error.networkFailure,
                                         )
                                     )
                                     return@collect
@@ -191,6 +205,7 @@ class AppAttestationControllerImpl(
                                 challenge = result.challenge,
                                 walletInstanceId = registrationData.walletInstanceId,
                                 mdvmAuthContext = mdvmAuthContext,
+                                popKeystoreAlias = popKeystoreAlias,
                             )
 
                             generateWalletInstanceAttestation(attestation).collect(::emit)
@@ -203,8 +218,12 @@ class AppAttestationControllerImpl(
         challenge: String,
         walletInstanceId: String,
         mdvmAuthContext: MdvmAuthContext,
+        popKeystoreAlias: String?,
     ): Attestation {
-        val walletWiaPopSpec = jwtBuilder.createOAuthClientAttestationJwt(challenge)
+        val walletWiaPopSpec = jwtBuilder.createOAuthClientAttestationJwt(
+            nonce = challenge,
+            existingKeystoreAlias = popKeystoreAlias,
+        )
 
         return Attestation(
             walletInstanceId = walletInstanceId,
@@ -231,7 +250,8 @@ class AppAttestationControllerImpl(
                     emit(
                         WalletAttestationGenerationResult.Failure(
                             errorCode = it.errorCode,
-                            traceId = it.traceId
+                            traceId = it.traceId,
+                            networkFailure = it.networkFailure,
                         )
                     )
                 }

@@ -17,23 +17,28 @@
 package eu.europa.ec.authenticationlogic.storage
 
 import com.google.gson.Gson
+import com.google.gson.JsonParseException
 import eu.europa.ec.authenticationlogic.model.BiometricAuthentication
 import eu.europa.ec.authenticationlogic.provider.BiometryStorageProvider
-import eu.europa.ec.businesslogic.controller.storage.PrefsController
+import eu.europa.ec.businesslogic.controller.storage.EncryptedPrefsController
+
 class PrefsBiometryStorageProvider(
-    private val prefsController: PrefsController
+    private val prefsController: EncryptedPrefsController
 ) : BiometryStorageProvider {
 
     /**
      * Returns the biometric data in order to validate that biometric is not tampered in any way.
+     *
+     * `null` when nothing is stored or the stored JSON is corrupt. A failure to read the encrypted
+     * preferences themselves (e.g. the auth-bound master key is unavailable) propagates: callers
+     * treat `null` as "no biometric data" and would otherwise reset the biometric setup.
      */
     override fun getBiometricAuthentication(): BiometricAuthentication? {
+        val json = prefsController.getString(BIOMETRIC_AUTHENTICATION_KEY, "")
+        if (json.isEmpty()) return null
         return try {
-            Gson().fromJson(
-                prefsController.getString("BiometricAuthentication", ""),
-                BiometricAuthentication::class.java
-            )
-        } catch (e: Exception) {
+            Gson().fromJson(json, BiometricAuthentication::class.java)
+        } catch (e: JsonParseException) {
             null
         }
     }
@@ -44,8 +49,8 @@ class PrefsBiometryStorageProvider(
      * @param value the biometric data.
      */
     override fun setBiometricAuthentication(value: BiometricAuthentication?) {
-        if (value == null) prefsController.clear("BiometricAuthentication")
-        prefsController.setString("BiometricAuthentication", Gson().toJson(value))
+        if (value == null) prefsController.clear(BIOMETRIC_AUTHENTICATION_KEY)
+        prefsController.setString(BIOMETRIC_AUTHENTICATION_KEY, Gson().toJson(value))
     }
 
     /**
@@ -64,5 +69,9 @@ class PrefsBiometryStorageProvider(
      */
     override fun getUseBiometricsAuth(): Boolean {
         return prefsController.getBool("UseBiometricsAuth", false)
+    }
+
+    private companion object {
+        const val BIOMETRIC_AUTHENTICATION_KEY = "BiometricAuthentication"
     }
 }

@@ -23,10 +23,15 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import org.sprind.wallet.corelogic.presentationerror.PresentationError
+import org.sprind.wallet.networklogic.common.HttpRateLimitedException
+import org.sprind.wallet.networklogic.trace.TracedIOException
+import java.time.ZoneOffset
+import java.util.Locale
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
+import kotlin.time.Instant
 
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [34], application = TestApplication::class)
@@ -224,7 +229,14 @@ class PresentationErrorUiConfigTest {
 
         assertEquals(PresentationErrorLayout.BLOCKING, error.layout)
         assertEquals(R.string.eaa_presentation_credential_not_found_title, error.titleRes)
+        assertEquals(
+            R.string.eaa_presentation_credential_not_found_paragraph_credental_not_available,
+            error.bodyRes,
+        )
         assertEquals(PresentationErrorAction.Kind.TO_OVERVIEW, error.primaryAction.kind)
+        assertEquals(R.string.global_to_overview_button, error.primaryAction.labelRes)
+        assertTrue(error.primaryAction.outlined)
+        assertNull(error.secondaryAction)
     }
 
     //endregion
@@ -447,6 +459,46 @@ class PresentationErrorUiConfigTest {
     }
 
     @Test
+    fun `missing PID blocks with the no-Digital-ID copy and an add Digital ID action`() {
+        val config = PresentationErrorUiConfig.blocking(BlockingErrorReason.MISSING_PID, "trace")
+
+        assertEquals(PresentationErrorLayout.BLOCKING, config.layout)
+        assertEquals(R.string.pid_presentation_no_issued_pid_title, config.titleRes)
+        assertEquals(R.string.pid_presentation_no_issued_pid_paragraph, config.bodyRes)
+        assertEquals(
+            PresentationErrorAction(
+                labelRes = R.string.pid_presentation_no_issued_pid_prim_button,
+                kind = PresentationErrorAction.Kind.ADD_PID,
+            ),
+            config.primaryAction,
+        )
+        assertNull(config.secondaryAction)
+    }
+
+    @Test
+    fun `locked PID blocks with the locked copy, add Digital ID again and to overview`() {
+        val config = PresentationErrorUiConfig.blocking(BlockingErrorReason.PID_LOCKED, "trace")
+
+        assertEquals(PresentationErrorLayout.BLOCKING, config.layout)
+        assertEquals(R.string.pid_presentation_retry_counter_locked_title, config.titleRes)
+        assertEquals(R.string.pid_presentation_retry_counter_blocked_paragraph, config.bodyRes)
+        assertEquals(
+            PresentationErrorAction(
+                labelRes = R.string.pid_presentation_retry_counter_locked_prim_button,
+                kind = PresentationErrorAction.Kind.REPLACE_PID,
+            ),
+            config.primaryAction,
+        )
+        assertEquals(
+            PresentationErrorAction(
+                labelRes = R.string.pid_presentation_retry_counter_locked_sec_button,
+                kind = PresentationErrorAction.Kind.TO_OVERVIEW,
+            ),
+            config.secondaryAction,
+        )
+    }
+
+    @Test
     fun `dialog config opens the report-issue page on a report primary action`() {
         val config = PresentationErrorUiConfig.blocking(BlockingErrorReason.TRUST_FAILURE, "trace")
         val calls = mutableListOf<String>()
@@ -539,6 +591,86 @@ class PresentationErrorUiConfigTest {
 
     //endregion
 
+    //region Timeouts (WD-5012)
+
+    @Test
+    fun `relying party timeout offers going back to the service provider or cancelling`() {
+        val error = errorOf(relyingPartyTimeout())
+
+        assertEquals(PresentationErrorLayout.DIALOG, error.layout)
+        assertEquals(R.string.pid_presentation_timeout_rp_title, error.titleRes)
+        assertEquals(R.string.pid_presentation_timeout_rp_paragraph, error.bodyRes)
+        assertEquals(PresentationErrorAction.Kind.BACK_TO_SERVICE_PROVIDER, error.primaryAction.kind)
+        assertEquals(R.string.pid_presentation_timeout_rp_prim_button, error.primaryAction.labelRes)
+        assertTrue(error.primaryAction.opensExternalLink)
+        assertEquals(PresentationErrorAction.Kind.TO_OVERVIEW, error.secondaryAction?.kind)
+        assertEquals(R.string.pid_presentation_timeout_rp_sec_button, error.secondaryAction?.labelRes)
+        // As in the design and on iOS: no error code, but the trace id for support.
+        assertNull(error.errorCode)
+        assertEquals("trace", error.traceId)
+    }
+
+    @Test
+    fun `relying party timeout without a known website offers cancelling only`() {
+        val error = errorOf(relyingPartyTimeout()).withoutBackToServiceProvider()
+
+        assertEquals(PresentationErrorAction.Kind.TO_OVERVIEW, error.primaryAction.kind)
+        assertEquals(R.string.pid_presentation_timeout_rp_sec_button, error.primaryAction.labelRes)
+        assertNull(error.secondaryAction)
+    }
+
+    @Test
+    fun `dialog config goes back to the service provider, and cancelling or dismissing leaves for the overview`() {
+        val calls = mutableListOf<String>()
+
+        val dialog = errorOf(relyingPartyTimeout()).toGenericErrorDialogConfig(
+            onRetry = { calls += "retry" },
+            onReportIssue = { calls += "report" },
+            onDismiss = { calls += "dismiss" },
+            onContactService = { calls += "contact" },
+            onToOverview = { calls += "overview" },
+            onBackToServiceProvider = { calls += "service provider" },
+        )
+        dialog.onPrimaryButtonClick()
+        dialog.onSecondaryButtonClick()
+        dialog.onDismiss()
+
+        assertTrue(dialog.primaryButtonOpensExternalLink)
+        assertEquals(listOf("service provider", "overview", "overview"), calls)
+    }
+
+    @Test
+    fun `rate limiting offers retrying later at the time the relying party gave`() {
+        val error = PresentationErrorUiConfig.from(
+            rateLimited(retryAt = Instant.parse("2026-10-26T10:05:00Z")),
+            zone = ZoneOffset.UTC,
+            locale = Locale.UK,
+            traceIdFallback = traceFallback,
+        )
+
+        assertEquals(R.string.global_timeout_too_many_requests_title, error.titleRes)
+        assertEquals(R.string.global_timeout_too_many_requests_paragraph, error.bodyRes)
+        assertEquals(listOf<Any>("10:05"), error.bodyArgs)
+        assertEquals(PresentationErrorAction.Kind.DISMISS, error.primaryAction.kind)
+        assertEquals(R.string.global_timeout_too_many_requests_prim_button, error.primaryAction.labelRes)
+        assertNull(error.secondaryAction)
+        assertNull(error.errorCode)
+
+        val dialog = error.toGenericErrorDialogConfig(onRetry = {}, onReportIssue = {}, onDismiss = {})
+        assertEquals(listOf<Any>("10:05"), dialog.bodyTextArgs)
+    }
+
+    @Test
+    fun `rate limiting without a retry time falls back to the generic text`() {
+        val error = errorOf(rateLimited(retryAt = null))
+
+        assertEquals(R.string.global_timeout_too_many_requests_title, error.titleRes)
+        assertEquals(R.string.global_error_paragraph, error.bodyRes)
+        assertEquals(emptyList(), error.bodyArgs)
+    }
+
+    //endregion
+
     private fun rejected() = PresentationError.RelyingPartySide(
         traceId = "trace",
         cause = null,
@@ -548,4 +680,18 @@ class PresentationErrorUiConfigTest {
 
     private fun errorOf(presentationError: PresentationError): PresentationErrorUiConfig =
         PresentationErrorUiConfig.from(presentationError, traceIdFallback = traceFallback)
+
+    private fun relyingPartyTimeout() = PresentationError.RelyingPartySide(
+        traceId = "trace",
+        cause = null,
+        displayMessage = "msg",
+        subType = PresentationError.RelyingPartySideSubType.RELYING_PARTY_TIMEOUT,
+    )
+
+    private fun rateLimited(retryAt: Instant?) = PresentationError.Intermittent(
+        traceId = "trace",
+        cause = TracedIOException("trace", HttpRateLimitedException(retryAt = retryAt, fromGateway = false)),
+        displayMessage = "msg",
+        subType = PresentationError.IntermittentSubType.RATE_LIMITED,
+    )
 }

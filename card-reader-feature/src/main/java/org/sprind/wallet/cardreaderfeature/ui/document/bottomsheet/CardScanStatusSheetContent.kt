@@ -68,6 +68,7 @@ fun CardScanStatusSheetContent(
     readingProgress: Int?,
     onCancelClick: () -> Unit,
     onContinueClick: () -> Unit,
+    onRetryClick: () -> Unit,
 ) {
     Column(
         modifier = Modifier
@@ -105,16 +106,26 @@ fun CardScanStatusSheetContent(
         }
 
         val actionModifier = Modifier.padding(top = SPACING_LARGE.dp)
-        if (status == CardScanStatus.SUCCESS) {
-            ScanStatusAction(
+        when (status) {
+            CardScanStatus.SUCCESS -> ScanStatusAction(
                 modifier = actionModifier,
                 text = stringResource(R.string.nfc_scanning_system_sheet_nfc_prim_button),
                 type = ButtonType.PRIMARY,
                 trailingIcon = AppIcons.ArrowRightLong,
                 onClick = onContinueClick,
             )
-        } else {
-            ScanStatusAction(
+
+            CardScanStatus.FAILED -> ScanStatusAction(
+                modifier = actionModifier,
+                text = stringResource(R.string.nfc_scanning_system_sheet_nfc_paragraph_error_button),
+                type = ButtonType.PRIMARY,
+                onClick = onRetryClick,
+            )
+
+            CardScanStatus.READY,
+            CardScanStatus.READY_AGAIN,
+            CardScanStatus.IN_PROGRESS,
+            -> ScanStatusAction(
                 modifier = actionModifier,
                 text = stringResource(R.string.global_cancel_button),
                 type = ButtonType.SECONDARY,
@@ -214,6 +225,7 @@ private fun ScanStatusAction(
 private val CardScanStatus.mark: IconData
     get() = when (this) {
         CardScanStatus.READY,
+        CardScanStatus.READY_AGAIN,
         CardScanStatus.IN_PROGRESS,
         -> AppIcons.Contactless
 
@@ -225,6 +237,7 @@ private val CardScanStatus.mark: IconData
 private fun scanStatusTitle(status: CardScanStatus): String = stringResource(
     when (status) {
         CardScanStatus.READY -> R.string.nfc_scanning_system_sheet_nfc_title_start
+        CardScanStatus.READY_AGAIN -> R.string.nfc_scanning_system_sheet_nfc_title_start_again
         CardScanStatus.IN_PROGRESS -> R.string.nfc_scanning_system_sheet_nfc_title_progress
         CardScanStatus.SUCCESS -> R.string.nfc_scanning_system_sheet_nfc_title_success
         CardScanStatus.FAILED -> R.string.nfc_scanning_system_sheet_nfc_title_error
@@ -238,10 +251,13 @@ private fun scanStatusParagraph(
     scanReason: NfcScanReason,
 ): String = stringResource(
     when (status) {
-        CardScanStatus.READY -> R.string.nfc_scanning_system_sheet_nfc_paragraph_start
+        CardScanStatus.READY,
+        CardScanStatus.READY_AGAIN,
+        -> R.string.nfc_scanning_system_sheet_nfc_paragraph_start
         CardScanStatus.IN_PROGRESS -> R.string.nfc_scanning_system_sheet_nfc_paragraph_progress
         CardScanStatus.SUCCESS -> scanReason.successParagraph
-        CardScanStatus.FAILED -> scanReason.errorParagraph
+        // A refused code goes back to its entry screen, so the read itself is what failed here.
+        CardScanStatus.FAILED -> R.string.nfc_scanning_system_sheet_nfc_paragraph_error_retry
     }
 )
 
@@ -252,17 +268,6 @@ private val NfcScanReason.successParagraph: Int
         NfcScanReason.PUK -> R.string.nfc_scanning_system_sheet_nfc_paragraph_success_puk
         NfcScanReason.CAN -> R.string.nfc_scanning_system_sheet_nfc_paragraph_success_can
         NfcScanReason.EID_NEW_PIN_SET -> R.string.nfc_scanning_system_sheet_nfc_paragraph_success_card_pin_set
-    }
-
-private val NfcScanReason.errorParagraph: Int
-    get() = when (this) {
-        NfcScanReason.EID_PIN -> R.string.nfc_scanning_system_sheet_nfc_paragraph_error_card_pin
-        NfcScanReason.TRANSPORT_PIN -> R.string.nfc_scanning_system_sheet_nfc_paragraph_error_one_time_pin
-        NfcScanReason.PUK -> R.string.nfc_scanning_system_sheet_nfc_paragraph_error_puk
-        NfcScanReason.CAN -> R.string.nfc_scanning_system_sheet_nfc_paragraph_error_can
-        // Setting a new PIN can fail for reasons that have nothing to do with a code, so the
-        // generic explanation is the honest one here.
-        NfcScanReason.EID_NEW_PIN_SET -> R.string.nfc_scanning_system_sheet_nfc_error_paragraph
     }
 
 /** The height of the status in its dialog, see [org.sprind.wallet.cardreaderfeature.ui.document.nfc.CardScanView]. */
@@ -283,6 +288,22 @@ private fun CardScanStatusReadyPreview() {
             readingProgress = null,
             onCancelClick = {},
             onContinueClick = {},
+            onRetryClick = {},
+        )
+    }
+}
+
+@ThemeModeWithGermanAndEnglishPreviews
+@Composable
+private fun CardScanStatusReadyAgainPreview() {
+    PreviewTheme {
+        CardScanStatusSheetContent(
+            status = CardScanStatus.READY_AGAIN,
+            scanReason = NfcScanReason.EID_PIN,
+            readingProgress = null,
+            onCancelClick = {},
+            onContinueClick = {},
+            onRetryClick = {},
         )
     }
 }
@@ -297,6 +318,7 @@ private fun CardScanStatusInProgressPreview() {
             readingProgress = 42,
             onCancelClick = {},
             onContinueClick = {},
+            onRetryClick = {},
         )
     }
 }
@@ -311,6 +333,7 @@ private fun CardScanStatusSuccessPreview() {
             readingProgress = 100,
             onCancelClick = {},
             onContinueClick = {},
+            onRetryClick = {},
         )
     }
 }
@@ -325,6 +348,7 @@ private fun CardScanStatusFailedPreview() {
             readingProgress = null,
             onCancelClick = {},
             onContinueClick = {},
+            onRetryClick = {},
         )
     }
 }

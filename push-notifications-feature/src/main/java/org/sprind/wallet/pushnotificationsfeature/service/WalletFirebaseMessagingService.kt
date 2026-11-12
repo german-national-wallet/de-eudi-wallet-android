@@ -21,12 +21,12 @@ import android.os.Bundle
 import com.google.firebase.messaging.FirebaseMessagingService
 import com.google.firebase.messaging.RemoteMessage
 import eu.europa.ec.businesslogic.controller.log.LogController
-import eu.europa.ec.businesslogic.controller.storage.PrefsController
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
 import org.koin.android.ext.android.inject
+import org.sprind.wallet.businesslogic.controller.storage.PlainPrefsController
 import org.sprind.wallet.networklogic.common.model.ApiResult
 import org.sprind.wallet.pushnotificationsfeature.dispatcher.FcmMessageDispatcher
 import org.sprind.wallet.pushnotificationsfeature.interactor.PushNotificationsInteractor
@@ -36,10 +36,15 @@ import org.sprind.wallet.pushnotificationsfeature.interactor.PushNotificationsIn
  * notifications backend, and incoming FCM data messages. Message dispatch (the single
  * `RENEW_MDVM_TOKEN` action that drives the authenticated-pull-then-self-lock revocation
  * flow) is delegated to [FcmMessageDispatcher].
+ *
+ * The service runs with no user present, so it only touches [PlainPrefsController], see
+ * [eu.europa.ec.businesslogic.controller.storage.EncryptedPrefsController]. The token itself is
+ * not stored; when the registration attempt here fails, [FcmRegistrationRecovery] completes it on
+ * the next resume.
  */
 class WalletFirebaseMessagingService : FirebaseMessagingService() {
 
-    private val prefsController: PrefsController by inject()
+    private val plainPrefsController: PlainPrefsController by inject()
     private val logController: LogController by inject()
     private val pushNotificationsInteractor: PushNotificationsInteractor by inject()
     private val fcmMessageDispatcher: FcmMessageDispatcher by inject()
@@ -63,8 +68,9 @@ class WalletFirebaseMessagingService : FirebaseMessagingService() {
 
     override fun onNewToken(token: String) {
         logController.d(TAG) { "FCM registration token refreshed" }
-        prefsController.setString(FCM_REGISTRATION_ID_KEY, token)
-        prefsController.setBool(FCM_TOKEN_REGISTERED_KEY, false)
+        // Cleared, and on disk, before the attempt: if the process dies or the attempt fails,
+        // the next resume fetches the current token and registers it.
+        plainPrefsController.setBoolSync(FCM_TOKEN_REGISTERED_KEY, false)
         serviceScope.launch {
             try {
                 attemptRegistration(token)
@@ -86,12 +92,11 @@ class WalletFirebaseMessagingService : FirebaseMessagingService() {
     private suspend fun attemptRegistration(token: String) {
         when (val result = pushNotificationsInteractor.registerFcmToken(token)) {
             is ApiResult.Success -> {
-                prefsController.setBool(FCM_TOKEN_REGISTERED_KEY, true)
+                plainPrefsController.setBool(FCM_TOKEN_REGISTERED_KEY, true)
                 logController.d(TAG) { "FCM token successfully registered with backend" }
             }
 
             is ApiResult.Failure -> {
-                prefsController.setBool(FCM_TOKEN_REGISTERED_KEY, false)
                 logController.e(TAG) { "FCM token registration failed: ${result.error.errorCode}" }
             }
         }
@@ -100,10 +105,10 @@ class WalletFirebaseMessagingService : FirebaseMessagingService() {
     companion object {
         private const val TAG = "WalletFCM"
 
-        /** Preference key storing the current FCM registration token. */
-        const val FCM_REGISTRATION_ID_KEY = "FCM_REGISTRATION_TOKEN"
-
-        /** Preference key tracking whether the FCM token has been successfully registered with the backend. */
+        /**
+         * [PlainPrefsController] key tracking whether the current FCM token has been registered
+         * with the backend. Unset counts as not registered.
+         */
         const val FCM_TOKEN_REGISTERED_KEY = "FCM_TOKEN_REGISTERED"
 
         const val KEY_ACTION = "action"

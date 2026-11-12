@@ -17,7 +17,7 @@
 package org.sprind.wallet.authenticationlogic.storage
 
 import com.google.gson.Gson
-import eu.europa.ec.businesslogic.controller.storage.PrefsController
+import eu.europa.ec.businesslogic.controller.storage.EncryptedPrefsController
 import okio.ByteString
 import okio.ByteString.Companion.decodeBase64
 import org.sprind.wallet.authenticationlogic.provider.JsonStorageProvider
@@ -30,7 +30,7 @@ private const val SHARED_PREFERENCE_RWSCA_PIN_SALT_KEY = "RwscaPinSalt"
 
 
 class RwscaStorageControllerImpl(
-    private val prefsController: PrefsController,
+    private val prefsController: EncryptedPrefsController,
     private val gson: Gson,
 ) : RwscaStorageController {
     // Don't use DI for this to guarantee the same underlying prefsController

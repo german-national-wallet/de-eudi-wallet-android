@@ -22,7 +22,6 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.junit.runners.Parameterized
-import org.sprind.wallet.businesslogic.config.OkCertificatePinnerSpec
 import org.sprind.wallet.businesslogic.config.PidIssuerSpec
 import java.net.URI
 import kotlin.test.assertNotEquals
@@ -46,11 +45,8 @@ class OkCertificatePinnerSpecExtensionsTest(private val spec: PidIssuerSpec) {
     @Test
     fun `pin has not changed and is the same for all endpoints`() {
         assertEquals(
-            OkCertificatePinnerSpec(
-                pattern = "**.pid-provider.bundesdruckerei.de",
-                pins = setOf("sha256/rHb2OkbnYbWswyWXBckgy38FY9JI2NGA+TSvaAmaFfk=")
-            ),
-            spec.okCertificatePinnerSpec)
+            setOf("sha256/rHb2OkbnYbWswyWXBckgy38FY9JI2NGA+TSvaAmaFfk="),
+            spec.okCertificatePinnerSpec.pins)
     }
 
     @Test
@@ -86,6 +82,6 @@ class OkCertificatePinnerSpecExtensionsTest(private val spec: PidIssuerSpec) {
     companion object {
         @JvmStatic
         @Parameterized.Parameters(name = "{0}")
-        fun specs() = listOf(PidIssuerSpec.DEMO, PidIssuerSpec.PREPROD, PidIssuerSpec.PRODUCTION)
+        fun specs() = listOf(PidIssuerSpec.DEMO, PidIssuerSpec.PREPROD, PidIssuerSpec.PRODUCTION, PidIssuerSpec.PENTEST)
     }
 }

@@ -16,12 +16,12 @@
 
 package org.sprind.wallet.onboardingfeature.setup.storage
 
-import eu.europa.ec.businesslogic.controller.storage.PrefsController
+import eu.europa.ec.businesslogic.controller.storage.EncryptedPrefsController
 import org.sprind.wallet.onboardingfeature.setup.model.SetupStep
 import org.sprind.wallet.onboardingfeature.setup.provider.SetupStorageProvider
 
 internal class PrefsSetupStorageProvider(
-    private val prefsController: PrefsController,
+    private val prefsController: EncryptedPrefsController,
 ) : SetupStorageProvider {
     override fun isStepCompleted(step: SetupStep): Boolean =
         prefsController.getBool(key = step.storageKey, defaultValue = false)

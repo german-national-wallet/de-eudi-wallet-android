@@ -16,7 +16,16 @@
 
 package org.sprind.wallet.authenticationlogic.controller.rwsca
 
+import com.google.gson.JsonObject
+import com.google.gson.JsonParser
+import com.nimbusds.jose.JWEObject
+import com.nimbusds.jose.crypto.ECDHDecrypter
+import com.nimbusds.jose.jwk.Curve
+import com.nimbusds.jose.jwk.ECKey
 import junit.framework.TestCase.assertEquals
+import junit.framework.TestCase.assertFalse
+import junit.framework.TestCase.assertNull
+import junit.framework.TestCase.assertTrue
 import kotlinx.coroutines.test.runTest
 import okio.ByteString.Companion.toByteString
 import org.junit.After
@@ -26,7 +35,9 @@ import org.mockito.Mock
 import org.mockito.MockitoAnnotations
 import org.mockito.kotlin.any
 import org.mockito.kotlin.argumentCaptor
+import org.mockito.kotlin.eq
 import org.mockito.kotlin.never
+import org.mockito.kotlin.times
 import org.mockito.kotlin.verify
 import org.mockito.kotlin.whenever
 import org.sprind.wallet.authenticationlogic.controller.mdvm.MdvmKeyManager
@@ -34,26 +45,35 @@ import org.sprind.wallet.authenticationlogic.controller.rwsca.RwscaController.St
 import org.sprind.wallet.authenticationlogic.controller.rwsca.RwscaController.StartPinSessionMode.SubsequentPinSession
 import org.sprind.wallet.authenticationlogic.model.MdvmRegistration
 import org.sprind.wallet.authenticationlogic.model.RwscaCreatedKeys
+import org.sprind.wallet.authenticationlogic.model.RwscaError
 import org.sprind.wallet.authenticationlogic.model.RwscaPinSession
 import org.sprind.wallet.authenticationlogic.model.RwscaRegistration
 import org.sprind.wallet.authenticationlogic.model.RwscaWrappedKey
 import org.sprind.wallet.authenticationlogic.model.toRwscaError
 import org.sprind.wallet.authenticationlogic.testing.generateEcKeyPairForTests
 import org.sprind.wallet.authenticationlogic.testing.makeFakeCertificate
+import org.sprind.wallet.networklogic.common.RequestSigningException
 import org.sprind.wallet.networklogic.common.model.ApiResult
 import org.sprind.wallet.networklogic.mdvm.model.error.MdvmErrorType
 import org.sprind.wallet.networklogic.rwsca.api.DoubleSigningRwscaApiClient
 import org.sprind.wallet.networklogic.rwsca.api.RwscaApiClient
 import org.sprind.wallet.networklogic.rwsca.api.SigningRwscaApiClient
 import org.sprind.wallet.networklogic.rwsca.model.error.RwscaErrorResponse
+import org.sprind.wallet.networklogic.rwsca.model.error.RwscaErrorType
 import org.sprind.wallet.networklogic.rwsca.model.request.RwscaInitializePinAndStartPinSessionRequest
 import org.sprind.wallet.networklogic.rwsca.model.response.RwscaChallengeResponse
 import org.sprind.wallet.networklogic.rwsca.model.response.RwscaCreateKeysResponse
 import org.sprind.wallet.networklogic.rwsca.model.response.RwscaInitializePinAndStartPinSessionResponse
 import org.sprind.wallet.networklogic.rwsca.model.response.RwscaRegisterResponse
 import org.sprind.wallet.networklogic.rwsca.model.response.RwscaStartPinSessionResponse
+import org.sprind.wallet.networklogic.rwsca.model.response.RwscaWiMetaDataResponse
 import org.sprind.wallet.networklogic.rwsca.model.response.RwscaWiKeySpec
+import org.sprind.wallet.networklogic.trace.TracedIOException
+import java.net.SocketTimeoutException
+import java.net.UnknownHostException
 import java.security.KeyPair
+import java.security.interfaces.ECPrivateKey
+import java.security.interfaces.ECPublicKey
 
 class RwscaControllerTest {
 
@@ -66,6 +86,10 @@ class RwscaControllerTest {
 
     private val mdvmKeyPair: KeyPair = generateEcKeyPairForTests()
     private val pinKeyPair: KeyPair = generateEcKeyPairForTests()
+    private val pinEncryptionKeyPair: KeyPair = generateEcKeyPairForTests()
+    private val pinEncryptionJwk: JsonObject = JsonParser.parseString(
+        ECKey.Builder(Curve.P_256, pinEncryptionKeyPair.public as ECPublicKey).keyID("1").build().toJSONString()
+    ).asJsonObject
     private val fakeCertificate = makeFakeCertificate(mdvmKeyPair.public)
 
     private val rwscaAuthChallenge = "fake rwsca_auth_challenge for test"
@@ -198,6 +222,7 @@ class RwscaControllerTest {
 
     @Test
     fun `startPinSession with InitialPinSession returns Failure when challenge request fails`() = runTest {
+        setupWiMetaData()
         whenever(rwscaApiClient.challenge()).thenReturn(failureApiResponse)
 
         val result = subject.startPinSession(
@@ -207,8 +232,61 @@ class RwscaControllerTest {
         assertEquals(failureMappedResponse, result)
     }
 
+    //region WD-4685: a transport failure is a client-side error, not an exception
+
+    @Test
+    fun `startPinSession returns NO_INTERNET with the client trace id when the challenge cannot be sent`() = runTest {
+        setupWiMetaData()
+        whenever(rwscaApiClient.challenge()).thenAnswer {
+            throw TracedIOException(traceId = "client trace id", cause = UnknownHostException("rwsca"))
+        }
+
+        val result = subject.startPinSession(
+            fakeMdvmRegistration, fakeRwscaRegistration, fakeWithPinKeys, SubsequentPinSession
+        )
+
+        val error = (result as ApiResult.Failure).error as RwscaError.FromRwsca
+        assertEquals(RwscaErrorType.NO_INTERNET, error.type)
+        assertTrue(error.isNoInternet)
+        assertNull(error.serverResponse)
+        assertEquals("client trace id", error.traceId)
+    }
+
+    @Test
+    fun `startPinSession returns NO_INTERNET when the PIN session request fails in transit`() = runTest {
+        setupHappyPathForSubsequentPinSession()
+        whenever(doubleSigningApiClient.startPinSession(any(), any(), any())).thenAnswer {
+            throw SocketTimeoutException("timeout")
+        }
+
+        val result = subject.startPinSession(
+            fakeMdvmRegistration, fakeRwscaRegistration, fakeWithPinKeys, SubsequentPinSession
+        )
+
+        assertTrue(((result as ApiResult.Failure).error).isNoInternet)
+    }
+
+    @Test
+    fun `startPinSession returns UNKNOWN, not NO_INTERNET, when the request cannot be signed`() = runTest {
+        setupWiMetaData()
+        whenever(rwscaApiClient.challenge()).thenAnswer {
+            throw RequestSigningException(IllegalStateException("keystore"))
+        }
+
+        val result = subject.startPinSession(
+            fakeMdvmRegistration, fakeRwscaRegistration, fakeWithPinKeys, SubsequentPinSession
+        )
+
+        val error = (result as ApiResult.Failure).error as RwscaError.FromRwsca
+        assertEquals(RwscaErrorType.UNKNOWN, error.type)
+        assertFalse(error.isNoInternet)
+    }
+
+    //endregion
+
     @Test
     fun `startPinSession with InitialPinSession returns Failure with MDVM_KEY_NOT_FOUND when key is missing from KeyStore`() = runTest {
+        setupWiMetaData()
         whenever(rwscaApiClient.challenge()).thenReturn(
             ApiResult.Success(RwscaChallengeResponse(rwscaAuthChallenge))
         )
@@ -247,7 +325,7 @@ class RwscaControllerTest {
     }
 
     @Test
-    fun `startPinSession with InitialPinSession sends base64-encoded pin public key in request`() = runTest {
+    fun `startPinSession with InitialPinSession sends pin public key encrypted to rwsca_pin_enc_pubk`() = runTest {
         setupHappyPathForInitialPinSession()
 
         subject.startPinSession(fakeMdvmRegistration, fakeRwscaRegistration, fakeWithPinKeys, InitialPinSession)
@@ -259,9 +337,11 @@ class RwscaControllerTest {
             mdvmToken = any(),
             rwscaAccountId = any(),
         )
+        val jwe = JWEObject.parse(captor.firstValue.wi_rwsca_pin_pubk)
+        jwe.decrypt(ECDHDecrypter(pinEncryptionKeyPair.private as ECPrivateKey))
         assertEquals(
-            pinKeyPair.public.encoded.toByteString().base64(),
-            captor.firstValue.wi_rwsca_pin_pubk
+            listOf("rwsca-pin-pubk+jwe", "1", pinKeyPair.public.encoded.toByteString()),
+            listOf(jwe.header.type.type, jwe.header.keyID, jwe.payload.toBytes().toByteString()),
         )
     }
 
@@ -294,8 +374,9 @@ class RwscaControllerTest {
         subject.startPinSession(fakeMdvmRegistration, fakeRwscaRegistration, fakeWithPinKeys, InitialPinSession)
 
         verify(rwscaApiClient).doubleSigningApi(
-            mdvmAuthPrvk = mdvmKeyPair.private,
-            rwscaPinPrvk = pinKeyPair.private,
+            mdvmAuthPrvk = eq(mdvmKeyPair.private),
+            rwscaPinPrvk = eq(pinKeyPair.private),
+            encryptPinSignature = any(),
         )
     }
 
@@ -370,9 +451,20 @@ class RwscaControllerTest {
         subject.startPinSession(fakeMdvmRegistration, fakeRwscaRegistration, fakeWithPinKeys, SubsequentPinSession)
 
         verify(rwscaApiClient).doubleSigningApi(
-            mdvmAuthPrvk = mdvmKeyPair.private,
-            rwscaPinPrvk = pinKeyPair.private,
+            mdvmAuthPrvk = eq(mdvmKeyPair.private),
+            rwscaPinPrvk = eq(pinKeyPair.private),
+            encryptPinSignature = any(),
         )
+    }
+
+    @Test
+    fun `startPinSession fetches rwsca_pin_enc_pubk only once`() = runTest {
+        setupHappyPathForSubsequentPinSession()
+
+        subject.startPinSession(fakeMdvmRegistration, fakeRwscaRegistration, fakeWithPinKeys, SubsequentPinSession)
+        subject.startPinSession(fakeMdvmRegistration, fakeRwscaRegistration, fakeWithPinKeys, SubsequentPinSession)
+
+        verify(rwscaApiClient, times(1)).wiMetaData()
     }
 
     @Test
@@ -452,6 +544,12 @@ class RwscaControllerTest {
         whenever(signingApiClient.deleteAccount(any(), any(), any())).thenReturn(apiResponse)
     }
 
+    private suspend fun setupWiMetaData() {
+        whenever(rwscaApiClient.wiMetaData()).thenReturn(
+            ApiResult.Success(RwscaWiMetaDataResponse(pinEncryptionJwk))
+        )
+    }
+
     private suspend fun setupHappyPathForChallengeAndKeys() {
         whenever(rwscaApiClient.challenge()).thenReturn(
             ApiResult.Success(RwscaChallengeResponse(rwscaAuthChallenge))
@@ -493,7 +591,8 @@ class RwscaControllerTest {
             ApiResult.Success(RwscaInitializePinAndStartPinSessionResponse(pinSessionToken))
     ) {
         setupHappyPathForChallengeAndKeys()
-        whenever(rwscaApiClient.doubleSigningApi(mdvmKeyPair.private, pinKeyPair.private))
+        setupWiMetaData()
+        whenever(rwscaApiClient.doubleSigningApi(eq(mdvmKeyPair.private), eq(pinKeyPair.private), any()))
             .thenReturn(doubleSigningApiClient)
         whenever(doubleSigningApiClient.initializePinAndStartPinSession(any(), any(), any(), any()))
             .thenReturn(apiResponse)
@@ -504,7 +603,8 @@ class RwscaControllerTest {
             ApiResult.Success(RwscaStartPinSessionResponse(pinSessionToken))
     ) {
         setupHappyPathForChallengeAndKeys()
-        whenever(rwscaApiClient.doubleSigningApi(mdvmKeyPair.private, pinKeyPair.private))
+        setupWiMetaData()
+        whenever(rwscaApiClient.doubleSigningApi(eq(mdvmKeyPair.private), eq(pinKeyPair.private), any()))
             .thenReturn(doubleSigningApiClient)
         whenever(doubleSigningApiClient.startPinSession(any(), any(), any()))
             .thenReturn(apiResponse)

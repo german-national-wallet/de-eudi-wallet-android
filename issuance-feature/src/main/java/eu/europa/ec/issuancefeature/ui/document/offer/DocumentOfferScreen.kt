@@ -17,23 +17,16 @@
 package eu.europa.ec.issuancefeature.ui.document.offer
 
 import android.content.Context
-import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
@@ -43,22 +36,14 @@ import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.semantics.Role
-import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.heading
-import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -84,8 +69,6 @@ import eu.europa.ec.uilogic.component.content.ScreenNavigateAction
 import eu.europa.ec.uilogic.component.preview.PreviewTheme
 import eu.europa.ec.uilogic.component.preview.ThemeModeWithGermanAndEnglishPreviews
 import eu.europa.ec.uilogic.component.utils.LifecycleEffect
-import eu.europa.ec.uilogic.component.utils.SIZE_LARGE
-import eu.europa.ec.uilogic.component.utils.SIZE_MEDIUM_LARGE
 import eu.europa.ec.uilogic.component.utils.SPACING_EXTRA_MEDIUM
 import eu.europa.ec.uilogic.component.utils.SPACING_LARGE
 import eu.europa.ec.uilogic.component.utils.SPACING_MEDIUM
@@ -96,7 +79,6 @@ import eu.europa.ec.uilogic.component.wrap.ButtonType
 import eu.europa.ec.uilogic.component.wrap.GenericBottomSheet
 import eu.europa.ec.uilogic.component.wrap.TextConfig
 import eu.europa.ec.uilogic.component.wrap.WrapButton
-import eu.europa.ec.uilogic.component.wrap.WrapIcon
 import eu.europa.ec.uilogic.component.wrap.WrapModalBottomSheet
 import eu.europa.ec.uilogic.component.wrap.WrapStickyTwoButtons
 import eu.europa.ec.uilogic.component.wrap.WrapText
@@ -116,9 +98,10 @@ import org.sprind.wallet.uilogic.component.ContentTemplateBody
 import org.sprind.wallet.uilogic.component.ContentTemplateConfig
 import org.sprind.wallet.uilogic.component.ContentTemplateDefaults
 import org.sprind.wallet.uilogic.component.EaaDocumentCard
-import org.sprind.wallet.uilogic.component.OrganisationRow
 import org.sprind.wallet.uilogic.component.EaaDocumentCardAction
+import org.sprind.wallet.uilogic.component.OrganisationRow
 import org.sprind.wallet.uilogic.component.ProvideContentTemplateStyle
+import org.sprind.wallet.uilogic.component.ScrollFadeIndicator
 import org.sprind.wallet.uilogic.component.dialog.ConfirmationDialog
 import org.sprind.wallet.uilogic.component.dialog.ConfirmationDialogConfig
 
@@ -126,10 +109,6 @@ private const val SHEET_CARD_HEIGHT = 78
 
 /** The details sheet never takes more than this share of the window's height. */
 private const val SHEET_MAX_HEIGHT_FRACTION = 0.8f
-
-/** Height and strength of the shadow hinting that the claim list scrolls further. */
-private const val SCROLL_SHADOW_HEIGHT = SPACING_MEDIUM
-private const val SCROLL_SHADOW_ALPHA = 0.12f
 
 @Composable
 fun DocumentOfferScreen(
@@ -159,7 +138,6 @@ fun DocumentOfferScreen(
     DocumentOfferLayout(
         state = state,
         onBack = { viewModel.setEvent(Event.OnReject) },
-        onHelpClicked = { viewModel.setEvent(Event.HelpPressed) },
         onAddClicked = { viewModel.setEvent(Event.StickyButtonPressed(context)) },
         viewModel = viewModel
     )
@@ -208,7 +186,6 @@ fun DocumentOfferScreen(
 private fun DocumentOfferLayout(
     state: State,
     onBack: () -> Unit = {},
-    onHelpClicked: () -> Unit = {},
     onAddClicked: () -> Unit = {},
     viewModel: DocumentOfferViewModel? = null,
 ) {
@@ -221,7 +198,6 @@ private fun DocumentOfferLayout(
         onBack = onBack,
         topBar = {
             CancellableTopAppBar(
-                onHelpClick = onHelpClicked.takeUnless { state.isLoading },
                 onCloseClick = onBack.takeUnless { state.isLoading },
             )
         },
@@ -524,14 +500,6 @@ private fun ScrollableClaimLabels(
     modifier: Modifier = Modifier,
 ) {
     val scrollState = rememberScrollState()
-    val shadowAlpha by animateFloatAsState(
-        targetValue = if (scrollState.canScrollForward) 1f else 0f,
-        label = "claimListShadowAlpha",
-    )
-    val shadowColor = MaterialTheme.colorScheme.scrim.copy(alpha = SCROLL_SHADOW_ALPHA)
-    val shadowBrush = remember(shadowColor) {
-        Brush.verticalGradient(listOf(Color.Transparent, shadowColor))
-    }
 
     Box(modifier = modifier.fillMaxWidth()) {
         // No top padding: GenericBottomSheet already puts a medium spacer below the header.
@@ -556,14 +524,7 @@ private fun ScrollableClaimLabels(
             }
         }
 
-        Box(
-            modifier = Modifier
-                .align(Alignment.BottomCenter)
-                .fillMaxWidth()
-                .height(SCROLL_SHADOW_HEIGHT.dp)
-                .graphicsLayer { alpha = shadowAlpha }
-                .background(shadowBrush)
-        )
+        ScrollFadeIndicator(scrollState)
     }
 }
 

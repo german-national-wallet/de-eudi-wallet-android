@@ -94,9 +94,6 @@ fun DocumentOfferCodeScreen(
             } else {
                 listOf(
                     ToolbarAction(
-                        icon = AppIcons.Help,
-                        onClick = { viewModel.setEvent(Event.HelpPressed) }),
-                    ToolbarAction(
                         icon = AppIcons.Close,
                         onClick = { viewModel.setEvent(Event.Cancel) }
                     ),

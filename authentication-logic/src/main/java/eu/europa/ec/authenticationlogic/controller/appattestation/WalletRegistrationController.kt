@@ -3,6 +3,8 @@ package eu.europa.ec.authenticationlogic.controller.appattestation
 import eu.europa.ec.businesslogic.controller.log.LogController
 import org.sprind.wallet.businesslogic.extensions.runSuspendCatching
 import org.sprind.wallet.networklogic.walletbackend.api.WalletApiClient
+import org.sprind.wallet.networklogic.common.NetworkFailure
+import org.sprind.wallet.networklogic.common.toNetworkFailure
 import org.sprind.wallet.networklogic.trace.traceId
 import org.sprind.wallet.networklogic.utils.getErrorCode
 import kotlinx.coroutines.flow.Flow
@@ -15,19 +17,32 @@ import java.security.PrivateKey
 sealed class WalletInstancePartialState {
     data class Success(val walletInstanceId: String, val walletInstanceRevocationCode: String) :
         WalletInstancePartialState()
-    data class Failure(val errorCode: String, val traceId: String?) : WalletInstancePartialState()
+    /** @property networkFailure Set when the request failed in transit (see [toNetworkFailure]). */
+    data class Failure(
+        val errorCode: String,
+        val traceId: String?,
+        val networkFailure: NetworkFailure? = null,
+    ) : WalletInstancePartialState()
 }
 
 sealed class WalletRegistrationPartialState {
     data object Success : WalletRegistrationPartialState()
-    data class Failure(val errorCode: String, val traceId: String?) :
-        WalletRegistrationPartialState()
+    /** @property networkFailure Set when the request failed in transit (see [toNetworkFailure]). */
+    data class Failure(
+        val errorCode: String,
+        val traceId: String?,
+        val networkFailure: NetworkFailure? = null,
+    ) : WalletRegistrationPartialState()
 }
 
 sealed class RegistrationChallengePartialState {
     data class Success(val challenge: String) : RegistrationChallengePartialState()
-    data class Failure(val errorCode: String, val traceId: String?) :
-        RegistrationChallengePartialState()
+    /** @property networkFailure Set when the request failed in transit (see [toNetworkFailure]). */
+    data class Failure(
+        val errorCode: String,
+        val traceId: String?,
+        val networkFailure: NetworkFailure? = null,
+    ) : RegistrationChallengePartialState()
 }
 
 fun WalletApiResult<WalletRegisterResponse>.toWalletInstancePartialState() = when (this) {
@@ -85,7 +100,8 @@ class WalletRegistrationControllerImpl(
             emit(
                 RegistrationChallengePartialState.Failure(
                     errorCode = errorCode,
-                    traceId = exception.traceId()
+                    traceId = exception.traceId(),
+                    networkFailure = exception.toNetworkFailure(),
                 )
             )
         }
@@ -112,7 +128,8 @@ class WalletRegistrationControllerImpl(
             emit(
                 WalletInstancePartialState.Failure(
                     errorCode = errorCode,
-                    traceId = exception.traceId()
+                    traceId = exception.traceId(),
+                    networkFailure = exception.toNetworkFailure(),
                 )
             )
         }

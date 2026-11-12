@@ -47,6 +47,7 @@ dependencies {
     testImplementation(project(LibraryModule.TestLogic.path))
     testImplementation(project(LibraryModule.TestFeatureLogic.path))
     testImplementation(libs.mockk)
+    testImplementation(libs.ktor.client.mock)
 
     // Siop-Openid4VP library. Only PresentationErrorMapper.kt references NiScy types, and
     // only inside function bodies: no openid4vp type appears in any public signature, so

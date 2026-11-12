@@ -37,6 +37,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.fromHtml
+import org.sprind.wallet.cardreaderfeature.domain.CardReaderFlowType
 import org.sprind.wallet.cardreaderfeature.ui.document.bottomsheet.CanBottomSheetContent
 import org.sprind.wallet.cardreaderfeature.ui.document.read.ReadCardBottomSheetConfig
 import eu.europa.ec.resourceslogic.R
@@ -54,7 +55,16 @@ import eu.europa.ec.uilogic.component.wrap.WrapModalBottomSheet
 fun EidPinBlockedView(
     modifier: Modifier,
     bottomCardSheetConfig: ReadCardBottomSheetConfig,
+    flowType: CardReaderFlowType,
 ) {
+    // Until it is changed, the PIN a PIN change asks for is the one-time PIN.
+    val (titleRes, bodyRes) = when (flowType) {
+        CardReaderFlowType.ISSUANCE ->
+            R.string.pid_issuance_can_intro_title to R.string.pid_issuance_can_intro_paragraph_1
+        CardReaderFlowType.CHANGE_PIN ->
+            R.string.eid_setup_can_intro_title to R.string.eid_setup_can_intro_paragraph_1
+    }
+
     Box(
         modifier = modifier
     ) {
@@ -70,7 +80,7 @@ fun EidPinBlockedView(
             ContentHeader(
                 modifier = Modifier.fillMaxWidth(),
                 config = ContentHeaderConfig(
-                    title = stringResource(R.string.pid_issuance_can_intro_title),
+                    title = stringResource(titleRes),
                     titleTextConfig = TextConfig(MaterialTheme.typography.titleLarge),
                 ),
             )
@@ -78,7 +88,7 @@ fun EidPinBlockedView(
             WrapImage(iconData = AppIcons.PinBlocked)
             
             Banner(
-                body = stringResource(R.string.pid_issuance_can_intro_paragraph_1),
+                body = stringResource(bodyRes),
                 modifier = Modifier
                     .fillMaxWidth()
             )
@@ -111,6 +121,7 @@ private fun ErrorPinPreview() {
                 isBottomSheetOpen = false,
                 onBottomSheetDismissRequest = {}
             ),
+            flowType = CardReaderFlowType.ISSUANCE,
         )
     }
 }

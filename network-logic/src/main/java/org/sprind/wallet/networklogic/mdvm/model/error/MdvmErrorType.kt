@@ -17,7 +17,9 @@
 package org.sprind.wallet.networklogic.mdvm.model.error
 
 import org.sprind.wallet.networklogic.common.NetEntity
+import org.sprind.wallet.networklogic.utils.HSM_UNAVAILABLE_ERROR_CODE
 import org.sprind.wallet.networklogic.utils.NO_INTERNET_ERROR_CODE
+import org.sprind.wallet.networklogic.utils.RATE_LIMITED_ERROR_CODE
 import org.sprind.wallet.networklogic.utils.UNKNOWN_ERROR_CODE
 import org.sprind.wallet.networklogic.utils.getErrorCode
 
@@ -45,6 +47,7 @@ class MdvmErrorType internal constructor(
         val BAD_REQUEST = MdvmErrorType("BAD_REQUEST")
         val CHALLENGE_VERIFICATION_FAILURE = MdvmErrorType("CHALLENGE_VERIFICATION_FAILURE")
         val DB_UNAVAILABLE = MdvmErrorType("DB_UNAVAILABLE")
+        val HSM_UNAVAILABLE = MdvmErrorType(HSM_UNAVAILABLE_ERROR_CODE)
         val INTERNAL_SERVER_ERROR = MdvmErrorType("INTERNAL_SERVER_ERROR")
         val MALFORMED_KEY = MdvmErrorType("MALFORMED_KEY")
         val SIGNATURE_VERIFICATION_FAILURE = MdvmErrorType("SIGNATURE_VERIFICATION_FAILURE")
@@ -55,6 +58,7 @@ class MdvmErrorType internal constructor(
         // Client-side errors
         val MDVM_KEY_NOT_FOUND = MdvmErrorType("MDVM_KEY_NOT_FOUND", errorSource = NetEntity.CLIENT)
         val NO_INTERNET = MdvmErrorType(NO_INTERNET_ERROR_CODE, errorSource = NetEntity.CLIENT)
+        val RATE_LIMITED = MdvmErrorType(RATE_LIMITED_ERROR_CODE, errorSource = NetEntity.CLIENT)
         val UNKNOWN = MdvmErrorType(UNKNOWN_ERROR_CODE, errorSource = NetEntity.CLIENT)
     }
 }
@@ -68,6 +72,7 @@ fun MdvmErrorResponse.toMdvmErrorType(): MdvmErrorType = MdvmErrorType(code)
 
 enum class MdvmEndpoint(vararg val errorCodes: MdvmErrorType) {
     CHALLENGE(
+        MdvmErrorType.HSM_UNAVAILABLE,
         MdvmErrorType.INTERNAL_SERVER_ERROR,
     ),
     REGISTER(
@@ -75,6 +80,7 @@ enum class MdvmEndpoint(vararg val errorCodes: MdvmErrorType) {
         MdvmErrorType.BAD_REQUEST,
         MdvmErrorType.CHALLENGE_VERIFICATION_FAILURE,
         MdvmErrorType.DB_UNAVAILABLE,
+        MdvmErrorType.HSM_UNAVAILABLE,
         MdvmErrorType.INTERNAL_SERVER_ERROR,
         MdvmErrorType.MALFORMED_KEY,
         MdvmErrorType.SIGNATURE_VERIFICATION_FAILURE,
@@ -87,6 +93,7 @@ enum class MdvmEndpoint(vararg val errorCodes: MdvmErrorType) {
         MdvmErrorType.BAD_REQUEST,
         MdvmErrorType.CHALLENGE_VERIFICATION_FAILURE,
         MdvmErrorType.DB_UNAVAILABLE,
+        MdvmErrorType.HSM_UNAVAILABLE,
         MdvmErrorType.INTERNAL_SERVER_ERROR,
         MdvmErrorType.SIGNATURE_VERIFICATION_FAILURE,
         MdvmErrorType.SKIP_INTEGRITY_CHECKS_NOT_ALLOWED,

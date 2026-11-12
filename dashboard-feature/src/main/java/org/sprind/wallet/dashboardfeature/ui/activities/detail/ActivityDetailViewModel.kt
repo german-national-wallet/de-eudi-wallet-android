@@ -17,8 +17,6 @@
 package org.sprind.wallet.dashboardfeature.ui.activities.detail
 
 import androidx.lifecycle.viewModelScope
-import eu.europa.ec.businesslogic.config.ConfigLogic
-import eu.europa.ec.resourceslogic.R
 import eu.europa.ec.uilogic.mvi.MviViewModel
 import eu.europa.ec.uilogic.mvi.ViewEvent
 import eu.europa.ec.uilogic.mvi.ViewSideEffect
@@ -28,7 +26,6 @@ import org.koin.android.annotation.KoinViewModel
 import org.koin.core.annotation.InjectedParam
 import org.sprind.wallet.dashboardfeature.interactor.ActivityInteractor
 import org.sprind.wallet.dashboardfeature.ui.activities.model.ActivityDetailUi
-import org.sprind.wallet.dashboardfeature.ui.settings.SettingsWebPageRoute
 
 data class ActivityDetailState(
     val isLoading: Boolean = true,
@@ -42,7 +39,6 @@ sealed class ActivityDetailEvent : ViewEvent {
     data object ReportClicked : ActivityDetailEvent()
     data object ViewCredentialClicked : ActivityDetailEvent()
     data object CredentialSheetDismissed : ActivityDetailEvent()
-    data object HelpClicked : ActivityDetailEvent()
     data object DeleteClicked : ActivityDetailEvent()
     data object DeleteConfirmed : ActivityDetailEvent()
     data object DeleteDismissed : ActivityDetailEvent()
@@ -51,14 +47,12 @@ sealed class ActivityDetailEvent : ViewEvent {
 
 sealed class ActivityDetailEffect : ViewSideEffect {
     data class OpenUrl(val uri: String) : ActivityDetailEffect()
-    data class OpenWebPage(val route: SettingsWebPageRoute) : ActivityDetailEffect()
     data object Pop : ActivityDetailEffect()
 }
 
 @KoinViewModel
 class ActivityDetailViewModel(
     private val activityInteractor: ActivityInteractor,
-    private val configLogic: ConfigLogic,
     @InjectedParam private val activityId: String,
 ) : MviViewModel<ActivityDetailEvent, ActivityDetailState, ActivityDetailEffect>() {
 
@@ -82,14 +76,6 @@ class ActivityDetailViewModel(
             ActivityDetailEvent.ReportClicked -> viewState.value.detail?.reportUri?.let(::openUrl)
             ActivityDetailEvent.ViewCredentialClicked -> setState { copy(showCredentialSheet = true) }
             ActivityDetailEvent.CredentialSheetDismissed -> setState { copy(showCredentialSheet = false) }
-            ActivityDetailEvent.HelpClicked -> setEffect {
-                ActivityDetailEffect.OpenWebPage(
-                    SettingsWebPageRoute(
-                        url = configLogic.settingsLinks.faqAndSupport,
-                        titleRes = R.string.activities_overview_sec_button,
-                    )
-                )
-            }
             ActivityDetailEvent.DeleteClicked -> setState { copy(showDeleteDialog = true) }
             ActivityDetailEvent.DeleteDismissed -> setState { copy(showDeleteDialog = false) }
             ActivityDetailEvent.DeleteConfirmed -> {

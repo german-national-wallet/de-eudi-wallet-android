@@ -21,8 +21,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
+import org.sprind.wallet.resourceslogic.theme.values.LEGACY_STYLE_MESSAGE
 
+/** Hand-set styles outside the typescale; each screen should move to the style its design uses. */
 object CustomTypography {
+    @Deprecated(LEGACY_STYLE_MESSAGE)
     val titleMediumLarge: TextStyle
         @Composable get() = MaterialTheme.typography.titleMedium.copy(
             fontSize = 18.sp,
@@ -31,6 +34,7 @@ object CustomTypography {
             letterSpacing = 0.15.sp
         )
 
+    @Deprecated(LEGACY_STYLE_MESSAGE)
     val titleMedium: TextStyle
         @Composable get() = MaterialTheme.typography.titleMedium.copy(
             fontSize = 24.sp,
@@ -38,6 +42,7 @@ object CustomTypography {
             fontWeight = FontWeight.W500,
         )
 
+    @Deprecated(LEGACY_STYLE_MESSAGE)
     val titleLargeBold: TextStyle
         @Composable get() = MaterialTheme.typography.titleLarge.copy(
             fontSize = 22.sp,

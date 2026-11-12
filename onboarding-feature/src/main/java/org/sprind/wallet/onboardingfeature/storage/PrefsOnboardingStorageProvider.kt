@@ -16,13 +16,13 @@
 
 package org.sprind.wallet.onboardingfeature.storage
 
-import eu.europa.ec.businesslogic.controller.storage.PrefsController
+import eu.europa.ec.businesslogic.controller.storage.EncryptedPrefsController
 import org.sprind.wallet.onboardingfeature.provider.OnboardingStorageProvider
 
 const val SHARED_PREFERENCE_ONBOARDING_COMPLETED_KEY = "WalletOnboardingCompleted"
 
 internal class PrefsOnboardingStorageProvider(
-    private val prefsController: PrefsController
+    private val prefsController: EncryptedPrefsController
 ) : OnboardingStorageProvider {
     override fun hasUserCompletedOnboarding(): Boolean {
         return prefsController.getBool(

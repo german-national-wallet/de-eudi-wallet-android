@@ -63,7 +63,7 @@ object DesignTypography {
     val headlineMedium = ThemeTextStyle(
         fontFamily    = listOf(eudiDiatypeSemiExtendedBold),
         fontWeight    = ThemeFontWeight.W700,
-        fontSize      = 20,
+        fontSize      = 22,
         lineHeight    = 26f,
         letterSpacing = 0f,
         textAlign     = ThemeTextAlign.Start,
@@ -74,15 +74,6 @@ object DesignTypography {
         fontWeight    = ThemeFontWeight.W500,
         fontSize      = 16,
         lineHeight    = 20f,
-        letterSpacing = 0f,
-        textAlign     = ThemeTextAlign.Start,
-    )
-
-    val headlineExtraMedium = ThemeTextStyle(
-        fontFamily    = listOf(eudiDiatypeBold),
-        fontWeight    = ThemeFontWeight.W700,
-        fontSize      = 20,
-        lineHeight    = 26f,
         letterSpacing = 0f,
         textAlign     = ThemeTextAlign.Start,
     )
@@ -183,15 +174,6 @@ object DesignTypography {
         fontSize      = 12,
         lineHeight    = 16f,
         letterSpacing = 0.4f,
-        textAlign     = ThemeTextAlign.Start,
-    )
-
-    val titleLargeMedium = ThemeTextStyle(
-        fontFamily    = listOf(eudiDiatypeSemiExtendedBold),
-        fontWeight    = ThemeFontWeight.W500,
-        fontSize      = 22,
-        lineHeight    = 28f,
-        letterSpacing = 0f,
         textAlign     = ThemeTextAlign.Start,
     )
 

@@ -116,6 +116,18 @@ private fun PresentationErrorScreenMissingCredentialPreview() {
     BlockingErrorPreview(relyingPartySide(PresentationError.RelyingPartySideSubType.UNSUPPORTED_FORMATS))
 }
 
+@ThemeModeWithGermanAndEnglishPreviews
+@Composable
+private fun PresentationErrorScreenMissingPidPreview() {
+    BlockingErrorPreview(PresentationErrorUiConfig.blocking(BlockingErrorReason.MISSING_PID, traceId = null))
+}
+
+@ThemeModeWithGermanAndEnglishPreviews
+@Composable
+private fun PresentationErrorScreenPidLockedPreview() {
+    BlockingErrorPreview(PresentationErrorUiConfig.blocking(BlockingErrorReason.PID_LOCKED, traceId = null))
+}
+
 /** Large font scale so the body overflows: it scrolls and shows the bottom fade. */
 @Preview(name = "Overflowing content", showBackground = true, fontScale = 2f, locale = "de")
 @Composable
@@ -141,6 +153,12 @@ private fun PresentationErrorDialogRelyingPartyUnreachablePreview() {
 
 @ThemeModeWithGermanAndEnglishPreviews
 @Composable
+private fun PresentationErrorDialogRelyingPartyTimeoutPreview() {
+    DialogErrorPreview(relyingPartySide(PresentationError.RelyingPartySideSubType.RELYING_PARTY_TIMEOUT))
+}
+
+@ThemeModeWithGermanAndEnglishPreviews
+@Composable
 private fun PresentationErrorDialogMalformedRequestPreview() {
     DialogErrorPreview(relyingPartySide(PresentationError.RelyingPartySideSubType.INVALID_REQUEST))
 }
@@ -161,6 +179,12 @@ private fun PresentationErrorDialogWalletErrorPreview() {
 @Composable
 private fun PresentationErrorDialogIntermittentNetworkPreview() {
     DialogErrorPreview(intermittent(PresentationError.IntermittentSubType.NETWORK))
+}
+
+@ThemeModeWithGermanAndEnglishPreviews
+@Composable
+private fun PresentationErrorDialogRateLimitedPreview() {
+    DialogErrorPreview(intermittent(PresentationError.IntermittentSubType.RATE_LIMITED))
 }
 
 @ThemeModeWithGermanAndEnglishPreviews

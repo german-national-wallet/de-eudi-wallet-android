@@ -96,16 +96,16 @@ fun keyIsSignature(key: String): Boolean {
     return key == DocumentJsonKeys.SIGNATURE
 }
 
-private fun keyIsUserPseudonym(key: String): Boolean {
+internal fun keyIsUserPseudonym(key: String): Boolean {
     return key == DocumentJsonKeys.USER_PSEUDONYM
 }
 
-private fun keyIsGender(key: String): Boolean {
+internal fun keyIsGender(key: String): Boolean {
     val listOfGenderKeys = DocumentJsonKeys.GENDER_KEYS
     return listOfGenderKeys.contains(key)
 }
 
-private fun getGenderValue(value: String, resourceProvider: ResourceProvider): String =
+internal fun getGenderValue(value: String, resourceProvider: ResourceProvider): String =
     when (value) {
         "0" -> {
             resourceProvider.getString(R.string.request_gender_not_known)

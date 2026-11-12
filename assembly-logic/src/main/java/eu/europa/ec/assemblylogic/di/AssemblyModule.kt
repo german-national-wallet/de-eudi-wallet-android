@@ -29,7 +29,7 @@ import org.sprind.wallet.corelogic.config.PidConfigurationOverridesProvider
 import eu.europa.ec.analyticslogic.di.LogicAnalyticsModule
 import eu.europa.ec.authenticationlogic.di.LogicAuthenticationModule
 import eu.europa.ec.businesslogic.config.ConfigLogic
-import eu.europa.ec.businesslogic.controller.storage.PrefsController
+import eu.europa.ec.businesslogic.controller.storage.EncryptedPrefsController
 import eu.europa.ec.businesslogic.di.LogicBusinessModule
 import org.sprind.wallet.cardreaderfeature.di.FeatureCardReaderModule
 import eu.europa.ec.commonfeature.di.FeatureCommonModule
@@ -104,15 +104,19 @@ fun Application.setupKoin(): KoinApplication {
 }
 
 /**
- * Provides a [FeatureFlagStorage] implementation that delegates to [PrefsController].
+ * Provides a [FeatureFlagStorage] implementation that delegates to [EncryptedPrefsController].
  *
- * This adapter wraps the Android-specific PrefsController (which uses EncryptedSharedPreferences)
- * and exposes it through the FeatureFlagStorage interface. This allows the feature-flags module
- * to remain independent while the app module provides the concrete implementation.
+ * This adapter wraps the Android-specific EncryptedPrefsController (which uses
+ * EncryptedSharedPreferences) and exposes it through the FeatureFlagStorage interface. This
+ * allows the feature-flags module to remain independent while the app module provides the
+ * concrete implementation.
  *
- * @param prefsController The PrefsController instance used for encrypted storage operations.
+ * @param prefsController The EncryptedPrefsController instance used for encrypted storage
+ *   operations.
  */
-private fun provideFeatureFlagStorage(prefsController: PrefsController): FeatureFlagStorage = object : FeatureFlagStorage {
+private fun provideFeatureFlagStorage(
+    prefsController: EncryptedPrefsController,
+): FeatureFlagStorage = object : FeatureFlagStorage {
     override fun getStoredFlags(): String =
         prefsController.getString(SAVED_FEATURE_FLAGS_OVERRIDE, "")
 

@@ -26,9 +26,9 @@ data class PinDigitsOnlyTransformation(private val pinLength: Int): InputTransfo
     }
     override fun TextFieldBuffer.transformInput() {
 
-        // only digits; count downwards to avoid index shifts during delete()
+        // only ASCII digits, as the PIN is a KDF input; count downwards to avoid index shifts during delete()
         for (i in length - 1 downTo 0) {
-            if (!charAt(i).isDigit()) {
+            if (charAt(i) !in '0'..'9') {
                 delete(i, i + 1)
             }
         }

@@ -68,9 +68,9 @@ import org.multipaz.credential.Credential
 import org.multipaz.credential.SecureAreaBoundCredential
 import org.multipaz.document.Document
 import org.multipaz.presentment.CredentialMatchSourceOpenID4VP
-import org.multipaz.presentment.CredentialPresentmentData
-import org.multipaz.presentment.CredentialPresentmentSelection
 import org.multipaz.presentment.CredentialPresentmentSetOptionMemberMatch
+import org.multipaz.presentment.CredentialQueryResult
+import org.multipaz.presentment.CredentialSelection
 import org.multipaz.request.MdocRequestedClaim
 import org.multipaz.request.RequestedClaim
 import org.multipaz.request.Requester
@@ -87,6 +87,7 @@ import org.sprind.wallet.corelogic.activity.ActivityResult
 import org.sprind.wallet.corelogic.activity.ActivityType
 import org.sprind.wallet.corelogic.model.RelyingPartyRegistrationStatus
 import org.sprind.wallet.corelogic.presentationerror.PresentationError
+import java.net.SocketTimeoutException
 import java.net.URI
 
 /**
@@ -95,7 +96,7 @@ import java.net.URI
  * to what the user consented to.
  *
  * Both moved off `DisclosedDocument`/`DocumentId` with wallet-core v0.30.0 — consent is now a
- * [CredentialPresentmentSelection] the controller narrows and hands to `generateResponse`, and key
+ * [CredentialSelection] the controller narrows and hands to `generateResponse`, and key
  * unlock is per `Credential`, not per document — so every test here drives the real listener path:
  * a selection only ever reaches the controller through a `TransferEvent.RequestReceived`.
  */
@@ -602,12 +603,47 @@ class WalletCorePresentationControllerTest {
             assertEquals("test-trace-id", presentationError.traceId)
         }
 
+    @Test
+    fun `a relying party that does not answer the request in time is a relying party timeout`() =
+        coroutineRule.runTest {
+            val error = transferErrorFor(SocketTimeoutException("timeout"))
+
+            assertEquals(
+                PresentationError.RelyingPartySideSubType.RELYING_PARTY_TIMEOUT,
+                (error as PresentationError.RelyingPartySide).subType,
+            )
+        }
+
+    @Test
+    fun `a slow response endpoint is a slow connection, not a relying party timeout`() =
+        coroutineRule.runTest {
+            receiveRequest(
+                selectionOf(match(plainCredential(DOCUMENT_ID, CREDENTIAL_ID), requestedClaim("family_name")))
+            )
+
+            val error = transferErrorFor(SocketTimeoutException("timeout"))
+
+            assertEquals(
+                PresentationError.IntermittentSubType.NETWORK,
+                (error as PresentationError.Intermittent).subType,
+            )
+        }
+
+    /** Delivers [throwable] as a [TransferEvent.Error] and returns what the controller emits for it. */
+    private suspend fun CoroutineScope.transferErrorFor(throwable: Throwable): PresentationError {
+        val collector = launch { subject.events.collect { } }
+        registeredListener.await().onTransferEvent(TransferEvent.Error(throwable))
+        val errorState = subject.events.first { it is TransferEventPartialState.Error }
+        collector.cancel()
+        return (errorState as TransferEventPartialState.Error).error
+    }
+
     /**
      * Subscribes to [WalletCorePresentationControllerImpl.events] so the controller registers its
      * listener with the wallet, then delivers [selection] through it the way a real transfer does.
      */
     private suspend fun CoroutineScope.receiveRequest(
-        selection: CredentialPresentmentSelection,
+        selection: CredentialSelection,
     ): FakeProcessedRequest {
         val collector = launch { subject.events.collect { } }
         val listener = registeredListener.await()
@@ -624,7 +660,7 @@ class WalletCorePresentationControllerTest {
     }
 
     private fun selectionOf(vararg matches: CredentialPresentmentSetOptionMemberMatch) =
-        CredentialPresentmentSelection(matches = matches.toList())
+        CredentialSelection(matches = matches.toList())
 
     private fun match(
         credential: Credential,
@@ -701,23 +737,23 @@ class WalletCorePresentationControllerTest {
      * controller hands to `generateResponse` — that narrowed selection is what actually gets sent.
      */
     private class FakeProcessedRequest(
-        selection: CredentialPresentmentSelection,
+        selection: CredentialSelection,
     ) : RequestProcessor.ProcessedRequest.Success(
-        presentmentData = CredentialPresentmentData(credentialSets = emptyList()),
-        requester = Requester(),
+        presentmentData = CredentialQueryResult(credentialSets = emptyList()),
+        requester = Requester(requesterIdentities = emptyList()),
         trustMetadata = null,
     ) {
-        override val presentmentSelections: List<CredentialPresentmentSelection> =
+        override val presentmentSelections: List<CredentialSelection> =
             listOf(selection)
 
-        var generatedFrom: CredentialPresentmentSelection? = null
+        var generatedFrom: CredentialSelection? = null
             private set
 
         var unlockDataUsed: Map<String, KeyUnlockData> = emptyMap()
             private set
 
         override suspend fun generateResponse(
-            selection: CredentialPresentmentSelection,
+            selection: CredentialSelection,
             keyUnlockData: Map<String, KeyUnlockData>,
         ): ResponseResult {
             generatedFrom = selection

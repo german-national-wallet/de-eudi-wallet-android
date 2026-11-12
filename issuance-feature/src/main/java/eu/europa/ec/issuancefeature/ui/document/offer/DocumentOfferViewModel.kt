@@ -57,6 +57,7 @@ import eu.europa.ec.uilogic.navigation.helper.generateComposableNavigationLink
 import eu.europa.ec.uilogic.navigation.helper.hasDeepLink
 import eu.europa.ec.uilogic.serializer.UiSerializer
 import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
@@ -132,7 +133,6 @@ sealed class Event : ViewEvent {
     data object ViewIssuerDetails : Event()
     data object DismissRejectConfirmationDialog : Event()
     data object RejectConfirmed : Event()
-    data object HelpPressed : Event()
 }
 
 sealed class Effect : ViewSideEffect {
@@ -168,6 +168,17 @@ class DocumentOfferViewModel(
     @InjectedParam private val offerSerializedConfig: String,
 ) : MviViewModel<Event, State, Effect>() {
 
+    /** The pending [recoverFromPossibleBrowserAbandonment] check, if any. */
+    private var browserAbandonmentCheckJob: Job? = null
+
+    /**
+     * `true` from [Event.OnDynamicPresentation] until the next [Event.Init]. That
+     * resume comes from the presentation screen popping back to this one, not from
+     * the browser returning: on a successful presentation the verifier's redirect
+     * is only now being opened in the browser, so the round-trip has just started.
+     */
+    private var returningFromDynamicPresentation: Boolean = false
+
     override fun setInitialState(): State {
         val deserializedOfferUiConfig = uiSerializer.fromBase64(
             offerSerializedConfig,
@@ -190,6 +201,9 @@ class DocumentOfferViewModel(
     override fun handleEvents(event: Event) {
         when (event) {
             is Event.Init -> {
+                // Consumed by the first Init after OnDynamicPresentation, whichever branch runs.
+                val postPresentationResume = returningFromDynamicPresentation
+                returningFromDynamicPresentation = false
                 if (viewState.value.documents.isEmpty()) {
                     resolveDocumentOffer(
                         offerUri = viewState.value.offerUiConfig.offerURI,
@@ -205,7 +219,18 @@ class DocumentOfferViewModel(
                         // browser without finishing. Give the former a brief grace period
                         // before concluding it's the latter, so we don't race a real
                         // redirect that's still in flight.
-                        recoverFromPossibleBrowserAbandonment()
+                        //
+                        // A resume right after a dynamic presentation is neither: the
+                        // browser is only about to open (for the verifier's redirect),
+                        // so allow it time to come to the foreground — that OnPause
+                        // cancels the check. If it never does (e.g. the presentation was
+                        // cancelled), the longer check still unblocks the screen.
+                        val gracePeriodMs = if (postPresentationResume) {
+                            POST_PRESENTATION_GRACE_PERIOD_MS
+                        } else {
+                            BROWSER_ABANDON_GRACE_PERIOD_MS
+                        }
+                        recoverFromPossibleBrowserAbandonment(gracePeriodMs)
                     }
                 }
             }
@@ -234,6 +259,10 @@ class DocumentOfferViewModel(
             }
 
             is Event.OnPause -> {
+                // Leaving the foreground again means the user did not actually come
+                // back from the browser (e.g. it was only now being opened on top),
+                // so any pending abandonment verdict is moot.
+                cancelBrowserAbandonmentCheck()
                 if (viewState.value.isInitialised && !viewState.value.browserAuthInProgress) {
                     setState { copy(isLoading = false) }
                 }
@@ -244,6 +273,7 @@ class DocumentOfferViewModel(
             }
 
             is Event.OnDynamicPresentation -> {
+                returningFromDynamicPresentation = true
                 getOrCreatePresentationScope()
                 setEffect {
                     Effect.Navigation.SwitchScreen(
@@ -274,10 +304,6 @@ class DocumentOfferViewModel(
 
             is Event.DismissDocumentDetails -> {
                 setState { copy(detailsSheetDocumentId = null) }
-            }
-
-            is Event.HelpPressed -> {
-                // TODO: Will open the offer's help sheet
             }
 
             is Event.ViewIssuerDetails -> {
@@ -583,8 +609,13 @@ class DocumentOfferViewModel(
         }
     }
 
+    private fun cancelBrowserAbandonmentCheck() {
+        browserAbandonmentCheckJob?.cancel()
+        browserAbandonmentCheckJob = null
+    }
+
     /**
-     * Waits [BROWSER_ABANDON_GRACE_PERIOD_MS] and, if no redirect has been
+     * Waits [gracePeriodMs] and, if no redirect has been
      * confirmed by then, concludes the user backed out of the browser (e.g. via
      * device back) without finishing — no redirect is ever coming, so nothing
      * would otherwise unblock the loading screen. Surfaces a retryable error
@@ -597,11 +628,15 @@ class DocumentOfferViewModel(
      * finish), so this check — whether already scheduled or one armed later,
      * while that exchange is still running — reliably observes it as `false`
      * and no-ops, no matter how long the exchange takes.
+     *
+     * The check is cancelled by [Event.OnPause]: if the app leaves the foreground
+     * again before it fires, the user was not back from the browser after all.
      */
-    private fun recoverFromPossibleBrowserAbandonment() {
+    private fun recoverFromPossibleBrowserAbandonment(gracePeriodMs: Long) {
+        cancelBrowserAbandonmentCheck()
         val resolvedOffer = viewState.value.resolvedOffer ?: return
-        viewModelScope.launch {
-            delay(BROWSER_ABANDON_GRACE_PERIOD_MS.milliseconds)
+        browserAbandonmentCheckJob = viewModelScope.launch {
+            delay(gracePeriodMs.milliseconds)
             if (viewState.value.browserAuthInProgress) {
                 setState {
                     copy(
@@ -788,10 +823,14 @@ class DocumentOfferViewModel(
      * user having abandoned the browser.
      */
     private fun resumeIssuance(uri: String) {
+        cancelBrowserAbandonmentCheck()
         setState {
             copy(
                 isLoading = true,
                 loadingText = R.string.eaa_issuance_loading_title,
+                // A redirect arrived, so any "issuance interrupted" verdict from the
+                // abandonment heuristic was wrong — don't leave it on screen.
+                error = null,
                 browserAuthInProgress = false,
             )
         }
@@ -1049,6 +1088,14 @@ class DocumentOfferViewModel(
 
 private const val RESUME_ISSUANCE_TIMEOUT_MS = 5_000L
 private const val BROWSER_ABANDON_GRACE_PERIOD_MS = 800L
+
+// After a dynamic presentation, the core still has to post the presentation
+// response to the verifier, receive its redirect_uri, and launch the browser
+// (possibly a cold start) before OnPause cancels the abandonment check. That
+// includes a network round-trip (~5 s observed in WD-5148), so allow ample
+// headroom: a longer window only delays the retryable error when the
+// presentation was cancelled and no browser opens.
+private const val POST_PRESENTATION_GRACE_PERIOD_MS = 10_000L
 
 // Larger than RESUME_ISSUANCE_TIMEOUT_MS: this bounds real credential creation
 // and submission work (key generation, network calls to the issuer), not just

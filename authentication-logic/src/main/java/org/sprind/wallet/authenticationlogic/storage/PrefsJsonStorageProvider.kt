@@ -17,22 +17,29 @@
 package org.sprind.wallet.authenticationlogic.storage
 
 import com.google.gson.Gson
+import com.google.gson.JsonParseException
 import com.google.gson.reflect.TypeToken
 import org.sprind.wallet.authenticationlogic.provider.JsonStorageProvider
-import eu.europa.ec.businesslogic.controller.storage.PrefsController
+import eu.europa.ec.businesslogic.controller.storage.EncryptedPrefsController
 import java.lang.reflect.Type
 
 class PrefsJsonStorageProvider(
-    private val prefsController: PrefsController,
+    private val prefsController: EncryptedPrefsController,
     private val gson: Gson,
 ) : JsonStorageProvider {
 
+    /**
+     * Returns `null` when nothing is stored or the stored JSON is corrupt. A failure to read the
+     * encrypted preferences themselves (e.g. the master key is locked until the next device
+     * unlock) propagates: callers treat `null` as "not registered" and would otherwise start a
+     * fresh registration over an existing one.
+     */
     override fun <T> get(key: String, type: Type): T? {
+        val json = prefsController.getString(key, "")
+        if (json.isNullOrEmpty()) return null
         return try {
-            val json = prefsController.getString(key, "")
-            if (json.isNullOrEmpty()) null
-            else gson.fromJson(json, type)
-        } catch (e: Exception) {
+            gson.fromJson(json, type)
+        } catch (e: JsonParseException) {
             null
         }
     }

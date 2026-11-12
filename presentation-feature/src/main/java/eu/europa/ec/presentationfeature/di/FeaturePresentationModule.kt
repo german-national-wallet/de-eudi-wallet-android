@@ -33,7 +33,6 @@ import org.koin.core.annotation.ComponentScan
 import org.koin.core.annotation.Factory
 import org.koin.core.annotation.Module
 import org.koin.core.annotation.ScopeId
-import org.sprind.wallet.commonfeature.interactor.RwscaInteractor
 
 @Module
 @ComponentScan("eu.europa.ec.presentationfeature", "org.sprind.wallet.presentationfeature")
@@ -62,7 +61,6 @@ fun providePresentationRequestInteractor(
     walletPinUnBlockTimeStorageController: WalletPinUnBlockTimeStorageController,
     @ScopeId(name = PRESENTATION_SCOPE_ID) walletCorePresentationController: WalletCorePresentationController,
     logController: LogController,
-    rwscaInteractor: RwscaInteractor,
 ): PresentationRequestInteractor {
     return PresentationRequestInteractorImpl(
         resourceProvider,
@@ -70,7 +68,6 @@ fun providePresentationRequestInteractor(
         walletCoreDocumentsController,
         walletPinUnBlockTimeStorageController,
         logController,
-        rwscaInteractor,
     )
 }
 

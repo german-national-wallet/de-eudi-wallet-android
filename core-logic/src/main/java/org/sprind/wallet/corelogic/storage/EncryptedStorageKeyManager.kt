@@ -17,17 +17,17 @@
 package org.sprind.wallet.corelogic.storage
 
 import android.util.Base64
-import eu.europa.ec.businesslogic.controller.storage.PrefsController
+import eu.europa.ec.businesslogic.controller.storage.EncryptedPrefsController
 import java.security.SecureRandom
 
-internal const val ENCRYPTED_STORAGE_KEY = "wi_data_enc_symk"
+internal const val ENCRYPTED_STORAGE_KEY = "wi_storage_db_key"
 
 fun interface EncryptedStorageKeyManager {
     fun getOrGenerateEncryptedStorageKey(): ByteArray
 }
 
 internal class EncryptedStorageKeyManagerImpl(
-    private val prefsController: PrefsController,
+    private val prefsController: EncryptedPrefsController,
 ) : EncryptedStorageKeyManager {
 
     @Volatile
@@ -51,7 +51,7 @@ internal class EncryptedStorageKeyManagerImpl(
         }
 
     companion object {
-        fun PrefsController.getByteArray(key: String): ByteArray? {
+        fun EncryptedPrefsController.getByteArray(key: String): ByteArray? {
             val value = this.getString(key, "")
             if (value.isEmpty()) return null
             return Base64.decode(value, Base64.DEFAULT)

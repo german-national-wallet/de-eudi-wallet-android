@@ -50,17 +50,15 @@ import org.sprind.wallet.uilogic.component.WrapLottieAnimation
  * title is a heading and the body scrolls for large font scales (from [SetupStepScreen]).
  *
  * The app cannot be used without a screen lock, so the back arrow and system back leave it
- * ([onBack]); the help button has no content yet, so [onHelp] defaults to doing nothing.
+ * ([onBack]).
  *
  * @param onOpenSettings invoked by the primary action; opens the device security settings.
  * @param onBack invoked by the back arrow and system back.
- * @param onHelp invoked by the help button.
  */
 @Composable
 fun PlatformAuthBlockingScreen(
     onOpenSettings: () -> Unit,
     onBack: () -> Unit,
-    onHelp: () -> Unit = {},
 ) {
     ProvideContentTemplateStyle(
         style = ContentTemplateDefaults.style.copy(
@@ -73,7 +71,6 @@ fun PlatformAuthBlockingScreen(
             onPrimaryClick = onOpenSettings,
             primaryButtonTrailingIcon = AppIcons.Launch,
             onBack = onBack,
-            onHelp = onHelp,
             templateConfig = ContentTemplateConfig(verticalSpacing = SPACING_MEDIUM.dp),
             illustration = {
                 // Decorative: the title and the notice say what the animation shows.

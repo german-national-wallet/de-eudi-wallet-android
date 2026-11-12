@@ -25,8 +25,14 @@ import eu.europa.ec.eudi.openid4vp.ResolutionError
 import org.sprind.wallet.corelogic.presentationerror.PresentationError.IntermittentSubType
 import org.sprind.wallet.corelogic.presentationerror.PresentationError.RelyingPartySideSubType
 import org.sprind.wallet.corelogic.presentationerror.PresentationError.WalletSideSubType
+import org.sprind.wallet.networklogic.common.NetworkFailure
+import org.sprind.wallet.networklogic.common.isConnectionFailure
+import org.sprind.wallet.networklogic.common.isNetworkUnreachable
+import org.sprind.wallet.networklogic.common.toNetworkFailure
+import org.sprind.wallet.networklogic.utils.causeChain
+import org.sprind.wallet.networklogic.utils.hasCause
 import java.io.IOException
-import java.net.ConnectException
+import java.net.NoRouteToHostException
 import java.net.SocketTimeoutException
 import javax.net.ssl.SSLException
 
@@ -39,11 +45,12 @@ import javax.net.ssl.SSLException
 private const val ENCRYPTION_POLICY_MESSAGE_PREFIX = "HAIP profile requires an encrypted response mode"
 
 /**
- * Message carried by the `IllegalStateException` that `OpenId4VpManager.sendResponse` throws for
- * `DispatchOutcome.VerifierResponse.Rejected`. Matched as a literal until wallet-core exposes a
- * typed exception for it (WD-4546: fork change WD-4547, upstream PR WD-4548).
+ * Message of the `IllegalStateException` reported when the verifier rejects our response:
+ * `EudiWalletListenerWrapper` raises it for `TransferEvent.Rejected` from `sendResponse`, and
+ * `OpenId4VpManager.reject` emits it in a `TransferEvent.Error`. Matched as a literal until
+ * wallet-core exposes a typed exception for it (WD-4546: fork change WD-4547, upstream PR WD-4548).
  */
-private const val VERIFIER_REJECTION_MESSAGE = "Verifier rejected the response"
+internal const val VERIFIER_REJECTION_MESSAGE = "Verifier rejected the response"
 
 /**
  * Prefix of the message carried by the `IllegalStateException` that
@@ -51,6 +58,15 @@ private const val VERIFIER_REJECTION_MESSAGE = "Verifier rejected the response"
  * has no unlock data. The credential identifier is appended to this prefix.
  */
 private const val MISSING_UNLOCK_DATA_MESSAGE_PREFIX = "Key data missing for credential"
+
+/** The exchange with the relying party a presentation failure happened in (WD-5012). */
+enum class PresentationStage {
+    /** Fetching the relying party's request, before it was received. */
+    REQUEST,
+
+    /** Once the request was received: sending the response (or a rejection) to the relying party. */
+    RESPONSE,
+}
 
 /**
  * Maps a presentation [Throwable] to a typed [PresentationError], classifying it into one of
@@ -66,22 +82,26 @@ private const val MISSING_UNLOCK_DATA_MESSAGE_PREFIX = "Key data missing for cre
  * @param genericErrorMessage A fallback human-readable string (from
  *   [eu.europa.ec.resourceslogic.provider.ResourceProvider.genericErrorMessage]) used as
  *   [PresentationError.displayMessage] when no better message is available.
+ * @param stage The exchange with the relying party the failure happened in, or `null` when it
+ *   did not come from that exchange. A timeout or connection failure is blamed on the relying
+ *   party ([RelyingPartySideSubType.RELYING_PARTY_TIMEOUT]) only when the stage is known.
  */
 fun mapToPresentationError(
     throwable: Throwable,
     traceId: String?,
     genericErrorMessage: String,
+    stage: PresentationStage? = null,
 ): PresentationError {
     val displayMessage = throwable.localizedMessage ?: throwable.message ?: genericErrorMessage
-    val factory = ErrorFactory(traceId, throwable, displayMessage)
+    val factory = ErrorFactory(traceId, throwable, displayMessage, stage)
 
     // Typed errors are wrapped in AuthorizationRequestException(error: AuthorizationRequestError).
     // The exception may be the direct throwable or nested in a wrapper's cause chain.
-    val niscyError = generateSequence(throwable) { it.cause }
+    val niscyError = throwable.causeChain()
         .filterIsInstance<AuthorizationRequestException>()
         .firstOrNull()
         ?.error
-        ?: generateSequence(throwable) { it.cause }
+        ?: throwable.causeChain()
             .filterIsInstance<AuthorizationRequestError>()
             .firstOrNull()
 
@@ -110,7 +130,7 @@ fun mapToPresentationError(
     }
 
     // Network / IO errors not wrapped (e.g. from ktor during response dispatch).
-    val ioCause = generateSequence(throwable) { it.cause }
+    val ioCause = throwable.causeChain()
         .filterIsInstance<IOException>()
         .firstOrNull()
     if (ioCause != null) {
@@ -148,6 +168,7 @@ private class ErrorFactory(
     private val traceId: String?,
     private val cause: Throwable,
     private val displayMessage: String,
+    val stage: PresentationStage?,
 ) {
     fun relyingParty(subType: RelyingPartySideSubType) =
         PresentationError.RelyingPartySide(traceId, cause, displayMessage, subType)
@@ -205,28 +226,39 @@ private fun mapNiscyError(
 }
 
 /**
- * Classifies a [Throwable] (the cause of an HTTP or request-fetch failure) as
- * [PresentationError.Intermittent] (transient) or
- * [PresentationError.RelyingPartySide] with [RelyingPartySideSubType.RELYING_PARTY_UNREACHABLE]
- * (non-transient).
- *
- * Transient causes: [SocketTimeoutException], [ConnectException], [SSLException].
- * Everything else (e.g. a closed stream, a 503 wrapped in an IOException) is treated as
- * relying-party-side unreachable — retrying immediately is unlikely to help.
+ * Classifies a [Throwable] (the cause of an HTTP or request-fetch failure):
+ * - HTTP 429 is [IntermittentSubType.RATE_LIMITED].
+ * - A timeout while fetching the request, or a connection failure in either stage of the exchange
+ *   with the relying party, is [RelyingPartySideSubType.RELYING_PARTY_TIMEOUT] (WD-5012). The
+ *   connection to the response endpoint has already been retried by then (`retryConnectionFailures`).
+ * - Other transient causes are [IntermittentSubType.NETWORK]: timeouts as classified by
+ *   [toNetworkFailure] (including [SocketTimeoutException] and HTTP 408), connection failures,
+ *   [SSLException], and a device without a route to the network ([NoRouteToHostException], or
+ *   Android's `ENETUNREACH`, see [isNetworkUnreachable]), which is never blamed on the relying party.
+ * - Everything else (e.g. a closed stream, a 503 wrapped in an IOException) is treated as
+ *   relying-party-side unreachable — retrying immediately is unlikely to help.
  */
-private fun classifyIoError(ioCause: Throwable, factory: ErrorFactory): PresentationError =
-    if (ioCause is IOException && isTransient(ioCause)) factory.intermittent()
-    else factory.relyingParty(RelyingPartySideSubType.RELYING_PARTY_UNREACHABLE)
+private fun classifyIoError(ioCause: Throwable, factory: ErrorFactory): PresentationError {
+    val networkFailure = ioCause.toNetworkFailure()
+    val isTimeout = networkFailure == NetworkFailure.Timeout
+    val isConnectionFailure = ioCause.isConnectionFailure()
+    return when {
+        networkFailure is NetworkFailure.RateLimited ->
+            factory.intermittent(IntermittentSubType.RATE_LIMITED)
 
-private fun isTransient(ioException: IOException): Boolean =
-    ioException is SocketTimeoutException ||
-        ioException is ConnectException ||
-        ioException is SSLException
+        (factory.stage == PresentationStage.REQUEST && (isTimeout || isConnectionFailure)) ||
+            (factory.stage == PresentationStage.RESPONSE && isConnectionFailure) ->
+            factory.relyingParty(RelyingPartySideSubType.RELYING_PARTY_TIMEOUT)
 
-/**
- * Detects the `IllegalStateException("Verifier rejected the response")` that
- * `OpenId4VpManager.sendResponse` wraps `DispatchOutcome.VerifierResponse.Rejected` in.
- */
+        isTimeout || isConnectionFailure || ioCause.hasCause<SSLException>() ||
+            ioCause.isNetworkUnreachable() ->
+            factory.intermittent()
+
+        else -> factory.relyingParty(RelyingPartySideSubType.RELYING_PARTY_UNREACHABLE)
+    }
+}
+
+/** Detects the `IllegalStateException` carrying [VERIFIER_REJECTION_MESSAGE]. */
 private fun isVerifierRejection(throwable: Throwable): Boolean {
     val message = throwable.message ?: return false
     return throwable is IllegalStateException && message.contains(VERIFIER_REJECTION_MESSAGE)

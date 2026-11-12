@@ -25,6 +25,7 @@ internal data class HttpMessageSignatureSpec(
     val signingKey: PrivateKey,
     val signatureName: String,
     val keyId: String,
+    val encryptSignature: ((ByteArray) -> ByteArray)? = null,
 )
 
 /**
@@ -65,6 +66,7 @@ internal class HttpMessageSigningApiFactory(
                         extraHeaderNamesToConsiderForSignature = headersToSign,
                         signatureName = signature.signatureName,
                         keyId = signature.keyId,
+                        encryptSignature = signature.encryptSignature,
                     )
                 )
                 .build()

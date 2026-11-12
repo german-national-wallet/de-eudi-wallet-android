@@ -42,6 +42,7 @@ dependencies {
     implementation(libs.zxing)
     implementation(libs.gson)
     implementation(libs.timber)
+    implementation(libs.androidx.lifecycle.process)
 
     testImplementation(project(LibraryModule.TestLogic.path))
 }

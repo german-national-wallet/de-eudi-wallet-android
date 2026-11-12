@@ -16,14 +16,14 @@
 
 package org.sprind.wallet.revocationfeature.storage
 
-import eu.europa.ec.businesslogic.controller.storage.PrefsController
+import eu.europa.ec.businesslogic.controller.storage.EncryptedPrefsController
 import org.sprind.wallet.revocationfeature.provider.RevocationStorageProvider
 
 const val SHARED_PREFERENCE_REVOCATION_SAVED_CODE_CONFIRMATION_KEY =
     "WalletRevocationSavedCodeConfirmation"
 
 internal class PrefsRevocationStorageProvider(
-    private val prefsController: PrefsController
+    private val prefsController: EncryptedPrefsController
 ) : RevocationStorageProvider {
     override fun hasUserConfirmedSavingCode(): Boolean {
         return prefsController.getBool(

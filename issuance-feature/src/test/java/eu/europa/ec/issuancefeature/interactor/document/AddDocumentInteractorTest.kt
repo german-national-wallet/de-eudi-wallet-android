@@ -55,6 +55,8 @@ import org.mockito.kotlin.mock
 import org.mockito.kotlin.times
 import org.mockito.kotlin.verify
 import org.mockito.kotlin.whenever
+import org.sprind.wallet.corelogic.issuance.AuthorizationRedirectException
+import org.sprind.wallet.networklogic.common.NetworkFailure
 import java.util.Locale
 
 class AddDocumentInteractorTest {
@@ -260,6 +262,46 @@ class AddDocumentInteractorTest {
     }
 
     @Test
+    fun `Given controller emits a Failure with a reason, Then the Failed event carries it`() {
+        coroutineRule.runTest {
+            val spec = mock<WalletInstanceAttestationSpec>()
+            val configIds = setOf(CredentialConfigurationIdentifier(configId))
+            val failure = IssueDocumentPartialState.Failure(
+                errorMessage = "ISSUANCE_FAILED",
+                networkFailure = NetworkFailure.Timeout,
+                isAuthorizationExpired = true,
+            )
+
+            whenever(
+                walletCoreDocumentsController.issueDocumentAttested(
+                    issuanceMethod = issuanceMethod,
+                    configIds = configIds.map { it.value },
+                    issuerId = issuerId,
+                    walletInstanceAttestationSpec = spec
+                )
+            ).thenReturn(failure.toFlow())
+
+            interactor.issuanceEvents.runFlowTest {
+                interactor.startIssueDocumentAttested(
+                    issuanceMethod = issuanceMethod,
+                    configIds = configIds,
+                    issuerId = issuerId,
+                    walletInstanceAttestationSpec = spec
+                )
+
+                assertEquals(
+                    IssuanceEvent.Failed(
+                        error = "ISSUANCE_FAILED",
+                        networkFailure = NetworkFailure.Timeout,
+                        isAuthorizationExpired = true,
+                    ),
+                    awaitItem()
+                )
+            }
+        }
+    }
+
+    @Test
     fun `Given controller throws, Then Failed event with generic error is emitted and state is Failure`() {
         coroutineRule.runTest {
             val spec = mock<WalletInstanceAttestationSpec>()
@@ -287,6 +329,46 @@ class AddDocumentInteractorTest {
 
             assertEquals(
                 IssueDocumentPartialState.Failure(errorMessage = mockedGenericErrorMessage),
+                interactor.issuanceState.value
+            )
+        }
+    }
+
+    @Test
+    fun `Given controller throws an expired authorization, Then the Failed event says so`() {
+        coroutineRule.runTest {
+            val spec = mock<WalletInstanceAttestationSpec>()
+            val configIds = setOf(CredentialConfigurationIdentifier(configId))
+            val error = AuthorizationRedirectException("invalid_request", null)
+
+            whenever(
+                walletCoreDocumentsController.issueDocumentAttested(
+                    issuanceMethod = issuanceMethod,
+                    configIds = configIds.map { it.value },
+                    issuerId = issuerId,
+                    walletInstanceAttestationSpec = spec
+                )
+            ).thenReturn(flow { throw error })
+
+            interactor.issuanceEvents.runFlowTest {
+                interactor.startIssueDocumentAttested(
+                    issuanceMethod = issuanceMethod,
+                    configIds = configIds,
+                    issuerId = issuerId,
+                    walletInstanceAttestationSpec = spec
+                )
+
+                assertEquals(
+                    IssuanceEvent.Failed(error.localizedMessage!!, isAuthorizationExpired = true),
+                    awaitItem()
+                )
+            }
+
+            assertEquals(
+                IssueDocumentPartialState.Failure(
+                    errorMessage = error.localizedMessage!!,
+                    isAuthorizationExpired = true,
+                ),
                 interactor.issuanceState.value
             )
         }

@@ -101,6 +101,51 @@ class RelyingPartyRegistrationStatusTest {
     }
 
     @Test
+    fun `Given an HTTPS info and support uri, When a service provider link is asked for, Then the info uri wins`() {
+        val status = verified(registration(infoUri = INFO_URI, supportUri = HTTPS_SUPPORT_URI))
+
+        assertEquals(INFO_URI, status.serviceProviderUri)
+    }
+
+    @Test
+    fun `Given a plain HTTP info uri, When a service provider link is asked for, Then the HTTPS support uri is used`() {
+        val status = verified(
+            registration(infoUri = "http://relying-party.example.invalid", supportUri = HTTPS_SUPPORT_URI),
+        )
+
+        assertEquals(HTTPS_SUPPORT_URI, status.serviceProviderUri)
+    }
+
+    @Test
+    fun `Given no HTTPS uri with a host, When a service provider link is asked for, Then there is none`() {
+        listOf(
+            registration(supportUri = SUPPORT_URI),
+            registration(infoUri = "https://", supportUri = "https:relative"),
+            registration(infoUri = "not a uri", supportUri = " "),
+            registration(),
+        ).forEach { registration ->
+            assertNull("$registration", verified(registration).serviceProviderUri)
+        }
+    }
+
+    @Test
+    fun `Given a status without a validated in-scope certificate, When a service provider link is asked for, Then there is none`() {
+        val overAsking = RegistrationCertificateResult.Verified(
+            registration = registration(infoUri = INFO_URI),
+            overAskedClaims = listOf(overAskedClaim(ClaimPathElement.Claim("family_name"))),
+        ).toRelyingPartyRegistrationStatus()
+
+        listOf(
+            overAsking,
+            RelyingPartyRegistrationStatus.NotEvaluated,
+            RegistrationCertificateResult.Failed(RegistrationFailureReason.entries.first())
+                .toRelyingPartyRegistrationStatus(),
+        ).forEach { status ->
+            assertNull("$status", status.serviceProviderUri)
+        }
+    }
+
+    @Test
     fun `Given texts in several languages, When one is picked for a locale, Then the closest match wins`() {
         val texts = listOf(
             LocalizedTextDomain(language = "fr", value = "français"),
@@ -259,13 +304,20 @@ class RelyingPartyRegistrationStatusTest {
         supervisoryAuthority: SupervisoryAuthority? = null,
         purpose: List<LocalizedText> = emptyList(),
         supportUri: String? = null,
+        infoUri: String? = null,
     ): RegistrationCertificate = RegistrationCertificate(
         identifiers = listOf(RegistrationIdentifier(value = RELYING_PARTY_ID)),
         name = "Example Relying Party",
         supervisoryAuthority = supervisoryAuthority,
         purpose = purpose,
         supportUri = supportUri,
+        infoUri = infoUri,
     )
+
+    private fun verified(registration: RegistrationCertificate) = RegistrationCertificateResult.Verified(
+        registration = registration,
+        overAskedClaims = emptyList(),
+    ).toRelyingPartyRegistrationStatus()
 
     private fun overAskedClaim(vararg path: ClaimPathElement) = OverAskedClaim(
         format = SD_JWT_VC,
@@ -279,5 +331,7 @@ class RelyingPartyRegistrationStatusTest {
         const val RELYING_PARTY_ID = "https://relying-party.example.invalid"
         const val AUTHORITY_URI = "https://authority.example.invalid/complaint"
         const val SUPPORT_URI = "mailto:support@relying-party.example.invalid"
+        const val HTTPS_SUPPORT_URI = "https://relying-party.example.invalid/support"
+        const val INFO_URI = "https://relying-party.example.invalid/about"
     }
 }

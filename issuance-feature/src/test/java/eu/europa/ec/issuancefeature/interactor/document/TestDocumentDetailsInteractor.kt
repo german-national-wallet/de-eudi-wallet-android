@@ -17,21 +17,10 @@
 package eu.europa.ec.issuancefeature.interactor.document
 
 import eu.europa.ec.eudi.wallet.document.IssuedDocument
-import eu.europa.ec.eudi.wallet.document.format.MsoMdocData
-import eu.europa.ec.eudi.wallet.document.format.MsoMdocFormat
-import eu.europa.ec.commonfeature.ui.document_details.domain.DocumentDetailsDomain
-import eu.europa.ec.commonfeature.ui.document_details.domain.DocumentItem
-import eu.europa.ec.commonfeature.util.TestsData.mockedBasicMdlDomain
-import eu.europa.ec.commonfeature.util.TestsData.mockedBasicPidDomain
-import eu.europa.ec.commonfeature.util.TestsData.mockedDocUiNamePid
-import eu.europa.ec.commonfeature.util.TestsData.mockedDocumentHasExpired
 import eu.europa.ec.corelogic.controller.DeleteAllDocumentsPartialState
 import eu.europa.ec.corelogic.controller.DeleteDocumentPartialState
 import eu.europa.ec.corelogic.controller.WalletCoreDocumentsController
-import eu.europa.ec.corelogic.model.DocumentIdentifier
 import eu.europa.ec.resourceslogic.provider.ResourceProvider
-import eu.europa.ec.testfeature.copy
-import eu.europa.ec.testfeature.createMockedNamespaceData
 import eu.europa.ec.testfeature.getMockedMdlWithBasicFields
 import eu.europa.ec.testfeature.getMockedOldestPidWithBasicFields
 import eu.europa.ec.testfeature.getMockedPidWithBasicFields
@@ -42,7 +31,6 @@ import eu.europa.ec.testfeature.mockedGenericErrorMessage
 import eu.europa.ec.testfeature.mockedMdlId
 import eu.europa.ec.testfeature.mockedOldestPidId
 import eu.europa.ec.testfeature.mockedPidId
-import eu.europa.ec.testfeature.mockedPidNameSpace
 import eu.europa.ec.testfeature.mockedPlainFailureMessage
 import eu.europa.ec.testlogic.extension.runFlowTest
 import eu.europa.ec.testlogic.extension.runTest
@@ -103,205 +91,13 @@ class TestDocumentDetailsInteractor {
     //region getDocumentDetails
 
     // Case 1:
-    // 1. walletCoreDocumentsController.getDocumentById() returns a PID document.
-    // 2. bookmarkStorageController.retrieve() returns null.
-
-    // Case 1 Expected Result:
-    // DocumentDetailsInteractorPartialState.Success state, with a PID document item and
-    // documentIsBookmarked is false.
-    @Test
-    fun `Given Case 1, When getDocumentDetails is called, Then Case 1 Expected Result is returned`() {
-        coroutineRule.runTest {
-            mockGetDocumentByIdCall(response = getMockedPidWithBasicFields())
-
-            // When
-            interactor.getDocumentDetails(
-                documentId = mockedPidId,
-            ).runFlowTest {
-                // Then
-                assertEquals(
-                    DocumentDetailsInteractorPartialState.Success(
-                        documentDetailsDomain = mockedBasicPidDomain,
-                        documentIsBookmarked = false,
-                        issuerName = null,
-                        issuerLogo = null,
-                        documentFormat = getMockedMdlWithBasicFields().format,
-                        isPid = true,
-                    ),
-                    awaitItem()
-                )
-            }
-        }
-    }
-
-    // Case 2:
-    // 1. walletCoreDocumentsController.getDocumentById() returns a PID document.
-    // 2. bookmarkStorageController.retrieve() returns a Bookmark.
-
-    // Case 2 Expected Result:
-    // DocumentDetailsInteractorPartialState.Success state, with a PID document item and
-    // documentIsBookmarked is true.
-    @Test
-    fun `Given Case 2, When getDocumentDetails is called, Then Case 2 Expected Result is returned`() {
-        coroutineRule.runTest {
-            // Given
-            mockGetDocumentByIdCall(response = getMockedMdlWithBasicFields())
-
-            // When
-            interactor.getDocumentDetails(
-                documentId = mockedPidId,
-            ).runFlowTest {
-                // Then
-                assertEquals(
-                    DocumentDetailsInteractorPartialState.Success(
-                        documentDetailsDomain = mockedBasicPidDomain,
-                        documentIsBookmarked = true,
-                        issuerName = null,
-                        issuerLogo = null,
-                        documentFormat = getMockedMdlWithBasicFields().format
-                    ),
-                    awaitItem()
-                )
-            }
-        }
-    }
-
-    // Case 3:
-    // 1. walletCoreDocumentsController.getDocumentById() returns an mDL document.
-    // 2. bookmarkStorageController.retrieve() returns null.
-
-    // Case 3 Expected Result:
-    // DocumentDetailsInteractorPartialState.Success state, with an mDL document item and
-    // documentIsBookmarked is false.
-    @Test
-    fun `Given Case 3, When getDocumentDetails is called, Then Case 3 Expected Result is returned`() {
-        coroutineRule.runTest {
-            // Given
-            mockGetDocumentByIdCall(response = getMockedMdlWithBasicFields())
-
-            // When
-            interactor.getDocumentDetails(
-                documentId = mockedMdlId,
-            ).runFlowTest {
-                // Then
-                assertEquals(
-                    DocumentDetailsInteractorPartialState.Success(
-                        documentDetailsDomain = mockedBasicMdlDomain.copy(
-                            documentImage = "SE"
-                        ),
-                        documentIsBookmarked = false,
-                        issuerName = null,
-                        issuerLogo = null,
-                        documentFormat = getMockedMdlWithBasicFields().format
-                    ),
-                    awaitItem()
-                )
-            }
-        }
-    }
-
-    // Case 4:
-    // 1. walletCoreDocumentsController.getDocumentById() returns null.
-
-    // Case 4 Expected Result:
-    // DocumentDetailsInteractorPartialState.Failed state,
-    // with the generic error message.
-    @Test
-    fun `Given Case 4, When getDocumentDetails is called, Then Case 4 Expected Result is returned`() {
-        coroutineRule.runTest {
-            // Given
-            mockGetDocumentByIdCall(response = null)
-
-            // When
-            interactor.getDocumentDetails(
-                documentId = mockedPidId,
-            ).runFlowTest {
-                // Then
-                assertEquals(
-                    DocumentDetailsInteractorPartialState.Failure(
-                        error = mockedGenericErrorMessage
-                    ),
-                    awaitItem()
-                )
-            }
-        }
-    }
-
-    // Case 5:
-    // 1. walletCoreDocumentsController.getDocumentById() returns a PID document, with:
-    // no expiration date,
-    // no image, and
-    // no user name.
-    // 2. bookmarkStorageController.retrieve() returns null.
-
-    // Case 5 Expected Result:
-    // DocumentDetailsInteractorPartialState.Success state, with a PID document item, with:
-    // an empty string for documentExpirationDateFormatted,
-    // an empty string for documentImage, and
-    // an empty string for userFullName, and
-    // documentIsBookmarked is false.
-    @Test
-    fun `Given Case 5, When getDocumentDetails is called, Then Case 5 Expected Result is returned`() {
-        coroutineRule.runTest {
-            // Given
-            mockGetDocumentByIdCall(
-                response = getMockedPidWithBasicFields().copy(
-                    data = MsoMdocData(
-                        format = MsoMdocFormat(mockedPidNameSpace),
-                        issuerMetadata = null,
-                        nameSpacedData = createMockedNamespaceData(
-                            mockedPidNameSpace, mapOf(
-                                "no_data_item" to byteArrayOf(0)
-                            )
-                        )
-                    )
-                )
-            )
-
-            // When
-            interactor.getDocumentDetails(
-                documentId = mockedPidId,
-            ).runFlowTest {
-                // Then
-                assertEquals(
-                    DocumentDetailsInteractorPartialState.Success(
-                        documentDetailsDomain = DocumentDetailsDomain(
-                            docName = mockedDocUiNamePid,
-                            docId = mockedPidId,
-                            documentIdentifier = DocumentIdentifier.MdocPid,
-                            documentExpirationDateFormatted = "",
-                            documentHasExpired = mockedDocumentHasExpired,
-                            documentImage = "",
-                            userFullName = "",
-                            detailsItems = listOf(
-                                DocumentItem(
-                                    elementIdentifier = "no_data_item",
-                                    value = "0",
-                                    readableName = "no_data_item",
-                                    docId = mockedPidId,
-                                ),
-                            )
-                        ),
-                        documentIsBookmarked = false,
-                        issuerName = null,
-                        issuerLogo = null,
-                        documentFormat = MsoMdocFormat(mockedPidNameSpace),
-                        isPid = true,
-                    ),
-                    awaitItem()
-                )
-            }
-        }
-    }
-
-    // Case 6:
     // 1. walletCoreDocumentsController.getDocumentById() throws an exception with a message.
 
-    // Case 6 Expected Result:
+    // Case 1 Expected Result:
     // DocumentDetailsInteractorPartialState.Failed state,
     // with the exception's localized message.
     @Test
-    fun `Given Case 6, When getDocumentDetails is called, Then Case 6 Expected Result is returned`() {
+    fun `Given Case 1, When getDocumentDetails is called, Then Case 1 Expected Result is returned`() {
         coroutineRule.runTest {
             // Given
             whenever(walletCoreDocumentsController.getDocumentById(mockedPidId))
@@ -322,18 +118,45 @@ class TestDocumentDetailsInteractor {
         }
     }
 
-    // Case 7:
+    // Case 2:
     // 1. walletCoreDocumentsController.getDocumentById() throws an exception with no message.
 
-    // Case 7 Expected Result:
+    // Case 2 Expected Result:
     // DocumentDetailsInteractorPartialState.Failed state,
     // with the generic error message.
     @Test
-    fun `Given Case 7, When getDocumentDetails is called, Then Case 7 Expected Result is returned`() {
+    fun `Given Case 2, When getDocumentDetails is called, Then Case 2 Expected Result is returned`() {
         coroutineRule.runTest {
             // Given
             whenever(walletCoreDocumentsController.getDocumentById(mockedPidId))
                 .thenThrow(mockedExceptionWithNoMessage)
+
+            // When
+            interactor.getDocumentDetails(
+                documentId = mockedPidId,
+            ).runFlowTest {
+                // Then
+                assertEquals(
+                    DocumentDetailsInteractorPartialState.Failure(
+                        error = mockedGenericErrorMessage
+                    ),
+                    awaitItem()
+                )
+            }
+        }
+    }
+
+    // Case 3:
+    // 1. walletCoreDocumentsController.getDocumentById() returns null.
+
+    // Case 3 Expected Result:
+    // DocumentDetailsInteractorPartialState.Failed state,
+    // with the generic error message.
+    @Test
+    fun `Given Case 3, When getDocumentDetails is called, Then Case 3 Expected Result is returned`() {
+        coroutineRule.runTest {
+            // Given
+            mockGetDocumentByIdCall(response = null)
 
             // When
             interactor.getDocumentDetails(

@@ -17,10 +17,14 @@
 package org.sprind.wallet.authenticationlogic.model
 
 import org.sprind.wallet.networklogic.common.NetEntity
+import org.sprind.wallet.networklogic.common.NetworkFailure
+import org.sprind.wallet.networklogic.common.toNetworkFailure
 import org.sprind.wallet.networklogic.common.model.ApiResult
 import org.sprind.wallet.networklogic.rwsca.model.error.RwscaErrorResponse
 import org.sprind.wallet.networklogic.rwsca.model.error.RwscaErrorType
 import org.sprind.wallet.networklogic.rwsca.model.error.toRwscaErrorType
+import org.sprind.wallet.networklogic.trace.traceId
+import org.sprind.wallet.networklogic.utils.NO_INTERNET_ERROR_CODE
 
 /**
  * Application-level representation of an error that occurred during an rWSCA operation.
@@ -32,6 +36,8 @@ import org.sprind.wallet.networklogic.rwsca.model.error.toRwscaErrorType
  *
  * In both subtypes, [serverResponse] carries the full server response for server-side errors
  * and is null for client-side errors (i.e. when [originatingEntity] is [NetEntity.CLIENT]).
+ * [networkFailure] is set when a request failed in transit with a failure that has its own
+ * error dialog (see [toNetworkFailure]).
  */
 sealed class RwscaError(
     val originatingEntity: NetEntity,
@@ -41,10 +47,28 @@ sealed class RwscaError(
 ) {
     init { require(originatingEntity.isServer == hasServerResponse) }
 
+    abstract val networkFailure: NetworkFailure?
+
+    /**
+     * The request got no answer from the backend because it failed in transit, e.g. the device
+     * is offline or the call timed out (WD-4685).
+     */
+    val isNoInternet: Boolean get() = code == NO_INTERNET_ERROR_CODE
+
+    /**
+     * @param clientTraceId The client-generated trace id of a request that never got a response.
+     */
     data class FromRwsca(
         val type: RwscaErrorType,
         val serverResponse: RwscaErrorResponse?,
-    ) : RwscaError(type.errorSource, type.code, serverResponse?.traceId, serverResponse != null)
+        val clientTraceId: String? = null,
+        override val networkFailure: NetworkFailure? = null,
+    ) : RwscaError(
+        originatingEntity = type.errorSource,
+        code = type.code,
+        traceId = serverResponse?.traceId ?: clientTraceId,
+        hasServerResponse = serverResponse != null,
+    )
 
     /**
      * An RwscaError caused by an underlying MDVM operation failing with the given [mdvmError].
@@ -54,9 +78,11 @@ sealed class RwscaError(
     ) : RwscaError(
         originatingEntity = mdvmError.type.errorSource,
         code = mdvmError.type.code,
-        traceId = mdvmError.serverResponse?.traceId,
+        traceId = mdvmError.traceId,
         hasServerResponse = mdvmError.serverResponse != null,
-    )
+    ) {
+        override val networkFailure: NetworkFailure? get() = mdvmError.networkFailure
+    }
 }
 
 typealias RwscaResult<T> = ApiResult<T, RwscaError>
@@ -64,3 +90,12 @@ typealias RwscaResult<T> = ApiResult<T, RwscaError>
 /** Converts this server error response to an application-level [RwscaError]. */
 fun RwscaErrorResponse.toRwscaError(): RwscaError.FromRwsca =
     RwscaError.FromRwsca(toRwscaErrorType(), serverResponse = this)
+
+/** Converts a local failure (e.g. no connectivity) to an application-level [RwscaError]. */
+fun Throwable.toRwscaError(): RwscaError.FromRwsca =
+    RwscaError.FromRwsca(
+        type = toRwscaErrorType(),
+        serverResponse = null,
+        clientTraceId = traceId(),
+        networkFailure = toNetworkFailure(),
+    )

@@ -62,6 +62,7 @@ import eu.europa.ec.uilogic.component.utils.SPACING_LARGE
 import eu.europa.ec.uilogic.component.utils.SPACING_MEDIUM
 import eu.europa.ec.uilogic.component.utils.SPACING_SMALL
 import eu.europa.ec.uilogic.component.wrap.WrapIconButton
+import org.sprind.wallet.commonfeature.ui.ProtectedScreen
 import org.sprind.wallet.dashboardfeature.ui.activities.model.ActivityAvatarUi
 import org.sprind.wallet.dashboardfeature.ui.activities.model.ActivityListItemUi
 import org.sprind.wallet.dashboardfeature.ui.activities.model.ActivitySectionUi
@@ -80,20 +81,22 @@ fun ActivitiesScreen(
     navHostController: NavController,
     viewModel: ActivitiesViewModel,
 ) {
-    val state by viewModel.viewState.collectAsStateWithLifecycle()
+    ProtectedScreen(onDismiss = { navHostController.popBackStack() }) {
+        val state by viewModel.viewState.collectAsStateWithLifecycle()
 
-    MainScreen(
-        state = state,
-        onEventSend = viewModel::setEvent,
-        onBottomNavigationTabSelected = navHostController::navigateToBottomNavigationTab,
-    )
+        MainScreen(
+            state = state,
+            onEventSend = viewModel::setEvent,
+            onBottomNavigationTabSelected = navHostController::navigateToBottomNavigationTab,
+        )
 
-    LaunchedEffect(Unit) {
-        viewModel.effect.collect { effect ->
-            when (effect) {
-                is ActivitiesEffect.OpenActivity -> navHostController.navigate(effect.route)
-                is ActivitiesEffect.OpenWebPage -> navHostController.navigate(effect.route)
-                ActivitiesEffect.Pop -> navHostController.popBackStack()
+        LaunchedEffect(Unit) {
+            viewModel.effect.collect { effect ->
+                when (effect) {
+                    is ActivitiesEffect.OpenActivity -> navHostController.navigate(effect.route)
+                    is ActivitiesEffect.OpenWebPage -> navHostController.navigate(effect.route)
+                    ActivitiesEffect.Pop -> navHostController.popBackStack()
+                }
             }
         }
     }
@@ -207,11 +210,6 @@ private fun ActivitiesTopBar(
                 modifier = Modifier.padding(end = ACTIONS_END_PADDING),
                 horizontalArrangement = Arrangement.spacedBy(SPACING_SMALL.dp),
             ) {
-                WrapIconButton(
-                    iconData = AppIcons.Help,
-                    customTint = MaterialTheme.colorScheme.onSurface,
-                    onClick = { onEventSend(ActivitiesEvent.HowToUseClicked) },
-                )
                 if (showMenu) {
                     var expanded by remember { mutableStateOf(false) }
                     Box {

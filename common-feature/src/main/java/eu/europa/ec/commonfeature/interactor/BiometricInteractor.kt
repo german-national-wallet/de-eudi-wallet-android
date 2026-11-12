@@ -17,6 +17,7 @@
 package eu.europa.ec.commonfeature.interactor
 
 import android.content.Context
+import androidx.biometric.BiometricManager.Authenticators.BIOMETRIC_WEAK
 import eu.europa.ec.authenticationlogic.controller.authentication.BiometricAuthenticationController
 import eu.europa.ec.authenticationlogic.controller.authentication.BiometricsAuthenticate
 import eu.europa.ec.authenticationlogic.controller.authentication.BiometricsAvailability
@@ -67,7 +68,7 @@ class BiometricInteractorImpl(
     }
 
     override fun getBiometricsAvailability(listener: (BiometricsAvailability) -> Unit) {
-        biometricAuthenticationController.deviceSupportsBiometrics(listener)
+        biometricAuthenticationController.deviceSupportsBiometrics(BIOMETRIC_WEAK, listener)
     }
 
     override fun authenticateWithBiometrics(

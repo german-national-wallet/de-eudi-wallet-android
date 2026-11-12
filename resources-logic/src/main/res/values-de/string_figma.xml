@@ -41,6 +41,7 @@
     <string name="__variable_text_credential_data_var_label_country">Land</string>
     <string name="__variable_text_credential_data_var_label_created_at">Erstellt am</string>
     <string name="__variable_text_credential_data_var_label_document_type">Dokumentenart</string>
+    <string name="__variable_text_credential_data_var_label_empty_value_a11y">Kein Wert hinterlegt</string>
     <string name="__variable_text_credential_data_var_label_expire_date">Gültig bis</string>
     <string name="__variable_text_credential_data_var_label_first_names">Vorname(n)</string>
     <string name="__variable_text_credential_data_var_label_issuing_authority">Ausstellende Behörde</string>
@@ -745,8 +746,12 @@
     <string name="global_generic_presentation_error_title">Etwas ist schief gelaufen</string>
     <string name="global_hide_digits_button_a11y">Alle eingebenen Zahlen nicht vorlesen und unsichtbar machen.</string>
     <string name="global_info_button">Mehr Informationen</string>
+    <string name="global_native_bio_consent_paragraph_android">So bleiben deine Daten geschützt.</string>
+    <string name="global_native_bio_consent_paragraph_ios">Bestätige mit Face ID, dass du es bist. So bleiben deine Daten geschützt.</string>
+    <string name="global_native_bio_consent_title_android">Bestätige, dass du es bist</string>
     <string name="global_no_internet_error_paragraph">Bitte verbinde dich mit dem Internet, versuche es danach erneut..</string>
     <string name="global_no_internet_error_prim_button">Erneut versuchen</string>
+    <string name="global_no_internet_error_sec_button">Interneteinstellungen öffnen</string>
     <string name="global_no_internet_error_title">Du bist offline</string>
     <string name="global_office_button">Finde ein Bürgeramt in deiner Nähe</string>
     <string name="global_pid_credential_name">Digitaler Ausweis</string>
@@ -765,7 +770,7 @@
     <string name="global_timeout_slow_internet_error_paragraph">Dafür kann es verschiedene Gründe geben, z. B. eine langsame Internetverbindung oder eine verzögerte Serverantwort. </string>
     <string name="global_timeout_slow_internet_error_prim_button">Erneut versuchen</string>
     <string name="global_timeout_slow_internet_error_title">Das hat zu lange gedauert</string>
-    <string name="global_timeout_too_many_requests_paragraph">Versuche es bitte in EXACT DATE noch einmal.</string>
+    <string name="global_timeout_too_many_requests_paragraph">Versuche es bitte in %1$s noch einmal.</string>
     <string name="global_timeout_too_many_requests_prim_button">Später erneut versuchen</string>
     <string name="global_timeout_too_many_requests_title">Etwas ist schief gelaufen</string>
     <string name="global_to_overview_button">Zur Übersicht</string>
@@ -865,7 +870,7 @@
     <string name="pid_inspection_dialog_delete_pid_title">Wirklich löschen?</string>
     <string name="pid_inspection_initial_dashboard_paragraph">Digitalen Ausweis hier in der App erstellen:</string>
     <string name="pid_inspection_initial_dashboard_prim_button">Los geht\'s</string>
-    <string name="pid_inspection_initial_dashboard_temp_label_1">Simulierte eID-Karte verwenden</string>
+    <string name="pid_inspection_initial_dashboard_temp_label_1">Ausweiskarte simulieren</string>
     <string name="pid_inspection_initial_dashboard_temp_label_2">Dokumenttyp verwenden</string>
     <string name="pid_inspection_initial_dashboard_title">Einfach und sicher digital ausweisen.</string>
     <string name="pid_inspection_pid_activity_label_last_month">Letzte 30 Tage</string>

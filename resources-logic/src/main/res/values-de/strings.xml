@@ -179,7 +179,6 @@
     <string name="content_description_error_pin">falsch pin</string>
     <string name="content_description_nfc_not_activated">Smartphone mit ausgeschalteter Kontaktlos-Funktion</string>
 
-    <string name="content_description_atom_credential_icon">Zugangssymbol</string>
     <string name="content_description_eid_logo">E-ID-Logo</string>
     <string name="content_description_id_german_national">Deutscher Personalausweis</string>
     <string name="content_description_id_migrant_in_germany">Ausländischer Ausweis in Deutschland</string>
@@ -189,10 +188,11 @@
     <string name="content_description_phone_security">Handysicherheit</string>
     <string name="content_description_phone_security_shield">Abbildung eines Handys mit einem Sicherheitsschild.</string>
     <string name="content_description_missing_credential">Abbildung eines Nachweises mit einem Fragezeichen.</string>
+    <string name="content_description_missing_pid">Abbildung von Ausweisen mit einem Fragezeichen.</string>
+    <string name="content_description_pid_locked">Abbildung eines Handys mit einem digitalen Ausweis.</string>
     <string name="content_description_card_pin">Digitaler Ausweis mit seinem Code</string>
     <string name="content_description_password_visibility">Passwortsichtbarkeit</string>
     <string name="content_description_blocked">Gesperrt</string>
-    <string name="content_description_warning">Warnung</string>
 
     <string name="content_description_phone_vector">Phone Vector</string>
     <string name="content_description_location">Location</string>
@@ -234,4 +234,15 @@
 
     <!-- App setup: the part of app_onboarding_policy_intro_checkbox_label that links to the terms of use -->
     <string name="setup_privacy_policy_terms_link">Nutzungsbedingungen</string>
+
+    <!-- eID card reading: the card's online function is off, so it cannot be read until the citizen's office switches it on. Copy pending design review. -->
+    <string name="eid_card_deactivated_paragraph">Die Online-Ausweisfunktion deines Ausweises ist ausgeschaltet. Dein Bürgeramt kann sie für dich einschalten.</string>
+
+    <!-- eID card reading: the scan dialog's title once the card has left the reader before its read was through. Copy pending design review. -->
+    <string name="nfc_scanning_system_sheet_nfc_title_start_again">Bereit zum erneuten Scannen</string>
+
+    <!-- Slow HSM: patience screen while the wallet backend HSM is overloaded (WD-5013) -->
+    <string name="hsm_delay_title">Bitte hab etwas Geduld</string>
+    <string name="hsm_delay_paragraph">Wir bereiten die App für dich vor</string>
+    <string name="hsm_delay_retry_button">Später erneut versuchen</string>
 </resources>

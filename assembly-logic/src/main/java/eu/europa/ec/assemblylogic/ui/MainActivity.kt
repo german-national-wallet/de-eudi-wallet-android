@@ -29,6 +29,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -58,16 +59,15 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import org.koin.android.ext.android.inject
 import eu.europa.ec.businesslogic.controller.log.LogController
-import eu.europa.ec.businesslogic.controller.storage.PrefsController
 import org.sprind.wallet.businesslogic.controller.storage.StorageController
 import org.sprind.wallet.cardreaderfeature.router.featureCardReaderGraph
 import org.sprind.wallet.corelogic.platformauth.PlatformAuthInvariant
 import org.sprind.wallet.revocationfeature.router.featureRevocationGraph
-import org.sprind.wallet.networklogic.common.model.ApiResult
 import org.sprind.wallet.onboardingfeature.router.featureOnboardingGraph
 import org.sprind.wallet.onboardingfeature.setup.router.featureSetupGraph
 import org.sprind.wallet.pushnotificationsfeature.dispatcher.FcmMessageDispatcher
 import org.sprind.wallet.pushnotificationsfeature.interactor.PushNotificationsInteractor
+import org.sprind.wallet.pushnotificationsfeature.service.FcmRegistrationRecovery
 import org.sprind.wallet.pushnotificationsfeature.service.WalletFirebaseMessagingService
 
 class MainActivity : EudiComponentActivity() {
@@ -75,7 +75,7 @@ class MainActivity : EudiComponentActivity() {
     private val appBlockingController: AppBlockingController by inject()
     private val platformAuthInvariant: PlatformAuthInvariant by inject()
     private val storageController: StorageController by inject()
-    private val prefsController: PrefsController by inject()
+    private val fcmRegistrationRecovery: FcmRegistrationRecovery by inject()
     private val pushNotificationsInteractor: PushNotificationsInteractor by inject()
     private val walletRevocationStore: WalletRevocationStore by inject()
     private val walletRevocationResetCoordinator: WalletRevocationResetCoordinator by inject()
@@ -89,6 +89,9 @@ class MainActivity : EudiComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         window.setHideOverlayWindows(true)
+        if (platformAuthInvariant.isDeviceSecure()) {
+            storageController.onInitializeStorage(onBeforeWipe = ::showClearAppDataToast)
+        }
         handleFcmLaunchAction(intent)
         setContent {
             WalletContent()
@@ -108,32 +111,54 @@ class MainActivity : EudiComponentActivity() {
 
     @Composable
     private fun WalletContent() {
-        var blockingState by remember { mutableStateOf<AppBlockingState?>(null) }
-        val coroutineScope = rememberCoroutineScope()
+        var deviceSecure by remember { mutableStateOf(platformAuthInvariant.isDeviceSecure()) }
+        var secureResumeCount by remember { mutableIntStateOf(0) }
         val lifecycleOwner = LocalLifecycleOwner.current
         val context = LocalContext.current
-
-        LaunchedEffect(Unit) {
-            walletRevocationStore.revokedFlow.collect { revoked ->
-                if (revoked) {
-                    blockingState = appBlockingController.blockingState()
-                }
-            }
-        }
 
         DisposableEffect(lifecycleOwner) {
             val observer = LifecycleEventObserver { _, event ->
                 if (event == Lifecycle.Event.ON_RESUME) {
-                    evaluateBlockingState { blockingState = it }
-                    refreshFeatureFlagsInBackground(coroutineScope) { blockingState = it }
-                    retryPushNotificationRegistrationIfNeeded(coroutineScope)
-                    runPendingRevocationRecheckIfNeeded(coroutineScope) { blockingState = it }
+                    deviceSecure = checkDeviceSecure()
+                    if (deviceSecure) secureResumeCount++
                 }
             }
             lifecycleOwner.lifecycle.addObserver(observer)
             onDispose {
                 lifecycleOwner.lifecycle.removeObserver(observer)
             }
+        }
+
+        if (deviceSecure) {
+            SecuredWalletContent(secureResumeCount)
+        } else {
+            PlatformAuthBlockingScreen(
+                onOpenSettings = { openSecuritySettings(context) },
+                onBack = { finish() },
+            )
+        }
+    }
+
+    @Composable
+    private fun SecuredWalletContent(secureResumeCount: Int) {
+        var blockingState by remember { mutableStateOf<AppBlockingState?>(null) }
+        val coroutineScope = rememberCoroutineScope()
+        val context = LocalContext.current
+
+        LaunchedEffect(Unit) {
+            walletRevocationStore.revokedFlow.collect { revoked ->
+                if (revoked) blockingState = appBlockingController.blockingState()
+            }
+        }
+
+        LaunchedEffect(secureResumeCount) {
+            if (secureResumeCount == 0) return@LaunchedEffect
+            blockingState = appBlockingController.blockingState()
+            // Repeated from onCreate, which skips it without a secure lock screen.
+            storageController.onInitializeStorage(onBeforeWipe = ::showClearAppDataToast)
+            refreshFeatureFlagsInBackground(coroutineScope) { blockingState = it }
+            retryPushNotificationRegistrationIfNeeded(coroutineScope)
+            runPendingRevocationRecheckIfNeeded(coroutineScope) { blockingState = it }
         }
 
         Box(modifier = Modifier.fillMaxSize()) {
@@ -150,14 +175,6 @@ class MainActivity : EudiComponentActivity() {
             }
 
             when (blockingState) {
-                AppBlockingState.PlatformAuthentication -> {
-                    PlatformAuthBlockingScreen(
-                        onOpenSettings = { openSecuritySettings(context) },
-                        // The app cannot be used without a screen lock, so back leaves it.
-                        onBack = { finish() },
-                    )
-                }
-
                 AppBlockingState.MinimumAppVersion -> {
                     AppBlockingScreen(
                         title = stringResource(R.string.app_update_required_title),
@@ -176,7 +193,7 @@ class MainActivity : EudiComponentActivity() {
                     )
                 }
 
-                null -> Unit
+                AppBlockingState.PlatformAuthentication, null -> Unit
             }
         }
     }
@@ -205,12 +222,16 @@ class MainActivity : EudiComponentActivity() {
         }
     }
 
-    private fun evaluateBlockingState(onState: (AppBlockingState?) -> Unit) {
+    private fun checkDeviceSecure(): Boolean {
         if (platformAuthInvariant.shouldWipe()) {
-            Toast.makeText(this, R.string.clear_app_data_success, Toast.LENGTH_LONG).show()
+            showClearAppDataToast()
             storageController.wipeAppData()
         }
-        onState(appBlockingController.blockingState())
+        return platformAuthInvariant.isDeviceSecure()
+    }
+
+    private fun showClearAppDataToast() {
+        Toast.makeText(this, R.string.clear_app_data_success, Toast.LENGTH_LONG).show()
     }
 
     private fun refreshFeatureFlagsInBackground(
@@ -219,7 +240,7 @@ class MainActivity : EudiComponentActivity() {
     ) {
         scope.launch {
             appBlockingController.refreshFeatureFlagsIfNeeded()
-            evaluateBlockingState(onState)
+            onState(appBlockingController.blockingState())
         }
     }
 
@@ -240,6 +261,7 @@ class MainActivity : EudiComponentActivity() {
             }
         }
     }
+
     private fun runPendingRevocationRecheckIfNeeded(
         scope: CoroutineScope,
         onState: (AppBlockingState?) -> Unit,
@@ -252,22 +274,8 @@ class MainActivity : EudiComponentActivity() {
     }
 
     private fun retryPushNotificationRegistrationIfNeeded(scope: CoroutineScope) {
-        if (walletRevocationStore.isRevoked()) return
-        val fcmToken = prefsController.getString(
-            WalletFirebaseMessagingService.FCM_REGISTRATION_ID_KEY, "",
-        )
-        if (fcmToken.isEmpty()) return
-        val isRegistered = prefsController.getBool(
-            WalletFirebaseMessagingService.FCM_TOKEN_REGISTERED_KEY, false,
-        )
-        if (isRegistered) return
         scope.launch {
-            val result = pushNotificationsInteractor.registerFcmToken(fcmToken)
-            if (result is ApiResult.Success) {
-                prefsController.setBool(
-                    WalletFirebaseMessagingService.FCM_TOKEN_REGISTERED_KEY, true,
-                )
-            }
+            fcmRegistrationRecovery.registerIfNeeded()
         }
     }
 

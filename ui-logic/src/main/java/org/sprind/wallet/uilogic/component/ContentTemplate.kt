@@ -27,6 +27,7 @@ import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.calculateEndPadding
 import androidx.compose.foundation.layout.calculateStartPadding
 import androidx.compose.foundation.layout.defaultMinSize
@@ -385,29 +386,33 @@ private fun ProvideContentTemplateTextStyle(
 }
 
 /**
- * A boxed illustration panel: a rounded [MaterialTheme.colorScheme] `surfaceContainer` box of fixed
- * [height] that centers its [content], used by the "Variant 2" and "Push notification" templates.
- * Put the artwork (typically a [WrapImage]) in the [content] slot.
+ * A boxed illustration panel: a rounded [MaterialTheme.colorScheme] `surfaceContainer` box that
+ * fills the width and keeps the [aspectRatio] of the designs, centering its [content]; used by the
+ * "Variant 2" and "Push notification" templates. Put the artwork (typically a [WrapImage]) in the
+ * [content] slot.
+ *
+ * The panel scales with the screen width rather than having a fixed height: the designs draw it at
+ * 328×184 on a 360dp frame, and a fixed 184dp would look flatter (and crop more) on wider phones.
  *
  * @param contentDescription a description for screen readers describing the whole panel, or `null`
  *   to mark it purely decorative and hide it (and its content) from the accessibility tree. It has
  *   no default on purpose: callers must make the decorative-vs-described choice explicitly, so a
  *   meaningful illustration is never silently dropped from the accessibility tree.
  * @param modifier applied to the panel.
- * @param height the panel height.
+ * @param aspectRatio the panel width-to-height ratio; 16:9 as in the designs.
  * @param content the artwork centered inside the panel.
  */
 @Composable
 fun ContentIllustration(
     contentDescription: String?,
     modifier: Modifier = Modifier,
-    height: Dp = ILLUSTRATION_HEIGHT,
+    aspectRatio: Float = ILLUSTRATION_ASPECT_RATIO,
     content: @Composable BoxScope.() -> Unit,
 ) {
     Box(
         modifier = modifier
             .fillMaxWidth()
-            .height(height)
+            .aspectRatio(aspectRatio)
             .clip(RoundedCornerShape(ILLUSTRATION_CORNER))
             .background(color = MaterialTheme.colorScheme.surfaceContainer)
             .describedForAccessibility(contentDescription),
@@ -666,6 +671,7 @@ private fun Modifier.describedForAccessibility(description: String?): Modifier =
     }
 
 private val ILLUSTRATION_HEIGHT = 184.dp
+private const val ILLUSTRATION_ASPECT_RATIO = 16f / 9f
 private val ILLUSTRATION_CORNER = 24.dp
 private val NOTICE_CORNER = 12.dp
 private val CHECKLIST_BOX_CORNER = 24.dp

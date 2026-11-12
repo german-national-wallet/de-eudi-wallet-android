@@ -26,14 +26,38 @@ interface UserRuntimeConfig {
      * Whether an ID card shall be virtualized in AddDocument process.
      */
     var eidCardType: EidCardType
+
+    /**
+     * The pseudonym key of the simulated eID card, made when [eidCardType] is switched to
+     * [EidCardType.VIRTUAL] and kept until it is switched back, so the card stays the same card
+     * across scans. Null while the card is physical.
+     *
+     * Switching to [EidCardType.VIRTUAL] throws [SimulatedEidCardKeyException] if no key could be
+     * made, and the card stays physical.
+     */
+    val simulatedEidCardPseudonymKey: String?
 }
 
-internal class UserRuntimeConfigImpl(configLogic: ConfigLogic) : UserRuntimeConfig {
+internal class UserRuntimeConfigImpl(
+    configLogic: ConfigLogic,
+    private val simulatedEidCardKeyGenerator: SimulatedEidCardKeyGenerator,
+) : UserRuntimeConfig {
 
     private val simulationEnabled = configLogic.isSimulatedEidCardEnabled
 
+    override var simulatedEidCardPseudonymKey: String? = null
+        private set
+
     override var eidCardType: EidCardType = EidCardType.PHYSICAL
         get() = if (simulationEnabled) field else EidCardType.PHYSICAL
+        set(value) {
+            val switchedOn = simulationEnabled && value.isVirtual
+            if (switchedOn != eidCardType.isVirtual) {
+                simulatedEidCardPseudonymKey =
+                    if (switchedOn) simulatedEidCardKeyGenerator.generatePseudonymKeyHex() else null
+            }
+            field = value
+        }
 }
 
 enum class EidCardType {

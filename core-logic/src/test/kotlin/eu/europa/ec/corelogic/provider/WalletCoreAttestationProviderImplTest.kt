@@ -23,35 +23,170 @@ import com.nimbusds.jose.jwk.Curve
 import com.nimbusds.jose.jwk.gen.ECKeyGenerator
 import com.nimbusds.jwt.JWTClaimsSet
 import com.nimbusds.jwt.SignedJWT
+import eu.europa.ec.authenticationlogic.controller.appattestation.AppAttestationController
+import eu.europa.ec.authenticationlogic.controller.appattestation.WalletAttestationGenerationResult
+import eu.europa.ec.authenticationlogic.model.JwtKeyPair
+import eu.europa.ec.authenticationlogic.model.WalletInstanceAttestationSpec
 import eu.europa.ec.corelogic.config.WalletCoreConfig
 import eu.europa.ec.corelogic.securearea.RwscaKeyInfo
 import eu.europa.ec.eudi.openid4vci.Nonce
 import eu.europa.ec.networklogic.repository.WalletAttestationRepository
+import io.mockk.coVerify
+import io.mockk.every
 import io.mockk.mockk
+import io.mockk.verify
 import junit.framework.TestCase.assertEquals
+import junit.framework.TestCase.assertNull
 import junit.framework.TestCase.assertTrue
+import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.runTest
 import org.junit.Test
 import org.multipaz.crypto.Algorithm
+import org.multipaz.crypto.EcCurve
 import org.multipaz.crypto.EcPublicKey
+import org.multipaz.crypto.javaPublicKey
+import org.multipaz.crypto.toEcPublicKey
+import org.multipaz.securearea.AndroidKeystoreKeyInfo
 import org.multipaz.securearea.KeyAttestation
 import org.multipaz.securearea.KeyInfo
 import org.sprind.wallet.authenticationlogic.model.decodeBase64EcPublicKey
+import org.sprind.wallet.businesslogic.controller.crypto.EcKeyPairController
+import java.security.KeyPair
+import java.security.PrivateKey
 
 class WalletCoreAttestationProviderImplTest {
 
     private val walletCoreConfig = mockk<WalletCoreConfig>(relaxed = true)
     private val walletAttestationRepository = mockk<WalletAttestationRepository>(relaxed = true)
-
-    private val subject = WalletCoreAttestationProviderImpl(
-        walletCoreConfig = walletCoreConfig,
-        walletAttestationRepository = walletAttestationRepository,
-    )
+    private val appAttestationController = mockk<AppAttestationController>()
 
     // A real P-256 SubjectPublicKeyInfo base64 key, reused across the constructed KeyInfos.
     private val base64EncodedPublicKey =
         "MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAECsoA5k+f1g3u/HCO0wI/aZ4fGjokL4mZVz22G+i5YmS5CRe5SJS2s+xkWANg4yD9Ff62jIu8pLz3s8J75g9z4w=="
     private val publicKey: EcPublicKey = decodeBase64EcPublicKey(base64EncodedPublicKey)
+
+    // By default the KeyStore entry under the alias holds the wallet-core key.
+    private val ecKeyPairController = mockk<EcKeyPairController> {
+        every { getEcKeyPair(KEYSTORE_ALIAS) } returns keyPairOf(publicKey)
+    }
+
+    private val subject = WalletCoreAttestationProviderImpl(
+        walletCoreConfig = walletCoreConfig,
+        walletAttestationRepository = walletAttestationRepository,
+        appAttestationController = appAttestationController,
+        ecKeyPairController = ecKeyPairController,
+    )
+
+    @Test
+    fun `getWalletAttestation returns the wallet backend WIA bound to the KeyStore key alias`() =
+        runTest {
+            val wia = signedWteWithNonce("unused")
+            every { appAttestationController.generateAttestation(KEYSTORE_ALIAS) } returns flowOf(
+                WalletAttestationGenerationResult.Success(
+                    WalletInstanceAttestationSpec(
+                        wbWiaJwt = SignedJWT.parse(wia),
+                        wiWiaPopKeyPair = mockk<JwtKeyPair>(),
+                    )
+                )
+            )
+
+            val result = subject.getWalletAttestation(keystoreKey())
+
+            assertEquals(wia, result.getOrNull())
+            verify(exactly = 1) { appAttestationController.generateAttestation(KEYSTORE_ALIAS) }
+            coVerify(exactly = 0) { walletAttestationRepository.getWalletAttestation(any(), any()) }
+        }
+
+    @Test
+    fun `getWalletAttestation fails with the backend error code when WIA generation fails`() =
+        runTest {
+            every { appAttestationController.generateAttestation(KEYSTORE_ALIAS) } returns flowOf(
+                WalletAttestationGenerationResult.Failure(errorCode = "WB_ERROR", traceId = "trace")
+            )
+
+            val result = subject.getWalletAttestation(keystoreKey())
+
+            assertTrue(result.isFailure)
+            assertTrue(result.exceptionOrNull()?.message.orEmpty().contains("WB_ERROR"))
+        }
+
+    @Test
+    fun `getWalletAttestation fails when WIA generation throws`() = runTest {
+        every { appAttestationController.generateAttestation(KEYSTORE_ALIAS) } returns flow {
+            throw IllegalStateException("Keystore entry expected, but missing: $KEYSTORE_ALIAS")
+        }
+
+        val result = subject.getWalletAttestation(keystoreKey())
+
+        assertTrue(result.isFailure)
+    }
+
+    @Test
+    fun `getWalletAttestation rejects keys that are not Android KeyStore keys`() = runTest {
+        val result = subject.getWalletAttestation(plainKey())
+
+        assertTrue(result.isFailure)
+        verify(exactly = 0) { appAttestationController.generateAttestation(any()) }
+    }
+
+    @Test
+    fun `getWalletAttestation rejects KeyStore keys that are not P-256`() = runTest {
+        val p384Key = ECKeyGenerator(Curve.P_384).generate().toECPublicKey().toEcPublicKey(EcCurve.P384)
+
+        val result = subject.getWalletAttestation(
+            keystoreKey(keyAlgorithm = Algorithm.ESP384, keyPublicKey = p384Key)
+        )
+
+        assertTrue(result.isFailure)
+        verify(exactly = 0) { appAttestationController.generateAttestation(any()) }
+    }
+
+    @Test
+    fun `getWalletAttestation accepts a P-256 key whose algorithm carries no curve`() = runTest {
+        // The COSE identifier ES256 has a null curve; the key's own curve is what counts.
+        assertNull(Algorithm.ES256.curve)
+        every { appAttestationController.generateAttestation(KEYSTORE_ALIAS) } returns flowOf(
+            WalletAttestationGenerationResult.Failure(errorCode = "WB_ERROR", traceId = "trace")
+        )
+
+        subject.getWalletAttestation(keystoreKey(keyAlgorithm = Algorithm.ES256))
+
+        verify(exactly = 1) { appAttestationController.generateAttestation(KEYSTORE_ALIAS) }
+    }
+
+    @Test
+    fun `getWalletAttestation fails before the backend when the KeyStore key does not match`() =
+        runTest {
+            val otherKey = ECKeyGenerator(Curve.P_256).generate().toECPublicKey().toEcPublicKey(EcCurve.P256)
+            every { ecKeyPairController.getEcKeyPair(KEYSTORE_ALIAS) } returns keyPairOf(otherKey)
+
+            val result = subject.getWalletAttestation(keystoreKey())
+
+            assertTrue(result.isFailure)
+            assertTrue(result.exceptionOrNull()?.message.orEmpty().contains("does not match"))
+            verify(exactly = 0) { appAttestationController.generateAttestation(any()) }
+        }
+
+    @Test
+    fun `getWalletAttestation rejects keys that require user authentication`() = runTest {
+        val result = subject.getWalletAttestation(keystoreKey(userAuthenticationRequired = true))
+
+        assertTrue(result.isFailure)
+        verify(exactly = 0) { appAttestationController.generateAttestation(any()) }
+    }
+
+    @Test
+    fun `getWalletAttestation fails before the backend when the KeyStore entry is missing`() =
+        runTest {
+            every { ecKeyPairController.getEcKeyPair(KEYSTORE_ALIAS) } throws
+                IllegalStateException("Keystore entry expected, but missing: $KEYSTORE_ALIAS")
+
+            val result = subject.getWalletAttestation(keystoreKey())
+
+            assertTrue(result.isFailure)
+            verify(exactly = 0) { appAttestationController.generateAttestation(any()) }
+        }
 
     @Test
     fun `getKeyAttestation returns the stored WTE when the nonce claim matches the create-key nonce`() =
@@ -165,6 +300,19 @@ class WalletCoreAttestationProviderImplTest {
         walletTrustEvidenceNonce = nonce,
     )
 
+    private fun keystoreKey(
+        keyAlgorithm: Algorithm = Algorithm.ESP256,
+        keyPublicKey: EcPublicKey = publicKey,
+        userAuthenticationRequired: Boolean = false,
+    ): AndroidKeystoreKeyInfo = mockk {
+        every { alias } returns KEYSTORE_ALIAS
+        every { algorithm } returns keyAlgorithm
+        every { this@mockk.publicKey } returns keyPublicKey
+        every { isUserAuthenticationRequired } returns userAuthenticationRequired
+    }
+
+    private fun keyPairOf(key: EcPublicKey) = KeyPair(key.javaPublicKey, mockk<PrivateKey>())
+
     private fun plainKey(): KeyInfo = PlainKeyInfo()
 
     private inner class PlainKeyInfo : KeyInfo(
@@ -180,5 +328,9 @@ class WalletCoreAttestationProviderImplTest {
         val jwt = SignedJWT(JWSHeader(JWSAlgorithm.ES256), claims)
         jwt.sign(ECDSASigner(ecJwk))
         return jwt.serialize()
+    }
+
+    private companion object {
+        const val KEYSTORE_ALIAS = "client-attestation-0123456789abcdef"
     }
 }

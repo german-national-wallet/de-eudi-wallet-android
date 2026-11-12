@@ -145,6 +145,13 @@ sealed interface PresentationError {
         /** The relying party was unreachable or returned a non-transient HTTP error. */
         RELYING_PARTY_UNREACHABLE("RELYING_PARTY_UNREACHABLE", RecommendedAction.RETRY_LATER),
 
+        /**
+         * The relying party did not answer in time while the wallet fetched its request, or its
+         * response endpoint could not be reached (WD-5012). The presentation has to be restarted at
+         * the relying party.
+         */
+        RELYING_PARTY_TIMEOUT("RELYING_PARTY_TIMEOUT", RecommendedAction.CONTACT_RELYING_PARTY),
+
         /** Registration-certificate / trust chain validation failed. */
         TRUST_FAILURE("RELYING_PARTY_TRUST_FAILURE", RecommendedAction.CONTACT_RELYING_PARTY),
 
@@ -193,6 +200,9 @@ sealed interface PresentationError {
          * Retrying immediately is meaningful (WD-4273, "That took too long" / Retry, WD-4245).
          */
         NETWORK("INTERMITTENT_NETWORK", RecommendedAction.RETRY),
+
+        /** The relying party rate-limited the wallet (HTTP 429, WD-5012). */
+        RATE_LIMITED("INTERMITTENT_RATE_LIMITED", RecommendedAction.RETRY_LATER),
     }
 
     /**

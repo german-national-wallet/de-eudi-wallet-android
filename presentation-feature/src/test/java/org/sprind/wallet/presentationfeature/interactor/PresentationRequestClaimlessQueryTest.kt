@@ -49,7 +49,6 @@ import org.multipaz.credential.Credential
 import org.multipaz.document.Document
 import org.multipaz.presentment.CredentialMatchSourceOpenID4VP
 import org.multipaz.presentment.CredentialPresentmentSetOptionMemberMatch
-import org.sprind.wallet.commonfeature.interactor.RwscaInteractor
 import org.sprind.wallet.corelogic.model.RelyingPartyRegistrationStatus
 
 /**
@@ -83,9 +82,6 @@ class PresentationRequestClaimlessQueryTest {
     @Mock
     private lateinit var logController: LogController
 
-    @Mock
-    private lateinit var rwscaInteractor: RwscaInteractor
-
     private lateinit var interactor: PresentationRequestInteractor
     private lateinit var closeable: AutoCloseable
 
@@ -102,7 +98,6 @@ class PresentationRequestClaimlessQueryTest {
             walletCoreDocumentsController = walletCoreDocumentsController,
             walletPinUnBlockTimeStorageController = walletPinUnBlockTimeStorageController,
             logController = logController,
-            rwscaInteractor = rwscaInteractor,
         )
     }
 

@@ -18,13 +18,8 @@ package eu.europa.ec.issuancefeature.ui.document.details
 
 import androidx.lifecycle.viewModelScope
 import eu.europa.ec.eudi.wallet.document.DocumentId
-import eu.europa.ec.commonfeature.model.DocumentUi
-import eu.europa.ec.commonfeature.ui.document_details.transformer.DocumentDetailsTransformer.transformToDocumentDetailsUi
 import eu.europa.ec.issuancefeature.interactor.document.DocumentDetailsInteractor
 import eu.europa.ec.issuancefeature.interactor.document.DocumentDetailsInteractorPartialState
-import eu.europa.ec.resourceslogic.R
-import eu.europa.ec.resourceslogic.provider.ResourceProvider
-import eu.europa.ec.uilogic.component.ListItemData
 import eu.europa.ec.uilogic.component.content.ContentErrorConfig
 import eu.europa.ec.uilogic.mvi.MviViewModel
 import eu.europa.ec.uilogic.mvi.ViewEvent
@@ -33,15 +28,13 @@ import eu.europa.ec.uilogic.mvi.ViewState
 import kotlinx.coroutines.launch
 import org.koin.android.annotation.KoinViewModel
 import org.koin.core.annotation.InjectedParam
+import org.sprind.wallet.commonfeature.ui.credentialdata.CredentialDataItem
 
 data class State(
     val isLoading: Boolean = false,
     val error: ContentErrorConfig? = null,
     val isBottomSheetOpen: Boolean = false,
-    val documentDetails: List<ListItemData> = emptyList(),
-    val topBarBackgroundColor: String? = null,
-    val topBarBackgroundImageUri: String? = null,
-    val topBarTextColor: String? = null,
+    val credentialData: List<CredentialDataItem> = emptyList(),
     val isPid: Boolean = false,
 ) : ViewState
 
@@ -65,7 +58,6 @@ sealed class Effect : ViewSideEffect {
 @KoinViewModel
 class DocumentDetailsViewModel(
     private val documentDetailsInteractor: DocumentDetailsInteractor,
-    private val resourceProvider: ResourceProvider,
     @InjectedParam private val documentId: DocumentId,
 ) : MviViewModel<Event, State, Effect>() {
     override fun setInitialState(): State = State()
@@ -99,18 +91,13 @@ class DocumentDetailsViewModel(
             ).collect { response ->
                 when (response) {
                     is DocumentDetailsInteractorPartialState.Success -> {
-                        val documentUi =
-                            response.documentDetailsDomain.transformToDocumentDetailsUi(
-                                resourceProvider = resourceProvider,
-                                documentFormat = response.documentFormat
+                        setState {
+                            copy(
+                                isLoading = false,
+                                credentialData = response.credentialData,
+                                isPid = response.isPid,
                             )
-                        updateTopBarStyling(
-                            response.topBarBackgroundColor,
-                            response.topBarBackgroundImageUri,
-                            response.topBarTextColor,
-                            response.isPid,
-                        )
-                        addDividersToDocumentDetails(documentUi)
+                        }
                     }
 
                     is DocumentDetailsInteractorPartialState.Failure -> {
@@ -129,41 +116,4 @@ class DocumentDetailsViewModel(
             }
         }
     }
-
-    private fun addDividersToDocumentDetails(document: DocumentUi) {
-        val details = document.documentDetails.map { item ->
-            val overlineText = item.overlineText ?: ""
-            val nationalityLabel = resourceProvider.getString(R.string.pid_issuance_data_consent_label_nationality)
-            val ageOverLabel = resourceProvider.getString(R.string.pid_issuance_data_consent_label_age_equal_or_over)
-
-            item.copy(
-                hasTopDivider = overlineText == nationalityLabel,
-                hasBottomDivider = overlineText == nationalityLabel || overlineText == ageOverLabel
-            )
-        }
-
-        setState {
-            copy(
-                isLoading = false,
-                documentDetails = details
-            )
-        }
-    }
-
-    private fun updateTopBarStyling(
-        backgroundColor: String?,
-        backgroundImageUri: String?,
-        textColor: String?,
-        isPid: Boolean,
-    ) {
-        setState {
-            copy(
-                topBarBackgroundColor = backgroundColor,
-                topBarBackgroundImageUri = backgroundImageUri,
-                topBarTextColor = textColor,
-                isPid = isPid,
-            )
-        }
-    }
-
 }

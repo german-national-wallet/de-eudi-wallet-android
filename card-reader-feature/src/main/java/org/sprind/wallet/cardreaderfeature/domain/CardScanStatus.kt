@@ -18,6 +18,9 @@ package org.sprind.wallet.cardreaderfeature.domain
 
 enum class CardScanStatus {
     READY,
+
+    /** Ready once more after the card left the reader before its read was through. */
+    READY_AGAIN,
     IN_PROGRESS,
     SUCCESS,
     FAILED,

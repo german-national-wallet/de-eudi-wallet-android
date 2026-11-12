@@ -127,6 +127,33 @@ class HttpMessageSigningInterceptorTest {
     }
 
     @Test
+    fun `Signature header - carries the encrypted signature when encryptSignature is set`() {
+        var plainSignature: ByteArray? = null
+        val encryptedSignature = "encrypted".encodeToByteArray()
+        client = OkHttpClient.Builder()
+            .addInterceptor(
+                HttpMessageSigningInterceptor(
+                    signingKey = keyPair.private,
+                    clock = fixedClock,
+                    extraHeaderNamesToConsiderForSignature = extraHeaderNamesToConsiderForSignature,
+                    TEST_SIGNATURE_NAME,
+                    TEST_KEY_ID,
+                    encryptSignature = { plainSignature = it; encryptedSignature },
+                )
+            )
+            .build()
+
+        enqueue200()
+        executeDefaultRequest()
+
+        assertEquals(
+            "${TEST_SIGNATURE_NAME}=:${encryptedSignature.toByteString().base64()}:",
+            server.takeRequest().headers["Signature"],
+        )
+        assertEquals(0x30.toByte(), plainSignature?.first())
+    }
+
+    @Test
     fun `header presence - Content-Digest header is added to the outgoing request`() {
         enqueue200()
         executeDefaultRequest()

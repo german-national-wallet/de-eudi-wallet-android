@@ -57,16 +57,26 @@ class JwtBuilder(
      * like issued-at, expiration-time, audience, subject and nonce.
      *
      * @param nonce a unique identifier to include as a claim in the JWT for security purposes.
+     * @param existingKeystoreAlias alias of an existing Android KeyStore EC P-256 signing key to
+     *        bind the attestation to. When null, a fresh key pair is generated under
+     *        [KEYSTORE_ALIAS_WALLET_INSTANCE_ATTESTATION_KEYS]. This class did not create that key,
+     *        so the caller must make sure it is a raw Android KeyStore alias, the key allows
+     *        SHA-256 digests (it is signed as SHA256withECDSA), and it does not require user
+     *        authentication, since nothing opens an authentication window here. Keys created by
+     *        multipaz's AndroidKeystoreSecureArea meet all three (checked against multipaz 0.99.0).
      * @return A serialized JWT string with the specified claims and headers.
      */
     fun createOAuthClientAttestationJwt(
         nonce: String,
+        existingKeystoreAlias: String? = null,
     ): WalletWiaPopSpec {
-        val keystoreAlias = KEYSTORE_ALIAS_WALLET_INSTANCE_ATTESTATION_KEYS
-        ecKeyPairController.generateEcKeyPair(
-            keystoreAlias = keystoreAlias,
-            purposes = KeyProperties.PURPOSE_SIGN
-        )
+        val keystoreAlias = existingKeystoreAlias
+            ?: KEYSTORE_ALIAS_WALLET_INSTANCE_ATTESTATION_KEYS.also {
+                ecKeyPairController.generateEcKeyPair(
+                    keystoreAlias = it,
+                    purposes = KeyProperties.PURPOSE_SIGN
+                )
+            }
 
         val extraClaims = mapOf(
             // corresponds to JWTClaimsSet.Builder.jwtID()

@@ -40,6 +40,7 @@ import eu.europa.ec.eudi.wallet.document.DocumentId
 import eu.europa.ec.eudi.wallet.transfer.openId4vp.dcql.ProcessedDcqlRequest
 import eu.europa.ec.resourceslogic.provider.ResourceProvider
 import org.sprind.wallet.corelogic.presentationerror.PresentationError
+import org.sprind.wallet.corelogic.presentationerror.PresentationStage
 import org.sprind.wallet.corelogic.presentationerror.mapToPresentationError
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineDispatcher
@@ -65,8 +66,8 @@ import org.koin.core.annotation.Scoped
 import org.multipaz.credential.Credential
 import org.multipaz.credential.SecureAreaBoundCredential
 import org.multipaz.crypto.javaX509Certificates
-import org.multipaz.presentment.CredentialPresentmentSelection
 import org.multipaz.presentment.CredentialPresentmentSetOptionMemberMatch
+import org.multipaz.presentment.CredentialSelection
 import org.multipaz.request.RequestedClaim
 import org.multipaz.request.Requester
 import org.multipaz.securearea.AndroidKeystoreKeyUnlockData
@@ -286,7 +287,7 @@ interface WalletCorePresentationController {
  * Per-claim consent works differently since wallet-core v0.30.0. Up to v0.29.0 the wallet built
  * the response from a `DisclosedDocuments` list it assembled itself; now
  * `RequestProcessor.ProcessedRequest.Success` offers pre-computed
- * [CredentialPresentmentSelection]s and `generateResponse` takes one of them. A partial disclosure
+ * [CredentialSelection]s and `generateResponse` takes one of them. A partial disclosure
  * is therefore expressed by narrowing a selection rather than by filtering a claim list:
  * [fullPresentmentSelection] holds everything the request can be satisfied with,
  * [updateRequestedDocuments] narrows it to what the user ticked, and [sendRequestedDocuments]
@@ -312,16 +313,18 @@ class WalletCorePresentationControllerImpl(
 
     override var disclosedDocuments: MutableList<DisclosedDocumentDomain>? = null
 
+    // Set by the transfer listener and read on its error callback to tell the stage of a failure.
+    @Volatile
     private var processedRequest: RequestProcessor.ProcessedRequest.Success? = null
 
     /** Everything the request can be satisfied with, as wallet-core computed it. */
-    private var fullPresentmentSelection: CredentialPresentmentSelection? = null
+    private var fullPresentmentSelection: CredentialSelection? = null
 
     /**
      * [fullPresentmentSelection] narrowed to the user's consent; this is what gets sent. Stays
      * null until the consent UI reports a selection, so nothing is disclosed without it.
      */
-    private var presentmentSelection: CredentialPresentmentSelection? = null
+    private var presentmentSelection: CredentialSelection? = null
 
     /** Whether the outcome of the current request is already in the activity log. */
     private val activityRecorded = AtomicBoolean(true)
@@ -386,6 +389,11 @@ class WalletCorePresentationControllerImpl(
                                 throwable = throwable,
                                 traceId = telemetry.currentTraceId(),
                                 genericErrorMessage = genericErrorMessage,
+                                stage = if (processedRequest == null) {
+                                    PresentationStage.REQUEST
+                                } else {
+                                    PresentationStage.RESPONSE
+                                },
                             )
                         )
                 )
@@ -619,12 +627,12 @@ class WalletCorePresentationControllerImpl(
      * claim, so there is nothing to narrow and dropping it would silently break the verifier's
      * `credential_sets`.
      */
-    private fun CredentialPresentmentSelection.narrowedTo(
+    private fun CredentialSelection.narrowedTo(
         consent: List<DisclosedDocumentDomain>,
-    ): CredentialPresentmentSelection {
+    ): CredentialSelection {
         val allowedByDocument: Map<DocumentId, Set<RequestedClaim>> =
             consent.associate { it.documentId to it.disclosedClaims }
-        return CredentialPresentmentSelection(
+        return CredentialSelection(
             matches = matches.mapNotNull { match ->
                 val allowed = allowedByDocument[match.credential.document.identifier]
                     ?: return@mapNotNull null
@@ -641,7 +649,7 @@ class WalletCorePresentationControllerImpl(
      * `RequestedDocument.readerAuth.readerCommonName`.
      */
     private fun Requester.readerCommonNameOrNull(): String? =
-        certChain?.javaX509Certificates?.firstOrNull()
+        requesterIdentities.firstNotNullOfOrNull { it.certChain }?.javaX509Certificates?.firstOrNull()
             ?.subjectX500Principal?.name
             ?.split(",")
             ?.map { it.split("=", limit = 2) }
@@ -869,6 +877,7 @@ class WalletCorePresentationControllerImpl(
                 TransferEvent.Connected,
                 is TransferEvent.RequestReceived,
                 is TransferEvent.IntentToSend,
+                is TransferEvent.Rejected,
                 TransferEvent.Disconnected -> Unit
             }
         }

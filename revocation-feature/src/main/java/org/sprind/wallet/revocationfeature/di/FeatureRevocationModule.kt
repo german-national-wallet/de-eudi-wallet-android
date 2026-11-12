@@ -17,7 +17,7 @@
 package org.sprind.wallet.revocationfeature.di
 
 import eu.europa.ec.authenticationlogic.controller.storage.WalletRegistrationStorageController
-import eu.europa.ec.businesslogic.controller.storage.PrefsController
+import eu.europa.ec.businesslogic.controller.storage.EncryptedPrefsController
 import org.sprind.wallet.uilogic.navigation.NavigationGuard
 import org.koin.core.annotation.ComponentScan
 import org.koin.core.annotation.Factory
@@ -44,7 +44,7 @@ fun provideRevocationInteractor(
 
 @Single
 fun provideRevocationStorageProvider(
-    prefsController: PrefsController,
+    prefsController: EncryptedPrefsController,
 ): RevocationStorageProvider =
     PrefsRevocationStorageProvider(
         prefsController = prefsController

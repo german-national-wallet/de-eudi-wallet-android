@@ -19,6 +19,7 @@ package org.sprind.wallet.dashboardfeature.ui.settings
 import androidx.core.net.toUri
 import eu.europa.ec.businesslogic.config.ConfigLogic
 import eu.europa.ec.dashboardfeature.interactor.DashboardInteractor
+import eu.europa.ec.resourceslogic.provider.ResourceProvider
 import eu.europa.ec.testlogic.base.TestApplication
 import eu.europa.ec.testlogic.extension.expectNoEvents
 import eu.europa.ec.testlogic.extension.runFlowTest
@@ -37,8 +38,10 @@ import org.mockito.kotlin.verify
 import org.mockito.kotlin.whenever
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
+import org.sprind.wallet.businesslogic.config.LocalizedUrl
 import org.sprind.wallet.businesslogic.config.SettingsLinks
 import org.sprind.wallet.businesslogic.config.debugConfigAvailable
+import java.util.Locale
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
@@ -55,18 +58,23 @@ class SettingsViewModelTest {
     @Mock
     private lateinit var configLogic: ConfigLogic
 
+    @Mock
+    private lateinit var resourceProvider: ResourceProvider
+
     private lateinit var closeable: AutoCloseable
 
     val subject by lazy {
         SettingsViewModel(
             dashboardInteractor = dashboardInteractor,
             configLogic = configLogic,
+            resourceProvider = resourceProvider,
         )
     }
 
     @Before
     fun setUp() {
         closeable = MockitoAnnotations.openMocks(this)
+        whenever(resourceProvider.getLocale()).thenReturn(Locale.ENGLISH)
         whenever(configLogic.isDebugMenuEnabled).thenReturn(false)
         whenever(configLogic.isLogWriterEnabled).thenReturn(false)
         whenever(configLogic.settingsLinks).thenReturn(links)
@@ -147,57 +155,33 @@ class SettingsViewModelTest {
     //region web pages
 
     @Test
-    fun `when the support entry is tapped, then the support page opens in the app`() =
+    fun `when a web page entry is tapped, then its page opens in the app in the language of the app`() =
         coroutineRule.runTest {
-            assertOpensWebPage(
-                entry = SettingsMenuEntry.FAQ_AND_SUPPORT,
-                expectedUrl = links.faqAndSupport,
+            val pages = mapOf(
+                SettingsMenuEntry.FAQ_AND_SUPPORT to links.faqAndSupport,
+                SettingsMenuEntry.ABOUT to links.about,
+                SettingsMenuEntry.ACCESSIBILITY_DECLARATION to links.accessibilityDeclaration,
+                SettingsMenuEntry.PRIVACY_POLICY to links.privacyPolicy,
+                SettingsMenuEntry.TERMS_AND_CONDITIONS to links.termsAndConditions,
+                SettingsMenuEntry.IMPRINT to links.imprint,
             )
-        }
+            val languages = mapOf(
+                Locale.ENGLISH to LocalizedUrl::en,
+                Locale.GERMANY to LocalizedUrl::de,
+                Locale.FRENCH to LocalizedUrl::en,
+            )
 
-    @Test
-    fun `when the accessibility entry is tapped, then the declaration opens in the app`() =
-        coroutineRule.runTest {
-            assertOpensWebPage(
-                entry = SettingsMenuEntry.ACCESSIBILITY_DECLARATION,
-                expectedUrl = links.accessibilityDeclaration,
-            )
-        }
+            languages.forEach { (locale, expectedFor) ->
+                whenever(resourceProvider.getLocale()).thenReturn(locale)
 
-    @Test
-    fun `when the about entry is tapped, then the about page opens in the app`() =
-        coroutineRule.runTest {
-            assertOpensWebPage(
-                entry = SettingsMenuEntry.ABOUT,
-                expectedUrl = links.about,
-            )
-        }
-
-    @Test
-    fun `when the privacy policy entry is tapped, then the policy opens in the app`() =
-        coroutineRule.runTest {
-            assertOpensWebPage(
-                entry = SettingsMenuEntry.PRIVACY_POLICY,
-                expectedUrl = links.privacyPolicy,
-            )
-        }
-
-    @Test
-    fun `when the terms entry is tapped, then the terms open in the app`() =
-        coroutineRule.runTest {
-            assertOpensWebPage(
-                entry = SettingsMenuEntry.TERMS_AND_CONDITIONS,
-                expectedUrl = links.termsAndConditions,
-            )
-        }
-
-    @Test
-    fun `when the imprint entry is tapped, then the imprint opens in the app`() =
-        coroutineRule.runTest {
-            assertOpensWebPage(
-                entry = SettingsMenuEntry.IMPRINT,
-                expectedUrl = links.imprint,
-            )
+                pages.forEach { (entry, page) ->
+                    assertOpensWebPage(
+                        entry = entry,
+                        expectedUrl = expectedFor(page),
+                        message = "$entry in $locale",
+                    )
+                }
+            }
         }
 
     //endregion
@@ -262,7 +246,11 @@ class SettingsViewModelTest {
             .flatMap { it.entries }
             .contains(SettingsMenuEntry.EXPORT_LOGS)
 
-    private suspend fun assertOpensWebPage(entry: SettingsMenuEntry, expectedUrl: String) {
+    private suspend fun assertOpensWebPage(
+        entry: SettingsMenuEntry,
+        expectedUrl: String,
+        message: String? = null,
+    ) {
         subject.setEvent(Event.MenuEntryClicked(entry))
 
         subject.effect.runFlowTest {
@@ -271,6 +259,7 @@ class SettingsViewModelTest {
                     SettingsWebPageRoute(url = expectedUrl, titleRes = entry.labelRes)
                 ),
                 awaitItem(),
+                message,
             )
         }
     }
@@ -280,12 +269,12 @@ class SettingsViewModelTest {
         const val APP_VERSION_CODE = 875
 
         val links = SettingsLinks(
-            faqAndSupport = "https://example.org/support",
-            accessibilityDeclaration = "https://example.org/accessibility",
-            about = "https://example.org/about",
-            privacyPolicy = "https://example.org/privacy",
-            termsAndConditions = "https://example.org/terms",
-            imprint = "https://example.org/imprint",
+            faqAndSupport = LocalizedUrl(en = "https://example.org/support", de = "https://example.org/de/support"),
+            accessibilityDeclaration = LocalizedUrl(en = "https://example.org/accessibility", de = "https://example.org/de/accessibility"),
+            about = LocalizedUrl(en = "https://example.org/about", de = "https://example.org/de/about"),
+            privacyPolicy = LocalizedUrl(en = "https://example.org/privacy", de = "https://example.org/de/privacy"),
+            termsAndConditions = LocalizedUrl(en = "https://example.org/terms", de = "https://example.org/de/terms"),
+            imprint = LocalizedUrl(en = "https://example.org/imprint", de = "https://example.org/de/imprint"),
         )
     }
 }

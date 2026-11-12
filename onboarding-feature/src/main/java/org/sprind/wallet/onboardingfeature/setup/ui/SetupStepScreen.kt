@@ -49,7 +49,7 @@ import org.sprind.wallet.uilogic.component.ContentTemplateConfig
  * trailing icon (an arrow by default) and an optional secondary button below it.
  *
  * The top bar holds a back arrow and a help button, as in the designs; both the arrow and system
- * back invoke [onBack]. The help button has no content yet, so [onHelp] defaults to doing nothing.
+ * back invoke [onBack]. 
  *
  * Accessibility comes from [ContentTemplateBody] (title exposed as a heading, scrolling body for
  * large font scales); the buttons are shared sticky-bottom buttons, whose decorative arrow is
@@ -70,7 +70,6 @@ import org.sprind.wallet.uilogic.component.ContentTemplateConfig
  *   (e.g. the Privacy Policy step).
  * @param isLoading shows the loading state of [ContentScreen].
  * @param showTopBar whether the top bar is shown; the success step has none.
- * @param onHelp invoked by the help button.
  * @param announceTitleChanges makes the title a polite live region, so screen readers announce it
  *   when it changes while the screen is shown (e.g. from a checking phase to its result).
  * @param templateConfig layout options of the body; see [ContentTemplateConfig].
@@ -92,7 +91,6 @@ fun SetupStepScreen(
     isLoading: Boolean = false,
     showTopBar: Boolean = true,
     primaryButtonTrailingIcon: IconData? = AppIcons.ArrowRightLong,
-    onHelp: () -> Unit = {},
     announceTitleChanges: Boolean = false,
     templateConfig: ContentTemplateConfig = ContentTemplateConfig(),
     illustration: (@Composable () -> Unit)? = null,
@@ -104,7 +102,7 @@ fun SetupStepScreen(
         navigatableAction = ScreenNavigateAction.NONE,
         onBack = onBack,
         topBar = if (showTopBar) {
-            { CancellableTopAppBar(onBackClick = onBack, onHelpClick = onHelp) }
+            { CancellableTopAppBar(onBackClick = onBack) }
         } else {
             null
         },

@@ -101,9 +101,6 @@ fun NotificationConsentScreen(
         },
         onLater = onComplete,
         onBack = onBack,
-        onHelp = {
-            viewModel.setEvent(NotificationConsentEvent(NotificationConsentEvent.Event.HelpPressed))
-        }
     )
 }
 
@@ -112,7 +109,6 @@ private fun NotificationConsentContent(
     onEnable: () -> Unit,
     onLater: () -> Unit,
     onBack: () -> Unit,
-    onHelp: () -> Unit,
 ) {
     ProvideContentTemplateStyle(
         style = ContentTemplateDefaults.style.copy(
@@ -127,7 +123,6 @@ private fun NotificationConsentContent(
             secondaryButtonText = stringResource(R.string.app_onboarding_push_intro_sec_button),
             onSecondaryClick = onLater,
             onBack = onBack,
-            onHelp = onHelp,
             // The fade hints at text hidden behind the sticky buttons, e.g. at 200% font scale.
             templateConfig = ContentTemplateConfig(
                 verticalSpacing = SPACING_MEDIUM.dp,
@@ -173,6 +168,6 @@ private fun NotificationConsentContent(
 @Composable
 private fun NotificationConsentContentPreview() {
     PreviewTheme {
-        NotificationConsentContent(onEnable = {}, onLater = {}, onBack = {}, onHelp = {})
+        NotificationConsentContent(onEnable = {}, onLater = {}, onBack = {})
     }
 }

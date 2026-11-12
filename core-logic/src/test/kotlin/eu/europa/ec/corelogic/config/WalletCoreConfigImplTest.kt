@@ -57,6 +57,7 @@ class WalletCoreConfigImplTest {
         rwscSecureArea = rwscSecureArea,
         androidKeystoreSecureArea = androidKeystoreSecureArea,
         storage = storage,
+        ktorHttpClient = mockk(relaxed = true),
     )
 
     @Test
@@ -100,7 +101,7 @@ class WalletCoreConfigImplTest {
         (subject.vciConfig.values + subject.defaultVciConfig).forEach {
             val encryption = it.responseEncryptionConfig
             assertNull(encryption.rsaConfig)
-            assertEquals(CredentialResponseEncryptionPolicy.REQUIRED, encryption.credentialResponseEncryptionPolicy)
+            assertEquals(CredentialResponseEncryptionPolicy.SUPPORTED, encryption.credentialResponseEncryptionPolicy)
             assertEquals(Curve.P_256, encryption.ecConfig?.ecKeyCurve)
             assertEquals(APPROVED_ALGORITHMS, encryption.supportedEncryptionAlgorithms)
             assertEquals(APPROVED_METHODS, encryption.supportedEncryptionMethods)

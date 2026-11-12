@@ -10,7 +10,9 @@ import eu.europa.ec.dashboardfeature.interactor.DashboardInteractor
 import eu.europa.ec.dashboardfeature.interactor.DashboardInteractorGetIssuedDocumentsPartialState
 import eu.europa.ec.eudi.openid4vci.CredentialConfigurationIdentifier
 import eu.europa.ec.resourceslogic.R
+import eu.europa.ec.resourceslogic.provider.ResourceProvider
 import eu.europa.ec.testlogic.base.TestApplication
+import eu.europa.ec.testlogic.extension.runFlowTest
 import eu.europa.ec.testlogic.extension.runTest
 import eu.europa.ec.testlogic.rule.CoroutineTestRule
 import eu.europa.ec.uilogic.navigation.RouterHost
@@ -29,7 +31,10 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import org.sprind.wallet.analyticslogic.controller.Telemetry
 import org.sprind.wallet.businesslogic.config.EidCardType
+import org.sprind.wallet.businesslogic.config.LocalizedUrl
 import org.sprind.wallet.businesslogic.config.UserRuntimeConfig
+import org.sprind.wallet.dashboardfeature.ui.dashboard.CredentialCatalogueRoute
+import java.util.Locale
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
@@ -60,6 +65,9 @@ class DashboardViewModelTest {
     @Mock
     private lateinit var routerHost: RouterHost
 
+    @Mock
+    private lateinit var resourceProvider: ResourceProvider
+
     private lateinit var closeable: AutoCloseable
 
     @Mock
@@ -78,8 +86,14 @@ class DashboardViewModelTest {
             telemetry = telemetry,
             userRuntimeConfig = userRuntimeConfig,
             routerHost = routerHost,
+            resourceProvider = resourceProvider,
         )
     }
+
+    private val catalogueUrl = LocalizedUrl(
+        en = "https://catalogue.example.org/en",
+        de = "https://catalogue.example.org/de",
+    )
 
     @Before
     fun setUp() {
@@ -142,6 +156,42 @@ class DashboardViewModelTest {
 
             assertNull(subject.viewState.value.errorDialog)
             assertNull(subject.viewState.value.error)
+        }
+
+    //endregion
+
+    //region OpenCredentialCatalogue
+
+    @Test
+    fun `given a German app, when OpenCredentialCatalogue event, then the German catalogue is opened`() =
+        coroutineRule.runTest {
+            whenever(resourceProvider.getLocale()).thenReturn(Locale.GERMANY)
+            whenever(dashboardInteractor.getCredentialCatalogueUrl()).thenReturn(catalogueUrl)
+
+            subject.effect.runFlowTest {
+                subject.setEvent(Event.OpenCredentialCatalogue)
+
+                assertEquals(
+                    Effect.Navigation.OpenCredentialCatalogue(CredentialCatalogueRoute(catalogueUrl.de)),
+                    awaitItem(),
+                )
+            }
+        }
+
+    @Test
+    fun `given a non-German app, when OpenCredentialCatalogue event, then the English catalogue is opened`() =
+        coroutineRule.runTest {
+            whenever(resourceProvider.getLocale()).thenReturn(Locale.US)
+            whenever(dashboardInteractor.getCredentialCatalogueUrl()).thenReturn(catalogueUrl)
+
+            subject.effect.runFlowTest {
+                subject.setEvent(Event.OpenCredentialCatalogue)
+
+                assertEquals(
+                    Effect.Navigation.OpenCredentialCatalogue(CredentialCatalogueRoute(catalogueUrl.en)),
+                    awaitItem(),
+                )
+            }
         }
 
     //endregion

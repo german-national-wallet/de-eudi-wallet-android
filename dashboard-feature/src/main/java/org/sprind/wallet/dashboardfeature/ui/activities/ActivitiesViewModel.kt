@@ -19,6 +19,7 @@ package org.sprind.wallet.dashboardfeature.ui.activities
 import androidx.lifecycle.viewModelScope
 import eu.europa.ec.businesslogic.config.ConfigLogic
 import eu.europa.ec.resourceslogic.R
+import eu.europa.ec.resourceslogic.provider.ResourceProvider
 import eu.europa.ec.uilogic.mvi.MviViewModel
 import eu.europa.ec.uilogic.mvi.ViewEvent
 import eu.europa.ec.uilogic.mvi.ViewSideEffect
@@ -26,6 +27,7 @@ import eu.europa.ec.uilogic.mvi.ViewState
 import kotlinx.coroutines.launch
 import org.koin.android.annotation.KoinViewModel
 import org.koin.core.annotation.InjectedParam
+import org.sprind.wallet.businesslogic.controller.session.SessionManager
 import org.sprind.wallet.dashboardfeature.interactor.ActivityInteractor
 import org.sprind.wallet.dashboardfeature.ui.activities.model.ActivitySectionUi
 import org.sprind.wallet.dashboardfeature.ui.settings.SettingsWebPageRoute
@@ -59,12 +61,17 @@ sealed class ActivitiesEffect : ViewSideEffect {
 /** @param documentId the credential whose activities to list; blank for the whole wallet. */
 @KoinViewModel
 class ActivitiesViewModel(
+     sessionManager: SessionManager,
     private val activityInteractor: ActivityInteractor,
     private val configLogic: ConfigLogic,
+    private val resourceProvider: ResourceProvider,
     @InjectedParam private val documentId: String,
 ) : MviViewModel<ActivitiesEvent, ActivitiesState, ActivitiesEffect>() {
 
     init {
+        // We want to lock any time the activity tab is clicked
+        // but not when it is recovered from backstack
+        sessionManager.lock()
         viewModelScope.launch {
             activityInteractor.sections(documentId.ifBlank { null }).collect { sections ->
                 setState { copy(isLoading = false, sections = sections) }
@@ -83,7 +90,7 @@ class ActivitiesViewModel(
             ActivitiesEvent.HowToUseClicked -> setEffect {
                 ActivitiesEffect.OpenWebPage(
                     SettingsWebPageRoute(
-                        url = configLogic.settingsLinks.faqAndSupport,
+                        url = configLogic.settingsLinks.faqAndSupport.forLocale(resourceProvider.getLocale()),
                         titleRes = R.string.activities_overview_sec_button,
                     )
                 )

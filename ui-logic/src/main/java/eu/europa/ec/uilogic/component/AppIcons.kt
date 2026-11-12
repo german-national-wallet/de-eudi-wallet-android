@@ -440,12 +440,6 @@ object AppIcons {
         imageVector = null
     )
 
-    val NoDocumentAvailable = IconData(
-        resourceId = R.drawable.ic_no_document_available,
-        contentDescriptionId = R.string.content_description_atom_credential_icon,
-        imageVector = null
-    )
-
     val Iphone = IconData(
         resourceId = R.drawable.ic_iphone,
         contentDescriptionId = R.string.content_description_iphone,
@@ -462,11 +456,6 @@ object AppIcons {
         resourceId = R.drawable.ic_blocked,
         contentDescriptionId = R.string.content_description_blocked,
         imageVector = null
-    )
-
-    val WarningHex = IconData(
-        resourceId = R.drawable.ic_warning_hex,
-        contentDescriptionId = R.string.content_description_warning,
     )
 
     val PhoneVector = IconData(
@@ -645,6 +634,20 @@ object AppIcons {
     val MissingCredential = IconData(
         resourceId = R.drawable.missing_credential,
         contentDescriptionId = R.string.content_description_missing_credential,
+        imageVector = null,
+    )
+
+    /** ID cards with a question mark, shown when a request needs a Digital ID the wallet lacks. */
+    val MissingPid = IconData(
+        resourceId = R.drawable.missing_pid,
+        contentDescriptionId = R.string.content_description_missing_pid,
+        imageVector = null,
+    )
+
+    /** A phone showing a Digital ID card, shown when the Digital ID code is locked for good. */
+    val PidLocked = IconData(
+        resourceId = R.drawable.pid_locked,
+        contentDescriptionId = R.string.content_description_pid_locked,
         imageVector = null,
     )
 

@@ -49,7 +49,10 @@ enum class BiometricsAuthError(val code: Int) {
 }
 
 interface BiometricAuthenticationController {
-    fun deviceSupportsBiometrics(listener: (BiometricsAvailability) -> Unit)
+    fun deviceSupportsBiometrics(
+        authenticators: Int,
+        listener: (BiometricsAvailability) -> Unit
+    )
     fun authenticate(
         context: Context,
         notifyOnAuthenticationFailure: Boolean,
@@ -73,9 +76,12 @@ class BiometricAuthenticationControllerImpl(
     private val dispatcher: CoroutineDispatcher = Dispatchers.IO
 ) : BiometricAuthenticationController {
 
-    override fun deviceSupportsBiometrics(listener: (BiometricsAvailability) -> Unit) {
+    override fun deviceSupportsBiometrics(
+        authenticators: Int,
+        listener: (BiometricsAvailability) -> Unit
+    ) {
         val biometricManager = BiometricManager.from(resourceProvider.provideContext())
-        when (biometricManager.canAuthenticate(BIOMETRIC_WEAK)) {
+        when (biometricManager.canAuthenticate(authenticators)) {
             BiometricManager.BIOMETRIC_SUCCESS -> listener.invoke(BiometricsAvailability.CanAuthenticate)
             BiometricManager.BIOMETRIC_ERROR_NONE_ENROLLED -> listener.invoke(BiometricsAvailability.NonEnrolled)
             BiometricManager.BIOMETRIC_ERROR_NO_HARDWARE, BiometricManager.BIOMETRIC_ERROR_UNSUPPORTED -> listener.invoke(

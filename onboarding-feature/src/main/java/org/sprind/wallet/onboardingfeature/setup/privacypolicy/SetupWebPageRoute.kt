@@ -26,7 +26,7 @@ import org.sprind.wallet.uilogic.component.WebPageScreen
 /**
  * Route to a legal document opened from a setup step, the terms of use or the privacy policy.
  *
- * The documents are not published yet, so the config hands over
+ * Some of the documents not published yet. The config hands over
  * [org.sprind.wallet.businesslogic.config.SettingsLinks.BLANK_PAGE] for now and the page opens
  * empty.
  *

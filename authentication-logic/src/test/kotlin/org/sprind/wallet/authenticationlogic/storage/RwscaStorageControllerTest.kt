@@ -17,7 +17,7 @@
 package org.sprind.wallet.authenticationlogic.storage
 
 import com.google.gson.Gson
-import eu.europa.ec.businesslogic.controller.storage.PrefsController
+import eu.europa.ec.businesslogic.controller.storage.EncryptedPrefsController
 import junit.framework.TestCase.assertEquals
 import junit.framework.TestCase.assertNull
 import okio.ByteString.Companion.encodeUtf8
@@ -39,7 +39,7 @@ private const val RWSCA_PIN_SALT_KEY = "RwscaPinSalt"
 class RwscaStorageControllerTest {
 
     @Mock
-    private lateinit var prefsController: PrefsController
+    private lateinit var prefsController: EncryptedPrefsController
 
     private val subject: RwscaStorageControllerImpl by lazy {
         RwscaStorageControllerImpl(prefsController, Gson())

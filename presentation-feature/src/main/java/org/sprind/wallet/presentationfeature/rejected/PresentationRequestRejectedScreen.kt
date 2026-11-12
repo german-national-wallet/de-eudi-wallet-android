@@ -17,10 +17,7 @@
 package org.sprind.wallet.presentationfeature.rejected
 
 import androidx.annotation.StringRes
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -31,18 +28,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import eu.europa.ec.businesslogic.extension.toUri
 import eu.europa.ec.presentationfeature.interactor.RequestRejectionReason
 import eu.europa.ec.resourceslogic.R
 import eu.europa.ec.uilogic.component.AppIcons
-import eu.europa.ec.uilogic.component.content.ContentScreen
-import eu.europa.ec.uilogic.component.content.ScreenNavigateAction
 import eu.europa.ec.uilogic.component.preview.PreviewTheme
 import eu.europa.ec.uilogic.component.preview.ThemeModeWithGermanAndEnglishPreviews
-import eu.europa.ec.uilogic.component.utils.SPACING_MEDIUM
-import eu.europa.ec.uilogic.component.utils.SPACING_SMALL
 import eu.europa.ec.uilogic.component.wrap.ButtonConfig
 import eu.europa.ec.uilogic.component.wrap.ButtonType
 import eu.europa.ec.uilogic.component.wrap.WrapButton
@@ -50,13 +42,10 @@ import eu.europa.ec.uilogic.extension.openDeepLink
 import eu.europa.ec.uilogic.extension.openUrl
 import eu.europa.ec.uilogic.navigation.DashboardScreens
 import eu.europa.ec.uilogic.navigation.ModuleRoute
-import org.sprind.wallet.uilogic.component.ArtworkCloseAction
-import org.sprind.wallet.uilogic.component.ArtworkTopBar
+import org.sprind.wallet.uilogic.component.ArtworkBlockingScreen
 import org.sprind.wallet.uilogic.component.ExternalLinkButton
 import org.sprind.wallet.uilogic.component.dialog.RedirectInfoDialog
 import org.sprind.wallet.uilogic.component.dialog.RedirectInfoDialogConfig
-import org.sprind.wallet.uilogic.component.ContentTemplateBody
-import org.sprind.wallet.uilogic.component.ContentTemplateConfig
 
 object PresentationRequestRejectedTestTags {
     const val OVER_ASKING = "presentation_request_rejected_over_asking"
@@ -64,7 +53,14 @@ object PresentationRequestRejectedTestTags {
     const val CLOSE = "presentation_request_rejected_close"
 }
 
-/** Shown after the wallet refused a presentation request on the user's behalf. */
+/**
+ * Shown after the wallet refused a presentation request on the user's behalf (Figma
+ * "We do not trust the verifier", WD-5006): both variants offer "Report a suspicion" and
+ * "To overview".
+ *
+ * @param redirectUri Where the verifier asked to send the user after the refusal; the
+ *   close button follows it. The design has no "Back to service" button.
+ */
 @Composable
 fun PresentationRequestRejectedScreen(
     navController: NavController,
@@ -90,7 +86,6 @@ fun PresentationRequestRejectedScreen(
         onCloseClick = backToService ?: { navController.navigateToDashboard() },
         onOverviewClick = { navController.navigateToDashboard() },
         onReportClick = { pendingLink = reportUri ?: fallbackReportUrl },
-        onBackToServiceClick = backToService,
     )
 
     pendingLink?.let { link ->
@@ -113,77 +108,40 @@ private fun Screen(
     onCloseClick: () -> Unit = {},
     onOverviewClick: () -> Unit = {},
     onReportClick: () -> Unit = {},
-    onBackToServiceClick: (() -> Unit)? = null,
 ) {
     val copy = reason.rejectionCopy()
 
-    ContentScreen(
-        navigatableAction = ScreenNavigateAction.NONE,
-        topBar = {
-            ArtworkTopBar(artwork = AppIcons.PhoneSecurityShield) {
-                ArtworkCloseAction(
-                    onClick = onCloseClick,
-                    modifier = Modifier.testTag(PresentationRequestRejectedTestTags.CLOSE),
-                )
-            }
-        },
-        stickyBottom = { paddingValues ->
-            Column(modifier = Modifier.padding(paddingValues)) {
-                when (copy.primaryTarget) {
-                    PrimaryTarget.REPORT -> ExternalLinkButton(
-                        type = ButtonType.PRIMARY,
-                        textRes = copy.primaryButton,
-                        onClick = onReportClick,
-                        modifier = Modifier.padding(bottom = SPACING_SMALL.dp),
-                    )
-
-                    PrimaryTarget.OVERVIEW -> WrapButton(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(bottom = SPACING_SMALL.dp),
-                        buttonConfig = ButtonConfig(
-                            type = ButtonType.PRIMARY,
-                            onClick = onOverviewClick,
-                        ),
-                    ) {
-                        Text(stringResource(copy.primaryButton))
-                    }
-                }
-                onBackToServiceClick?.let {
-                    ExternalLinkButton(
-                        type = ButtonType.SECONDARY,
-                        textRes = copy.secondaryButton,
-                        onClick = it,
-                    )
-                }
-            }
-        },
-    ) { paddingValues ->
-        ContentTemplateBody(
-            modifier = Modifier
-                .padding(top = SPACING_MEDIUM.dp)
-                .testTag(copy.testTag),
-            screenPadding = paddingValues,
-            templateConfig = ContentTemplateConfig(showScrollFade = true),
-            title = {
-                Text(
-                    text = stringResource(copy.title),
-                    style = MaterialTheme.typography.titleMedium,
-                )
-            },
-            body = { Text(stringResource(copy.paragraph)) },
+    ArtworkBlockingScreen(
+        artwork = AppIcons.PhoneSecurityShield,
+        titleRes = copy.title,
+        bodyRes = copy.paragraph,
+        onClose = onCloseClick,
+        modifier = Modifier.testTag(copy.testTag),
+        // The close button may hand back to the service's app; a back press stays in the wallet.
+        onBack = onOverviewClick,
+        closeModifier = Modifier.testTag(PresentationRequestRejectedTestTags.CLOSE),
+    ) {
+        ExternalLinkButton(
+            type = ButtonType.PRIMARY,
+            textRes = copy.reportButton,
+            onClick = onReportClick,
         )
+        WrapButton(
+            modifier = Modifier.fillMaxWidth(),
+            buttonConfig = ButtonConfig(
+                type = ButtonType.SECONDARY,
+                onClick = onOverviewClick,
+            ),
+        ) {
+            Text(stringResource(R.string.global_to_overview_button))
+        }
     }
 }
-
-private enum class PrimaryTarget { REPORT, OVERVIEW }
 
 private data class RejectionCopy(
     @StringRes val title: Int,
     @StringRes val paragraph: Int,
-    @StringRes val primaryButton: Int,
-    val primaryTarget: PrimaryTarget,
-    @StringRes val secondaryButton: Int,
+    @StringRes val reportButton: Int,
     val testTag: String,
 )
 
@@ -191,19 +149,16 @@ private fun RequestRejectionReason.rejectionCopy(): RejectionCopy = when (this) 
     RequestRejectionReason.OVER_ASKING -> RejectionCopy(
         title = R.string.pid_presentation_dialog_rp_overasking_title,
         paragraph = R.string.pid_presentation_dialog_rp_overasking_paragraph_overasking,
-        primaryButton = R.string.pid_presentation_dialog_rp_overasking_prim_button,
-        primaryTarget = PrimaryTarget.REPORT,
-        secondaryButton = R.string.pid_presentation_dialog_rp_overasking_sec_button,
+        reportButton = R.string.pid_presentation_dialog_rp_overasking_prim_button,
         testTag = PresentationRequestRejectedTestTags.OVER_ASKING,
     )
 
-    // An unvalidated certificate names no authority to report to.
+    // An unvalidated certificate names no authority to report to, so reporting falls back
+    // to the default complaint page.
     RequestRejectionReason.NOT_REGISTERED -> RejectionCopy(
         title = R.string.pid_presentation_dialog_rp_unkown_title,
         paragraph = R.string.pid_presentation_dialog_rp_unkown_paragraph_cert_failed,
-        primaryButton = R.string.global_to_overview_button,
-        primaryTarget = PrimaryTarget.OVERVIEW,
-        secondaryButton = R.string.pid_presentation_dialog_rp_unkown_sec_button,
+        reportButton = R.string.pid_presentation_dialog_rp_unkown_prim_button,
         testTag = PresentationRequestRejectedTestTags.NOT_REGISTERED,
     )
 }
@@ -220,7 +175,7 @@ private fun NavController.navigateToDashboard() {
 @Composable
 private fun PresentationRequestRejectedOverAskingPreview() {
     PreviewTheme {
-        Screen(reason = RequestRejectionReason.OVER_ASKING, onBackToServiceClick = {})
+        Screen(reason = RequestRejectionReason.OVER_ASKING)
     }
 }
 
@@ -228,6 +183,6 @@ private fun PresentationRequestRejectedOverAskingPreview() {
 @Composable
 private fun PresentationRequestRejectedNotRegisteredPreview() {
     PreviewTheme {
-        Screen(reason = RequestRejectionReason.NOT_REGISTERED, onBackToServiceClick = {})
+        Screen(reason = RequestRejectionReason.NOT_REGISTERED)
     }
 }

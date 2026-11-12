@@ -243,6 +243,7 @@ These are worth calling out:
 ## Related documentation
 
 - [Architecture Documentation for the German National EUDI Wallet](https://bmi.usercontent.opencode.de/eudi-wallet/wallet-development-documentation-public/latest/)
+- [Release Notes](./release-notes/)
 
 ## Design System
 
@@ -252,9 +253,14 @@ This Design System is a work in progress and will keep evolving through future i
 
 ## Contributing and issues
 
-Issue tracking and pull requests are **not** enabled on this mirror right now. Issue tracking is planned to be enabled in October 2026. For more details see
-[CONTRIBUTING.md](CONTRIBUTING.md). For security reports, see
-[SECURITY.md](SECURITY.md).
+Issue tracking is enabled on this mirror. Bug reports and questions about the
+published source are welcome as
+[GitHub issues](https://github.com/german-national-wallet/de-eudi-wallet-android/issues).
+Pull requests are still **not** accepted. For details, see
+[CONTRIBUTING.md](CONTRIBUTING.md).
+
+Security findings do not belong in issues. Report them through our bug bounty
+program, see [SECURITY.md](SECURITY.md).
 
 ## Licence
 

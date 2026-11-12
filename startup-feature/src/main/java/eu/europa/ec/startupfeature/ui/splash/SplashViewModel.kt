@@ -32,9 +32,12 @@ import eu.europa.ec.uilogic.mvi.ViewState
 import eu.europa.ec.uilogic.navigation.ModuleRoute
 import org.sprind.wallet.uilogic.navigation.NavigationGuard
 import org.sprind.wallet.uilogic.navigation.getDirection
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import org.koin.android.annotation.KoinViewModel
+import org.sprind.wallet.commonfeature.ui.error.toErrorDialogConfig
+import org.sprind.wallet.networklogic.common.NetworkFailure
 
 data class State(
     val logoAnimationDuration: Int = 1500,
@@ -63,6 +66,9 @@ class SplashViewModel(
 ) : MviViewModel<Event, State, Effect>() {
     override fun setInitialState(): State = State()
 
+    /** The running registration, so that a second tap on Retry does not register the wallet twice. */
+    private var registrationJob: Job? = null
+
     override fun handleEvents(event: Event) {
         when (event) {
             Event.Initialize -> {
@@ -77,9 +83,16 @@ class SplashViewModel(
         }
     }
 
-    private fun initializeWallet() {
-        viewModelScope.launch {
-            delay((viewState.value.logoAnimationDuration).toLong())
+    /**
+     * @param isRetry The logo animation has already played, so a retry registers right away.
+     */
+    private fun initializeWallet(isRetry: Boolean = false) {
+        // registerWallet() is not idempotent: on a fresh install it creates a wallet instance
+        if (registrationJob?.isActive == true) return
+        registrationJob = viewModelScope.launch {
+            if (!isRetry) {
+                delay((viewState.value.logoAnimationDuration).toLong())
+            }
             walletRegistrationInteractor.registerWallet().collect { result ->
                 logController.d(javaClass.simpleName) { "wallet registration result: $result" }
                 when (result) {
@@ -92,6 +105,11 @@ class SplashViewModel(
                     }
 
                     is WalletInitialRegistrationPartialState.Failure -> {
+                        result.networkFailure?.let { networkFailure ->
+                            setState { copy(errorDialog = networkFailureDialog(networkFailure)) }
+                            return@collect
+                        }
+
                         val (titleRes, bodyTextRes, primaryButtonTextRes) = when (result.errorCode) {
                             WalletInitialRegistrationPartialState.ErrorCode.WB_SERVICE_UNAVAILABLE -> Triple(
                                 R.string.app_onboarding_wb_service_unavailable_title,
@@ -138,10 +156,7 @@ class SplashViewModel(
                                     traceId = result.traceId.takeUnless { isOffline },
                                     primaryButtonTextRes = primaryButtonTextRes,
                                     onDismiss = { setEvent(Event.DismissError) },
-                                    onPrimaryButtonClick = {
-                                        setEvent(Event.DismissError)
-                                        initializeWallet() // retry
-                                    },
+                                    onPrimaryButtonClick = ::retry,
                                     iconData = if (isOffline) AppIcons.Warning else AppIcons.InfoFilled,
                                     bodyTextAlign = if (isOffline) TextAlign.Center else TextAlign.Start,
                                 ),
@@ -152,6 +167,18 @@ class SplashViewModel(
                 }
             }
         }
+    }
+
+    /** Dismissing leaves the splash in place, like the other registration errors (and iOS). */
+    private fun networkFailureDialog(networkFailure: NetworkFailure): GenericErrorDialogConfig =
+        networkFailure.toErrorDialogConfig(
+            onRetry = ::retry,
+            onDismiss = { setEvent(Event.DismissError) },
+        )
+
+    private fun retry() {
+        setEvent(Event.DismissError)
+        initializeWallet(isRetry = true)
     }
 
     private fun enterApplication() {

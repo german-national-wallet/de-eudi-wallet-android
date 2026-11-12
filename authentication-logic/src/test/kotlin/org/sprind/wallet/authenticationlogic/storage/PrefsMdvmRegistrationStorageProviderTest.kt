@@ -17,10 +17,12 @@
 package org.sprind.wallet.authenticationlogic.storage
 
 import com.google.gson.Gson
-import eu.europa.ec.businesslogic.controller.storage.PrefsController
+import eu.europa.ec.businesslogic.controller.storage.EncryptedPrefsController
 import junit.framework.TestCase.assertEquals
 import junit.framework.TestCase.assertNull
 import org.junit.After
+import org.junit.Assert.assertSame
+import org.junit.Assert.assertThrows
 import org.junit.Before
 import org.junit.Test
 import org.mockito.Mock
@@ -36,7 +38,7 @@ private const val wi_mdvm_auth_keys_alias = "wi_mdvm_auth_keys"
 class PrefsMdvmRegistrationStorageProviderTest {
 
     @Mock
-    private lateinit var prefsController: PrefsController
+    private lateinit var prefsController: EncryptedPrefsController
 
     private val subject: PrefsMdvmRegistrationStorageProvider by lazy {
         PrefsMdvmRegistrationStorageProvider(
@@ -84,6 +86,18 @@ class PrefsMdvmRegistrationStorageProviderTest {
             .thenReturn("not valid json{")
 
         assertNull(subject.getMdvmRegistration())
+    }
+
+    @Test
+    fun `getMdvmRegisterResponse propagates a failure to read the preferences`() {
+        // E.g. the encrypted preferences master key is locked until the next device unlock.
+        // Returning null here would make the caller start a fresh MDVM registration.
+        val failure = IllegalStateException("preferences locked")
+        whenever(prefsController.getString(SHARED_PREFERENCE_MDVM_REGISTRATION_KEY, ""))
+            .thenThrow(failure)
+
+        val thrown = assertThrows(IllegalStateException::class.java) { subject.getMdvmRegistration() }
+        assertSame(failure, thrown)
     }
 
     @Test

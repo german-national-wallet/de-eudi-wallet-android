@@ -42,18 +42,24 @@ class DeepLinkTypeTest {
     }
 
     @Test
-    fun `given the issuance redirect, when parsed, then only the wallet host is accepted`() {
-        val onHost = DeepLinkType.parse(
+    fun `given the issuance redirect, when parsed, then only the authorization path is accepted`() {
+        val onPath = DeepLinkType.parse(
             BuildConfig.ISSUE_AUTHORIZATION_SCHEME,
-            BuildConfig.ISSUE_AUTHORIZATION_HOST
+            BuildConfig.ISSUE_AUTHORIZATION_PATH
         )
-        assertEquals(DeepLinkType.ISSUANCE, onHost)
-        assertTrue(onHost.isAcceptedFromOtherApps)
+        assertEquals(DeepLinkType.ISSUANCE, onPath)
+        assertTrue(onPath.isAcceptedFromOtherApps)
 
-        val onAnotherHost =
-            DeepLinkType.parse(BuildConfig.ISSUE_AUTHORIZATION_SCHEME, "somewhere-else")
-        assertEquals(DeepLinkType.EXTERNAL, onAnotherHost)
-        assertFalse(onAnotherHost.isAcceptedFromOtherApps)
+        val onAnotherPath =
+            DeepLinkType.parse(BuildConfig.ISSUE_AUTHORIZATION_SCHEME, "/somewhere-else")
+        assertEquals(DeepLinkType.EXTERNAL, onAnotherPath)
+        assertFalse(onAnotherPath.isAcceptedFromOtherApps)
+    }
+
+    @Test
+    fun `given the dev flavor, when built, then the issuance redirect matches the iOS scheme`() {
+        if (BuildConfig.FLAVOR != BuildConfig.FLAVOR_NAME_DEV) return
+        assertEquals("org.sprind.wallet.dev:/authorization", BuildConfig.ISSUE_AUTHORIZATION_DEEPLINK)
     }
 
     @Test

@@ -34,6 +34,7 @@ import org.mockito.kotlin.whenever
 import org.sprind.wallet.authenticationlogic.controller.rwsca.RwscaController
 import org.sprind.wallet.authenticationlogic.controller.rwsca.RwscaController.StartPinSessionMode.InitialPinSession
 import org.sprind.wallet.authenticationlogic.controller.rwsca.RwscaController.StartPinSessionMode.SubsequentPinSession
+import org.sprind.wallet.authenticationlogic.crypto.PinKeyDerivationException
 import org.sprind.wallet.authenticationlogic.crypto.PinKeyFactory
 import org.sprind.wallet.authenticationlogic.model.MdvmRegistration
 import org.sprind.wallet.authenticationlogic.model.RwscaError
@@ -261,6 +262,30 @@ class RwscaInteractorTest {
         val result = subject.rwscaPinSession(fakePin())
 
         assertEquals(ApiResult.Failure(rwscaError), result)
+    }
+
+    @Test
+    fun `rwscaPinSession returns PIN_KEY_DERIVATION_FAILED when the pin keys cannot be derived`() = runTest {
+        setupForPinSessionCreation()
+        whenever(pinKeyFactory.generatePinKeys(any(), any())).thenAnswer {
+            throw PinKeyDerivationException("test")
+        }
+        whenever(rwscaController.startPinSession(any(), any(), any(), any())).thenAnswer { invocation ->
+            runBlocking {
+                invocation.getArgument<RwscaController.WithPinKeys>(2).execute { fakeRwscaPinSession }
+            }
+            ApiResult.Success(fakeRwscaPinSession)
+        }
+
+        val result = subject.rwscaPinSession(fakePin())
+
+        assertEquals(
+            ApiResult.Failure(
+                RwscaError.FromRwsca(RwscaErrorType.PIN_KEY_DERIVATION_FAILED, serverResponse = null)
+            ),
+            result,
+        )
+        verify(rwscaStorageController, never()).savePinInitialized()
     }
 
     @Test

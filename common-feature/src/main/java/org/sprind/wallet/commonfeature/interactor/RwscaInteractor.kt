@@ -19,6 +19,7 @@ package org.sprind.wallet.commonfeature.interactor
 import okio.ByteString
 import org.sprind.wallet.authenticationlogic.controller.rwsca.RwscaController
 import org.sprind.wallet.authenticationlogic.controller.rwsca.RwscaController.StartPinSessionMode
+import org.sprind.wallet.authenticationlogic.crypto.PinKeyDerivationException
 import org.sprind.wallet.authenticationlogic.crypto.PinKeyFactory
 import org.sprind.wallet.authenticationlogic.provider.RwscaStorageController
 import org.sprind.wallet.networklogic.common.model.ApiResult
@@ -37,7 +38,16 @@ import java.security.KeyPair
 
 interface RwscaInteractor {
     suspend fun rwscaRegistration(): RwscaResult<RwscaRegistration>
+
+    /**
+     * Starts an rWSCA PIN session, initialising the PIN first if it has not been yet.
+     *
+     * - Returns Failure holding a RwscaError.FromRwsca instance of type
+     *   [RwscaErrorType.PIN_KEY_DERIVATION_FAILED] if the PIN key pair could not be
+     *   derived locally. This is a key-management failure, not a wrong PIN.
+     */
     suspend fun rwscaPinSession(pin: UserPin): RwscaResult<RwscaPinSession>
+
     suspend fun getRegistrations(): RwscaResult<RwscaRegistrations>
 
     /**
@@ -142,12 +152,18 @@ class RwscaInteractorImpl(
                 return block(wiRwscaPinKeys)
             }
         }
-        val apiResult = rwscaController.startPinSession(
-            mdvmRegistration = registrations.mdvmRegistration,
-            rwscaRegistration = registrations.rwscaRegistration,
-            withPinKeys = withPinKeys,
-            mode = mode,
-        )
+        val apiResult = try {
+            rwscaController.startPinSession(
+                mdvmRegistration = registrations.mdvmRegistration,
+                rwscaRegistration = registrations.rwscaRegistration,
+                withPinKeys = withPinKeys,
+                mode = mode,
+            )
+        } catch (_: PinKeyDerivationException) {
+            ApiResult.Failure(
+                RwscaError.FromRwsca(RwscaErrorType.PIN_KEY_DERIVATION_FAILED, serverResponse = null)
+            )
+        }
         if (apiResult is ApiResult.Success && !isPinMarkedAsInitialized) {
             rwscaStorageController.savePinInitialized()
         }

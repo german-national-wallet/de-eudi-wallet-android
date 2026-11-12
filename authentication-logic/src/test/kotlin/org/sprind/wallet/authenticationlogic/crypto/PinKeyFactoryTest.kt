@@ -17,10 +17,16 @@
 package org.sprind.wallet.authenticationlogic.crypto
 
 import org.sprind.wallet.authenticationlogic.testing.TestUserPin
+import okio.Buffer
 import okio.ByteString
+import okio.ByteString.Companion.decodeHex
 import okio.ByteString.Companion.encodeUtf8
+import okio.ByteString.Companion.toByteString
 import org.junit.Test
+import java.math.BigInteger
+import java.security.interfaces.ECPrivateKey
 import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
@@ -79,5 +85,68 @@ class PinKeyFactoryTest {
         assertEquals("XXXXXX", String(pin.lastCharsReturned()!!))
     }
 
+    @Test
+    fun `generatePinKeys derives PBKDF2 of pin and salt with counter zero`() {
+        // Same vector as the iOS SecureEnclaveControllerTests
+        val keyPair = subject.generatePinKeys(makePin(), "000102030405060708090a0b0c0d0e0f".decodeHex())
+
+        assertEquals(
+            BigInteger("f607e1d743ea31b36e4de666151e9f909bb14fab632ed11f8e6f5570706af9f1", 16),
+            (keyPair.private as ECPrivateKey).s,
+        )
+    }
+
+    @Test
+    fun `generatePinKeys re-derives with an incremented counter while the candidate is out of range`() {
+        val valid = ByteArray(32).also { it[31] = 7 }
+        val candidates = listOf(ByteArray(32), P256_ORDER.toByteArray().takeLast(32).toByteArray(), valid)
+        val saltsSeen = mutableListOf<ByteString>()
+        val subject = PinKeyFactoryImpl { _, salt ->
+            saltsSeen.add(salt.toByteString())
+            candidates[saltsSeen.size - 1].copyOf()
+        }
+
+        val keyPair = subject.generatePinKeys(makePin(), salt)
+
+        assertEquals(BigInteger.valueOf(7), (keyPair.private as ECPrivateKey).s)
+        assertEquals(
+            listOf("00000000", "00000001", "00000002").map { salt + it.decodeHex() },
+            saltsSeen,
+        )
+    }
+
+    @Test
+    fun `generatePinKeys accepts n minus 1 as the first candidate`() {
+        val nMinusOne = P256_ORDER - BigInteger.ONE
+        var attempts = 0
+        val subject = PinKeyFactoryImpl { _, _ ->
+            attempts++
+            nMinusOne.toByteArray().takeLast(32).toByteArray()
+        }
+
+        val keyPair = subject.generatePinKeys(makePin(), salt)
+
+        assertEquals(nMinusOne, (keyPair.private as ECPrivateKey).s)
+        assertEquals(1, attempts)
+    }
+
+    @Test
+    fun `generatePinKeys throws PinKeyDerivationException after the bounded number of attempts`() {
+        var attempts = 0
+        val subject = PinKeyFactoryImpl { _, _ ->
+            attempts++
+            ByteArray(32) { 0xFF.toByte() }
+        }
+        val pin = makePin()
+
+        assertFailsWith<PinKeyDerivationException> { subject.generatePinKeys(pin, salt) }
+        assertEquals(3, attempts)
+        assertEquals("XXXXXX", String(pin.lastCharsReturned()!!))
+    }
+
+    private operator fun ByteString.plus(other: ByteString) = Buffer().write(this).write(other).readByteString()
+
     private fun makePin() = TestUserPin("123456")
 }
+
+private val P256_ORDER = BigInteger("ffffffff00000000ffffffffffffffffbce6faada7179e84f3b9cac2fc632551", 16)

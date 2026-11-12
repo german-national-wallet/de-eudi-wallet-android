@@ -16,7 +16,7 @@
 
 package org.sprind.wallet.onboardingfeature.di
 
-import eu.europa.ec.businesslogic.controller.storage.PrefsController
+import eu.europa.ec.businesslogic.controller.storage.EncryptedPrefsController
 import org.koin.core.annotation.ComponentScan
 import org.koin.core.annotation.Factory
 import org.koin.core.annotation.Module
@@ -47,12 +47,12 @@ fun provideOnboardingInteractor(
 
 @Single
 fun provideOnboardingStorageProvider(
-    prefsController: PrefsController
+    prefsController: EncryptedPrefsController
 ): OnboardingStorageProvider = PrefsOnboardingStorageProvider(prefsController)
 
 @Single
 fun provideSetupStorageProvider(
-    prefsController: PrefsController
+    prefsController: EncryptedPrefsController
 ): SetupStorageProvider = PrefsSetupStorageProvider(prefsController)
 
 @Factory

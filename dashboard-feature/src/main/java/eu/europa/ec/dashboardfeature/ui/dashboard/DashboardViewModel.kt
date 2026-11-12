@@ -32,6 +32,7 @@ import eu.europa.ec.eudi.openid4vci.CredentialConfigurationIdentifier
 import eu.europa.ec.eudi.wallet.document.DocumentId
 import eu.europa.ec.eudi.wallet.document.IssuedDocument
 import eu.europa.ec.resourceslogic.R
+import eu.europa.ec.resourceslogic.provider.ResourceProvider
 import eu.europa.ec.uilogic.component.content.ContentErrorConfig
 import eu.europa.ec.uilogic.component.dialog.GenericErrorDialogConfig
 import eu.europa.ec.uilogic.config.ConfigNavigation
@@ -50,13 +51,14 @@ import eu.europa.ec.uilogic.navigation.helper.generateComposableNavigationLink
 import eu.europa.ec.uilogic.navigation.helper.hasDeepLink
 import eu.europa.ec.uilogic.serializer.UiSerializer
 import kotlinx.coroutines.launch
-import kotlinx.serialization.json.Json
 import org.koin.android.annotation.KoinViewModel
 import org.sprind.wallet.analyticslogic.controller.Telemetry
 import org.sprind.wallet.analyticslogic.controller.TelemetryConstants
 import org.sprind.wallet.businesslogic.config.EidCardType
 import org.sprind.wallet.businesslogic.config.UserRuntimeConfig
 import org.sprind.wallet.businesslogic.util.SpanAttributes
+import org.sprind.wallet.commonfeature.navigation.cardReaderIssuanceRoute
+import org.sprind.wallet.dashboardfeature.ui.dashboard.CredentialCatalogueRoute
 
 data class State(
     val appVersion: String = "",
@@ -72,6 +74,7 @@ data class State(
 sealed class Event : ViewEvent {
     data object Init : Event()
     data object OpenIssuance : Event()
+    data object OpenCredentialCatalogue : Event()
     data class InitDeepLink(val deepLinkUri: Uri?) : Event()
     data object Pop : Event()
     data class CardPressed(val docId: String) : Event()
@@ -101,6 +104,8 @@ sealed class Effect : ViewSideEffect {
 
         data class OpenDeepLinkAction(val deepLinkUri: Uri, val arguments: String?) :
             Navigation()
+
+        data class OpenCredentialCatalogue(val route: CredentialCatalogueRoute) : Navigation()
     }
 }
 
@@ -111,6 +116,7 @@ class DashboardViewModel(
     private val telemetry: Telemetry,
     private val userRuntimeConfig: UserRuntimeConfig,
     private val routerHost: RouterHost,
+    private val resourceProvider: ResourceProvider,
 ) : MviViewModel<Event, State, Effect>() {
     private var hasLoadedDocuments = false
 
@@ -155,6 +161,15 @@ class DashboardViewModel(
                         inclusive = false
                     )
                 }
+            }
+
+            Event.OpenCredentialCatalogue -> setEffect {
+                Effect.Navigation.OpenCredentialCatalogue(
+                    CredentialCatalogueRoute(
+                        url = dashboardInteractor.getCredentialCatalogueUrl()
+                            .forLocale(resourceProvider.getLocale())
+                    )
+                )
             }
 
             is Event.InitDeepLink -> handleDeepLink(event.deepLinkUri)
@@ -389,17 +404,7 @@ class DashboardViewModel(
     private fun navigateToReadCardScreen(credentialTypes: Set<CredentialConfigurationIdentifier>) {
         setEffect {
             Effect.Navigation.SwitchScreen(
-                screenRoute = generateComposableNavigationLink(
-                    screen = eu.europa.ec.uilogic.navigation.CardReaderScreens.Reader,
-                    arguments = generateComposableArguments(
-                        mapOf(
-                            "flowType" to IssuanceFlowUiConfig.fromIssuanceFlowUiConfig(
-                                IssuanceFlowUiConfig.NO_DOCUMENT
-                            ),
-                            "credentialTypes" to Json.encodeToString(credentialTypes)
-                        )
-                    )
-                ),
+                screenRoute = cardReaderIssuanceRoute(credentialTypes),
                 inclusive = true,
             )
         }

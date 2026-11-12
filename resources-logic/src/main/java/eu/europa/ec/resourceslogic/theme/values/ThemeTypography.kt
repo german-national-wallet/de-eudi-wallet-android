@@ -20,6 +20,10 @@ import eu.europa.ec.resourceslogic.theme.templates.ThemeTextStyle
 import eu.europa.ec.resourceslogic.theme.templates.ThemeTypographyTemplate
 import org.sprind.wallet.resourceslogic.generated.DesignTypography
 
+/**
+ * The display and headline-large slots are deprecated: the typescale no longer defines them, and
+ * they keep their previous values only until no screen uses them. Don't use them in new code.
+ */
 internal class ThemeTypography {
     companion object {
         val typo: ThemeTypographyTemplate
@@ -41,9 +45,6 @@ internal class ThemeTypography {
                 bodySmall      = DesignTypography.bodySmall,
             )
 
-        val headlineExtraMedium:  ThemeTextStyle get() = DesignTypography.headlineExtraMedium
-        val titleLargeMedium:     ThemeTextStyle get() = DesignTypography.titleLargeMedium
-        val titleMediumLarge:     ThemeTextStyle get() = DesignTypography.titleMediumLarge
         val labelLargeProminent:  ThemeTextStyle get() = DesignTypography.labelLargeProminent
         val labelMediumProminent: ThemeTextStyle get() = DesignTypography.labelMediumProminent
         val key:                  ThemeTextStyle get() = DesignTypography.key

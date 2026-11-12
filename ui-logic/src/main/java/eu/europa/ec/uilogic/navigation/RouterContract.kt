@@ -45,8 +45,6 @@ sealed class PresentationScreens {
 
     data object PresentationLoading : Screen(name = "PRESENTATION_LOADING")
 
-    data object PresentationNoDocument : Screen(name = "PRESENTATION_NO_DOCUMENT")
-
     /** The URI parameters are URL encoded, and empty when absent. */
     data object PresentationRequestRejected : Screen(
         name = "PRESENTATION_REQUEST_REJECTED",

@@ -34,12 +34,15 @@ import org.sprind.wallet.analyticslogic.controller.Telemetry
 import org.sprind.wallet.businesslogic.controller.crypto.CryptoError
 import org.sprind.wallet.businesslogic.controller.revocation.WalletRevocationStore
 import org.sprind.wallet.commonfeature.interactor.MdvmInteractor
+import org.sprind.wallet.networklogic.common.NetworkFailure
 import org.sprind.wallet.networklogic.common.model.ApiResult
 import org.sprind.wallet.networklogic.mdvm.model.error.MdvmErrorResponse
 import org.sprind.wallet.networklogic.mdvm.model.error.MdvmErrorType
 import org.sprind.wallet.authenticationlogic.model.MdvmError
 import org.sprind.wallet.authenticationlogic.model.MdvmRegistration
 import org.sprind.wallet.authenticationlogic.model.toMdvmError
+import java.net.SocketTimeoutException
+import kotlin.time.Instant
 
 private const val TRACE_ID = "4bf92f3577b34da6a3ce929d0e0e4736"
 private const val CLIENT_TRACE_ID = "0af7651916cd43dd8448eb211c80319c"
@@ -208,6 +211,43 @@ class WalletRegistrationInteractorTest {
                 failure.errorCode
             )
             assertEquals("WB_BAD_REQUEST", failure.backendErrorCode)
+            awaitComplete()
+        }
+    }
+
+    @Test
+    fun `keeps a timed-out MDVM registration so that its own dialog is shown`() = runTest {
+        val timedOut = SocketTimeoutException("timeout").toMdvmError()
+        whenever(mdvmInteractor.mdvmRegistration()).thenReturn(ApiResult.Failure(timedOut))
+
+        subject.registerWallet().test {
+            val failure = awaitItem() as WalletInitialRegistrationPartialState.Failure
+
+            assertEquals(NetworkFailure.Timeout, failure.networkFailure)
+            awaitComplete()
+        }
+        verifyNoInteractions(appAttestationController)
+    }
+
+    @Test
+    fun `keeps a rate-limited wallet backend request so that its own dialog is shown`() = runTest {
+        val rateLimited = NetworkFailure.RateLimited(Instant.parse("2026-10-24T10:05:00Z"))
+        whenever(mdvmInteractor.mdvmRegistration()).thenReturn(ApiResult.Success(mdvmRegistration))
+        whenever(appAttestationController.registerWallet()).thenReturn(
+            flowOf(
+                WalletRegistrationPartialState.Failure(
+                    errorCode = "RATE_LIMITED",
+                    traceId = TRACE_ID,
+                    networkFailure = rateLimited,
+                )
+            )
+        )
+
+        subject.registerWallet().test {
+            val failure = awaitItem() as WalletInitialRegistrationPartialState.Failure
+
+            assertEquals(rateLimited, failure.networkFailure)
+            assertEquals("RATE_LIMITED", failure.backendErrorCode)
             awaitComplete()
         }
     }

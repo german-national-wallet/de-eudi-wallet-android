@@ -3,7 +3,6 @@ package eu.europa.ec.corelogic.controller
 import com.nimbusds.jose.jwk.JWK
 import com.nimbusds.jwt.SignedJWT
 import com.nimbusds.oauth2.sdk.auth.ClientAuthenticationMethod
-import eu.europa.ec.eudi.openid4vci.CIAuthorizationServerMetadata
 import eu.europa.ec.eudi.openid4vci.CredentialConfigurationIdentifier
 import eu.europa.ec.eudi.openid4vci.CredentialIssuerMetadata
 import eu.europa.ec.eudi.openid4vci.CredentialIssuanceError.AccessTokenRequestFailed
@@ -11,8 +10,6 @@ import eu.europa.ec.eudi.openid4vci.CredentialIssuerMetadataError.InvalidSignedM
 import eu.europa.ec.eudi.openid4vci.CredentialIssuerMetadataError.MissingSignedMetadata
 import eu.europa.ec.eudi.openid4vci.CredentialOfferRequestError.UnableToResolveCredentialIssuerMetadata
 import eu.europa.ec.eudi.openid4vci.CredentialOfferRequestException
-import eu.europa.ec.eudi.openid4vci.CredentialOffer
-import eu.europa.ec.eudi.openid4vci.CredentialIssuerId
 import eu.europa.ec.eudi.openid4vci.Grants
 import eu.europa.ec.eudi.wallet.EudiWallet
 import eu.europa.ec.eudi.wallet.document.IssuedDocument
@@ -44,6 +41,8 @@ import eu.europa.ec.testlogic.extension.runFlowTest
 import eu.europa.ec.testlogic.extension.runTest
 import eu.europa.ec.testlogic.rule.CoroutineTestRule
 import junit.framework.TestCase.assertEquals
+import junit.framework.TestCase.assertFalse
+import junit.framework.TestCase.assertNull
 import junit.framework.TestCase.assertTrue
 import org.junit.After
 import org.junit.Before
@@ -63,6 +62,7 @@ import org.mockito.kotlin.never
 import org.mockito.kotlin.times
 import org.mockito.kotlin.verify
 import org.mockito.kotlin.whenever
+import org.sprind.wallet.networklogic.common.NetworkFailure
 import org.sprind.wallet.corelogic.controller.ReissueDocumentPartialState
 import org.sprind.wallet.corelogic.activity.ActivityCredential
 import org.sprind.wallet.corelogic.activity.ActivityLogEntry
@@ -72,10 +72,13 @@ import org.sprind.wallet.corelogic.activity.ActivityType
 import org.sprind.wallet.corelogic.activity.InteractingParty
 import org.sprind.wallet.corelogic.activity.newActivityLogEntry
 import org.sprind.wallet.corelogic.config.PidConfigurationOverrides
+import org.sprind.wallet.corelogic.controller.buildAsMetadata
+import org.sprind.wallet.corelogic.controller.buildOffer
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.first
 import org.multipaz.crypto.Algorithm
 import org.multipaz.securearea.SecureArea
+import java.net.SocketTimeoutException
 import java.security.PrivateKey
 import java.security.interfaces.ECPrivateKey
 
@@ -256,6 +259,62 @@ class WalletCoreDocumentsControllerTest {
             }
         }
     @Test
+    fun `Given the PID issuance times out, issueDocumentAttested reports the timeout`() =
+        coroutineRule.runTest {
+            givenAttestedIssuanceFails(SocketTimeoutException("timeout"))
+
+            issueAttestedPid().runFlowTest {
+                val state = awaitItem() as IssueDocumentPartialState.Failure
+                assertEquals(NetworkFailure.Timeout, state.networkFailure)
+                assertFalse(state.isAuthorizationExpired)
+                cancelAndIgnoreRemainingEvents()
+            }
+        }
+
+    @Test
+    fun `Given the authorization expired after the eID step, issueDocumentAttested says so`() =
+        coroutineRule.runTest {
+            givenAttestedIssuanceFails(AccessTokenRequestFailed("invalid_request", "code expired"))
+
+            issueAttestedPid().runFlowTest {
+                val state = awaitItem() as IssueDocumentPartialState.Failure
+                assertTrue(state.isAuthorizationExpired)
+                assertNull(state.networkFailure)
+                cancelAndIgnoreRemainingEvents()
+            }
+        }
+
+    private fun givenAttestedIssuanceFails(cause: Throwable) {
+        doAnswer { invocation ->
+            val callback = invocation.getArgument<OpenId4VciManager.OnIssueEvent>(7)
+            callback(IssueEvent.Failure(cause))
+            null
+        }.whenever(openId4VciManager).issueDocumentByConfigurationIdentifiersAttested(
+            issuerUrl = any(),
+            credentialConfigurationIds = any(),
+            walletAttestation = any(),
+            walletWiaPopPublicKey = any(),
+            walletWiaPopPrivateKey = any(),
+            txCode = anyOrNull(),
+            executor = anyOrNull(),
+            onIssueEvent = any(),
+        )
+    }
+
+    private fun issueAttestedPid() = subject.issueDocumentAttested(
+        configId = WalletCoreDocumentsController.PID_CONFIGURATION_ID_MDOC.value,
+        walletInstanceAttestationSpec = WalletInstanceAttestationSpec(
+            wbWiaJwt = mock(SignedJWT::class.java),
+            wiWiaPopKeyPair = JwtKeyPair(
+                public = mock(JWK::class.java),
+                private = mock(PrivateKey::class.java),
+            ),
+        ),
+        issuerId = "issuerId",
+        issuanceMethod = IssuanceMethod.OPENID4VCI,
+    )
+
+    @Test
     fun `Given api client returns success, issueDocumentByConfigurationIdentifierAttested() returns Success result`() {
         // TODO needs work and we need to update based on latest logic
     }
@@ -347,29 +406,6 @@ class WalletCoreDocumentsControllerTest {
     // controller must therefore reuse the cached Offer on the issue path
     // instead of re-resolving by URI.
     // ---------------------------------------------------------------------
-
-    private fun buildOffer(
-        issuerUrl: String,
-        authorizationServerMetadata: CIAuthorizationServerMetadata? = null,
-        grants: Grants? = null,
-    ): Offer {
-        // CredentialIssuerId is a value class — construct it directly
-        // instead of mocking (Mockito can't mock inline classes).
-        val credentialIssuerId = CredentialIssuerId.invoke(issuerUrl).getOrThrow()
-        val credentialIssuerMetadata = mock(CredentialIssuerMetadata::class.java)
-        whenever(credentialIssuerMetadata.credentialConfigurationsSupported)
-            .thenReturn(emptyMap<CredentialConfigurationIdentifier, eu.europa.ec.eudi.openid4vci.CredentialConfiguration>())
-        val credentialOffer = mock(CredentialOffer::class.java)
-        whenever(credentialOffer.credentialIssuerIdentifier).thenReturn(credentialIssuerId)
-        whenever(credentialOffer.credentialIssuerMetadata).thenReturn(credentialIssuerMetadata)
-        if (authorizationServerMetadata != null) {
-            whenever(credentialOffer.authorizationServerMetadata).thenReturn(authorizationServerMetadata)
-        }
-        if (grants != null) {
-            whenever(credentialOffer.grants).thenReturn(grants)
-        }
-        return Offer(credentialOffer)
-    }
 
     // ---------------------------------------------------------------------
     // WD-3993: consent shown after browser authorization for the
@@ -681,18 +717,6 @@ class WalletCoreDocumentsControllerTest {
     // endpoints.
     // ---------------------------------------------------------------------
 
-    /**
-     * Builds a mock [CIAuthorizationServerMetadata] whose
-     * `token_endpoint_auth_methods_supported` contains [methods].
-     */
-    private fun buildAsMetadata(
-        methods: List<ClientAuthenticationMethod>,
-    ): CIAuthorizationServerMetadata {
-        val metadata = mock(CIAuthorizationServerMetadata::class.java)
-        whenever(metadata.tokenEndpointAuthMethods).thenReturn(methods)
-        return metadata
-    }
-
     @Test
     fun `Given unknown EAA issuer with attest_jwt_client_auth, issueDocumentsByOfferUri uses AttestationBased config`() =
         coroutineRule.runTest {
@@ -743,6 +767,10 @@ class WalletCoreDocumentsControllerTest {
                 "Expected the unknown EAA issuer's config to use AttestationBased client auth, " +
                     "but was ${eaaConfig.clientAuthenticationType}",
                 eaaConfig.clientAuthenticationType is OpenId4VciManager.ClientAuthenticationType.AttestationBased
+            )
+            assertEquals(
+                OpenId4VciManager.IssuanceProofProfile.ProofType.JWT_WITHOUT_KEY_ATTESTATION,
+                eaaConfig.issuanceProofProfile.preferenceOrder.first().proofType,
             )
         }
 

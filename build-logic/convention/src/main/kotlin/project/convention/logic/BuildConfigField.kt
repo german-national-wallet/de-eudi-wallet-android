@@ -19,7 +19,7 @@ package project.convention.logic
 import com.android.build.api.dsl.VariantDimension
 
 @Suppress("IMPLICIT_CAST_TO_ANY")
-inline fun <reified ValueT> VariantDimension.addConfigField(
+inline fun <reified ValueT : Any> VariantDimension.addConfigField(
     name: String,
     value: ValueT
 ) {
@@ -27,5 +27,10 @@ inline fun <reified ValueT> VariantDimension.addConfigField(
         is String -> "\"$value\""
         else -> value
     }.toString()
-    buildConfigField(ValueT::class.java.simpleName, name, resolvedValue)
+    // Primitive type when there is one (int, not Integer): only primitives and String are
+    // compile-time constants, which the compiler inlines and R8 then drops from BuildConfig. A
+    // boxed field is read at runtime, keeps BuildConfig alive, and with it every other field's
+    // value, tokens included (the app-wide -keepclassmembers rule keeps all fields).
+    val type = ValueT::class.javaPrimitiveType ?: ValueT::class.java
+    buildConfigField(type.simpleName, name, resolvedValue)
 }

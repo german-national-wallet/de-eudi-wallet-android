@@ -92,8 +92,6 @@ fun DocumentOfferOnboardingScreen(
         viewModel.setEvent(Event.Cancel)
     }, onContinueWithEntry = {
         viewModel.setEvent(Event.EnterPin)
-    }, onHelpClick = {
-        // TODO
     })
 
     if (state.showCloseConfirmationDialog) {
@@ -139,14 +137,12 @@ private fun Screen(
     onBackClick: () -> Unit = {},
     onCloseClick: () -> Unit = {},
     onContinueWithEntry: () -> Unit = {},
-    onHelpClick: () -> Unit = {},
 ) {
     ContentScreen(
         topBar = {
             CancellableTopAppBar(
                 onBackClick = onBackClick,
                 onCloseClick = onCloseClick,
-                onHelpClick = onHelpClick,
             )
         },
         onBack = onBackClick,

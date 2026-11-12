@@ -59,18 +59,22 @@ fun provideConfigUILogic(): ConfigUILogic = ConfigUILogicImpl()
 /**
  * Provides a [ImageLoader] configured for credential image loading.
  *
+ * Images are downloaded with a client derived from the base [OkHttpClient], so they get the same
+ * TLS configuration, timeouts and certificate pinning as the other requests of the app.
+ *
  * The loader uses a disk cache with a maximum storage size of 1 GB and enforces
  * a 10 MB per-image download limit via [ImageDownloadPoliciesInterceptor],
  * which also strips `Cache-Control: max-age` / `Expires` headers so the disk
  * cache policy alone controls image retention.
  *
  * @param context The Android context used to access file storage for the disk cache.
+ * @param baseClient The base [OkHttpClient] of the app.
  * @return A configured [ImageLoader] instance.
  * @throws java.io.IOException If a downloaded image exceeds the 10 MB size limit.
  */
 @Single
-fun provideImageLoader(context: Context): ImageLoader {
-    val okHttpClient = OkHttpClient.Builder()
+fun provideImageLoader(context: Context, baseClient: OkHttpClient): ImageLoader {
+    val okHttpClient = baseClient.newBuilder()
         .addNetworkInterceptor(ImageDownloadPoliciesInterceptor(MAX_IMAGE_DOWNLOAD_SIZE_BYTES))
         .build()
 

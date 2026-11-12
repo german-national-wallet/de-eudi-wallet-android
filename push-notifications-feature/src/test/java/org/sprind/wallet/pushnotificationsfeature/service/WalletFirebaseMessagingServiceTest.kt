@@ -18,7 +18,7 @@ package org.sprind.wallet.pushnotificationsfeature.service
 
 import android.content.Intent
 import eu.europa.ec.businesslogic.controller.log.LogController
-import eu.europa.ec.businesslogic.controller.storage.PrefsController
+import org.sprind.wallet.businesslogic.controller.storage.PlainPrefsController
 import org.junit.After
 import org.junit.Before
 import org.junit.Test
@@ -42,6 +42,7 @@ import org.sprind.wallet.pushnotificationsfeature.interactor.PushNotificationsIn
 class WalletFirebaseMessagingServiceTest {
 
     private val dispatcher: FcmMessageDispatcher = mock(FcmMessageDispatcher::class.java)
+    private val plainPrefsController: PlainPrefsController = mock(PlainPrefsController::class.java)
 
     private lateinit var service: WalletFirebaseMessagingService
 
@@ -50,7 +51,7 @@ class WalletFirebaseMessagingServiceTest {
         startKoin {
             modules(
                 module {
-                    single<PrefsController> { mock(PrefsController::class.java) }
+                    single { plainPrefsController }
                     single<LogController> { mock(LogController::class.java) }
                     single<PushNotificationsInteractor> { mock(PushNotificationsInteractor::class.java) }
                     single { dispatcher }
@@ -75,6 +76,16 @@ class WalletFirebaseMessagingServiceTest {
         service.handleIntent(intent)
 
         verify(dispatcher).dispatch(eq(FcmMessageDispatcher.ACTION_RENEW_MDVM_TOKEN), any())
+    }
+
+    @Test
+    fun `a new token clears the registered flag in the plain preferences before registering`() {
+        service.onNewToken("fcm-token")
+
+        // Committed to disk before the asynchronous registration attempt, so a failed or
+        // interrupted attempt (including a process death right after onNewToken) is always
+        // picked up by FcmRegistrationRecovery on the next resume.
+        verify(plainPrefsController).setBoolSync(WalletFirebaseMessagingService.FCM_TOKEN_REGISTERED_KEY, false)
     }
 
     @Test

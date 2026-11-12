@@ -16,11 +16,7 @@
 
 package org.sprind.wallet.presentationfeature.error
 
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -28,26 +24,18 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.unit.dp
 import androidx.core.net.toUri
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import eu.europa.ec.uilogic.component.AppIcons
 import eu.europa.ec.uilogic.component.IconData
-import eu.europa.ec.uilogic.component.content.ContentScreen
-import eu.europa.ec.uilogic.component.content.ScreenNavigateAction
-import eu.europa.ec.uilogic.component.utils.SPACING_MEDIUM
-import eu.europa.ec.uilogic.component.utils.SPACING_SMALL
 import eu.europa.ec.uilogic.component.wrap.ButtonConfig
 import eu.europa.ec.uilogic.component.wrap.ButtonType
 import eu.europa.ec.uilogic.component.wrap.WrapButton
 import eu.europa.ec.uilogic.extension.openUrl
 import eu.europa.ec.uilogic.navigation.DashboardScreens
 import eu.europa.ec.uilogic.navigation.ModuleRoute
-import org.sprind.wallet.uilogic.component.ArtworkCloseAction
-import org.sprind.wallet.uilogic.component.ArtworkTopBar
-import org.sprind.wallet.uilogic.component.ContentTemplateBody
-import org.sprind.wallet.uilogic.component.ContentTemplateConfig
+import org.sprind.wallet.uilogic.component.ArtworkBlockingScreen
 import org.sprind.wallet.uilogic.component.ExternalLinkButton
 import org.sprind.wallet.uilogic.component.dialog.RedirectInfoDialog
 import org.sprind.wallet.uilogic.component.dialog.RedirectInfoDialogConfig
@@ -55,8 +43,9 @@ import org.sprind.wallet.uilogic.component.dialog.RedirectInfoDialogConfig
 /**
  * Full-screen blocking error state (WD-4270): shown when a presentation cannot
  * proceed at all — e.g. the relying party could not be trusted
- * or requested more data than allowed. Sharing data is impossible, so the user may
- * only report the problem or leave.
+ * or requested more data than allowed, or the wallet lacks the credential it asks for.
+ * Sharing data is impossible, so the user may only report the problem, add the missing
+ * Digital ID, or leave.
  *
  * The content comes from [PresentationErrorViewModel]'s [State]; button presses are
  * sent as [Event]s and the resulting navigation arrives as [Effect]s.
@@ -89,11 +78,12 @@ fun PresentationErrorScreen(
             when (effect) {
                 Effect.Navigation.Pop -> navController.popBackStack()
                 Effect.Navigation.ToDashboard ->
-                    navController.navigate(DashboardScreens.Dashboard.screenRoute) {
-                        popUpTo(ModuleRoute.PresentationModule.route) {
-                            inclusive = true
-                        }
-                    }
+                    navController.leavePresentationFor(DashboardScreens.Dashboard.screenRoute)
+
+                // The reader opens a fresh overview when it is left, like it does when the
+                // overview itself starts it, so nothing is kept underneath.
+                is Effect.Navigation.ToPidIssuance ->
+                    navController.leavePresentationFor(effect.screenRoute)
 
                 is Effect.Navigation.OpenUrl -> context.openUrl(effect.url.toUri())
             }
@@ -101,10 +91,18 @@ fun PresentationErrorScreen(
     }
 }
 
+/** Leaves the presentation flow for [route], dropping the whole flow from the back stack. */
+private fun NavController.leavePresentationFor(route: String) {
+    navigate(route) {
+        popUpTo(ModuleRoute.PresentationModule.route) {
+            inclusive = true
+        }
+    }
+}
+
 /**
  * Stateless rendering of [state]; shared with the previews. Follows the Figma "blocking"
- * layout (WD-4274): full-width artwork with a round close button, title and body on the
- * background, and the actions pinned to the bottom. The trace ID is not shown here.
+ * layout (WD-4274) via [ArtworkBlockingScreen]. The trace ID is not shown here.
  */
 @Composable
 internal fun PresentationErrorContent(
@@ -112,49 +110,28 @@ internal fun PresentationErrorContent(
     onEvent: (Event) -> Unit,
 ) {
     val config = state.config
-    val artwork = (config.blockingReason ?: BlockingErrorReason.TRUST_FAILURE).artwork()
 
-    ContentScreen(
-        navigatableAction = ScreenNavigateAction.NONE,
-        topBar = {
-            ArtworkTopBar(artwork = artwork) {
-                ArtworkCloseAction(onClick = { onEvent(Event.ClosePressed) })
-            }
-        },
-        stickyBottom = { paddingValues ->
-            Column(
-                modifier = Modifier.padding(paddingValues),
-                verticalArrangement = Arrangement.spacedBy(SPACING_SMALL.dp),
-            ) {
-                ActionButton(
-                    action = config.primaryAction,
-                    type = ButtonType.PRIMARY,
-                    onClick = { onEvent(Event.PrimaryActionPressed) },
-                )
-                config.secondaryAction?.let { action ->
-                    ActionButton(
-                        action = action,
-                        type = ButtonType.SECONDARY,
-                        onClick = { onEvent(Event.SecondaryActionPressed) },
-                    )
-                }
-            }
-        },
-    ) { paddingValues ->
-        ContentTemplateBody(
-            modifier = Modifier
-                .padding(top = SPACING_MEDIUM.dp),
-            screenPadding = paddingValues,
-            // Hint at text hidden behind the pinned actions.
-            templateConfig = ContentTemplateConfig(showScrollFade = true),
-            title = {
-                Text(
-                    text = stringResource(config.titleRes),
-                    style = MaterialTheme.typography.titleMedium,
-                )
-            },
-            body = { Text(stringResource(config.bodyRes)) },
+    ArtworkBlockingScreen(
+        artwork = (config.blockingReason ?: BlockingErrorReason.TRUST_FAILURE).artwork(),
+        titleRes = config.titleRes,
+        bodyRes = config.bodyRes,
+        onClose = { onEvent(Event.ClosePressed) },
+        isLoading = state.isLoading,
+        // The locked Digital ID screen has no close button in Figma; back still leaves.
+        showClose = config.blockingReason != BlockingErrorReason.PID_LOCKED,
+    ) {
+        ActionButton(
+            action = config.primaryAction,
+            type = if (config.primaryAction.outlined) ButtonType.SECONDARY else ButtonType.PRIMARY,
+            onClick = { onEvent(Event.PrimaryActionPressed) },
         )
+        config.secondaryAction?.let { action ->
+            ActionButton(
+                action = action,
+                type = ButtonType.SECONDARY,
+                onClick = { onEvent(Event.SecondaryActionPressed) },
+            )
+        }
     }
 }
 
@@ -184,4 +161,8 @@ private fun BlockingErrorReason.artwork(): IconData = when (this) {
         -> AppIcons.PhoneSecurityShield
 
     BlockingErrorReason.MISSING_CREDENTIAL -> AppIcons.MissingCredential
+
+    BlockingErrorReason.MISSING_PID -> AppIcons.MissingPid
+
+    BlockingErrorReason.PID_LOCKED -> AppIcons.PidLocked
 }

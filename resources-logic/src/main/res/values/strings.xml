@@ -231,7 +231,6 @@
     <string name="content_description_error_pin">error pin</string>
     <string name="content_description_nfc_not_activated">Smartphone with switched off contactless function</string>
 
-    <string name="content_description_atom_credential_icon">Credential Icon</string>
     <string name="content_description_eid_logo">E-ID Logo</string>
     <string name="content_description_id_german_national">Id German National</string>
     <string name="content_description_id_migrant_in_germany">Id Migrant in Germany</string>
@@ -241,10 +240,11 @@
     <string name="content_description_phone_security">Phone Security</string>
     <string name="content_description_phone_security_shield">A phone carrying a security shield</string>
     <string name="content_description_missing_credential">A credential card with a question mark</string>
+    <string name="content_description_missing_pid">ID cards with a question mark</string>
+    <string name="content_description_pid_locked">A phone showing a Digital ID card</string>
     <string name="content_description_card_pin">Digital ID card with its code</string>
     <string name="content_description_password_visibility">Password visibility</string>
     <string name="content_description_blocked">Blocked</string>
-    <string name="content_description_warning">Warning</string>
     <string name="content_description_location">Location</string>
     <string name="content_description_institution">Institution</string>
     <string name="content_description_email">E-mail</string>
@@ -320,4 +320,15 @@
 
     <!-- App setup: the part of app_onboarding_policy_intro_checkbox_label that links to the terms of use -->
     <string name="setup_privacy_policy_terms_link">terms of use</string>
+
+    <!-- eID card reading: the card's online function is off, so it cannot be read until the citizen's office switches it on. Copy pending design review. -->
+    <string name="eid_card_deactivated_paragraph">The online ID function of your ID card is switched off. Your citizen’s office can switch it on for you.</string>
+
+    <!-- eID card reading: the scan dialog's title once the card has left the reader before its read was through. Copy pending design review. -->
+    <string name="nfc_scanning_system_sheet_nfc_title_start_again">Ready to scan again</string>
+
+    <!-- Slow HSM: patience screen while the wallet backend HSM is overloaded (WD-5013) -->
+    <string name="hsm_delay_title">Please be patient</string>
+    <string name="hsm_delay_paragraph">We are preparing the app for you</string>
+    <string name="hsm_delay_retry_button">Try again later</string>
 </resources>

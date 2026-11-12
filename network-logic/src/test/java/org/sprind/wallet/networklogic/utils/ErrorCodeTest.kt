@@ -18,6 +18,8 @@ package org.sprind.wallet.networklogic.utils
 
 import org.junit.Assert.assertEquals
 import org.junit.Test
+import org.sprind.wallet.networklogic.common.HttpRateLimitedException
+import org.sprind.wallet.networklogic.common.HttpRequestTimeoutException
 import org.sprind.wallet.networklogic.common.RequestSigningException
 import org.sprind.wallet.networklogic.trace.TracedIOException
 import java.net.UnknownHostException
@@ -40,6 +42,26 @@ class ErrorCodeTest {
         )
 
         assertEquals(UNKNOWN_ERROR_CODE, traced.getErrorCode())
+    }
+
+    @Test
+    fun `a rate limit is reported as RATE_LIMITED, not NO_INTERNET`() {
+        val traced = TracedIOException(
+            traceId = "trace",
+            cause = HttpRateLimitedException(retryAt = null, fromGateway = true),
+        )
+
+        assertEquals(RATE_LIMITED_ERROR_CODE, traced.getErrorCode())
+    }
+
+    @Test
+    fun `a request timeout is reported as NO_INTERNET, like other timeouts`() {
+        val traced = TracedIOException(
+            traceId = "trace",
+            cause = HttpRequestTimeoutException(fromGateway = true),
+        )
+
+        assertEquals(NO_INTERNET_ERROR_CODE, traced.getErrorCode())
     }
 
     @Test

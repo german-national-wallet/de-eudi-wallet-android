@@ -19,6 +19,7 @@ package eu.europa.ec.corelogic.util
 import eu.europa.ec.eudi.iso18013.transfer.TransferEvent
 import eu.europa.ec.eudi.iso18013.transfer.response.Request
 import eu.europa.ec.eudi.iso18013.transfer.response.RequestProcessor
+import org.sprind.wallet.corelogic.presentationerror.VERIFIER_REJECTION_MESSAGE
 import java.net.URI
 
 class EudiWalletListenerWrapper(
@@ -42,6 +43,7 @@ class EudiWalletListenerWrapper(
             is TransferEvent.RequestReceived -> onRequestReceived(event.processedRequest, event.request)
             is TransferEvent.ResponseSent -> onResponseSent()
             is TransferEvent.Redirect -> onRedirect(event.redirectUri)
+            is TransferEvent.Rejected -> onError(IllegalStateException(VERIFIER_REJECTION_MESSAGE))
             is TransferEvent.IntentToSend -> intentToSend()
         }
     }

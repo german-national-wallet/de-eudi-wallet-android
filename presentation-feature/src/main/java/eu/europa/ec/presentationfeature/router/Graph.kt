@@ -30,7 +30,6 @@ import eu.europa.ec.presentationfeature.interactor.RequestRejectionReason
 import eu.europa.ec.presentationfeature.ui.loading.PresentationLoadingScreen
 import org.sprind.wallet.presentationfeature.error.BlockingErrorReason
 import org.sprind.wallet.presentationfeature.error.PresentationErrorScreen
-import org.sprind.wallet.presentationfeature.nodocument.PresentationNoDocumentScreen
 import org.sprind.wallet.presentationfeature.rejected.PresentationRequestRejectedScreen
 import eu.europa.ec.presentationfeature.ui.request.PresentationRequestScreen
 import eu.europa.ec.presentationfeature.ui.success.PresentationSuccessScreen
@@ -80,12 +79,6 @@ fun NavGraphBuilder.presentationGraph(navController: NavController) {
                     }
                 )
             )
-        }
-
-        composable(
-            route = PresentationScreens.PresentationNoDocument.screenRoute,
-        ) {
-            PresentationNoDocumentScreen(navController)
         }
 
         composable(

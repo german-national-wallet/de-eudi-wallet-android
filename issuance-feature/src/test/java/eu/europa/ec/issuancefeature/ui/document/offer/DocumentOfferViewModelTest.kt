@@ -4,6 +4,8 @@ import android.content.Context
 import eu.europa.ec.authenticationlogic.controller.authentication.DeviceAuthenticationResult
 import eu.europa.ec.authenticationlogic.model.BiometricCrypto
 import eu.europa.ec.commonfeature.config.OfferUiConfig
+import eu.europa.ec.corelogic.di.WalletPresentationScope
+import eu.europa.ec.corelogic.di.closePresentationScope
 import eu.europa.ec.issuancefeature.interactor.document.DocumentOfferInteractor
 import eu.europa.ec.issuancefeature.interactor.document.IssueDocumentsInteractorPartialState
 import eu.europa.ec.issuancefeature.interactor.document.ResolveDocumentOfferInteractorPartialState
@@ -29,6 +31,9 @@ import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
+import org.koin.core.context.startKoin
+import org.koin.core.context.stopKoin
+import org.koin.dsl.module
 import org.mockito.Mock
 import org.mockito.Mockito.mock
 import org.mockito.MockitoAnnotations
@@ -41,6 +46,8 @@ import org.mockito.kotlin.verify
 import org.mockito.kotlin.whenever
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
+import org.sprind.wallet.authenticationlogic.provider.RwscaPinSessionHolder
+import org.sprind.wallet.authenticationlogic.provider.RwscaPinSessionHolderImpl
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
@@ -111,10 +118,24 @@ class DocumentOfferViewModelTest {
         )).thenReturn(mockedOfferUiConfig)
         whenever(resourceProvider.getString(R.string.issuance_interrupted_error))
             .thenReturn("issuance was interrupted")
+        // Event.OnDynamicPresentation opens the global Koin presentation scope; provide
+        // the minimal graph it needs (including what its close callback resolves).
+        startKoin {
+            modules(
+                module {
+                    single<RwscaPinSessionHolder> { RwscaPinSessionHolderImpl() }
+                    scope<WalletPresentationScope> { }
+                }
+            )
+        }
     }
 
     @After
     fun tearDown() {
+        // Close the presentation scope while the root scope is still open: its
+        // close callback resolves RwscaPinSessionHolder from the root.
+        closePresentationScope()
+        stopKoin()
         closeable.close()
     }
 
@@ -535,6 +556,140 @@ class DocumentOfferViewModelTest {
             assertTrue(subject.viewState.value.isLoading)
             assertNull(subject.viewState.value.error)
         }
+
+    @Test
+    fun `when the app backgrounds again within the grace period, then no abandonment error is raised`() =
+        coroutineRule.runTest {
+            stubResolveSuccess()
+            stubIssueDocuments(MutableSharedFlow())
+
+            subject.setEvent(Event.Init(deepLink = null))
+            coroutineRule.testScope.testScheduler.runCurrent()
+
+            // A brief resume (arms the check) immediately followed by another pause:
+            // the user never actually came back from the browser.
+            subject.setEvent(Event.Init(deepLink = null))
+            coroutineRule.testScope.testScheduler.runCurrent()
+            subject.setEvent(Event.OnPause)
+            coroutineRule.testScope.testScheduler.runCurrent()
+
+            coroutineRule.testScope.testScheduler.advanceTimeBy(801)
+            coroutineRule.testScope.testScheduler.runCurrent()
+
+            assertTrue(subject.viewState.value.isLoading)
+            assertTrue(subject.viewState.value.browserAuthInProgress)
+            assertNull(subject.viewState.value.error)
+        }
+
+    /**
+     * Regression: mDL issuance requiring a PID presentation showed
+     * "Oops! Something went wrong" mid-flow. Returning from the presentation screen
+     * resumed this screen while the verifier's redirect was only just being opened
+     * in the browser, and the 800 ms abandonment check fired before the
+     * authorization redirect came back.
+     */
+    @Test
+    fun `when returning from a dynamic presentation that opens the browser, then no spurious error appears`() =
+        coroutineRule.runTest {
+            stubResolveSuccess()
+            stubIssueDocuments(MutableSharedFlow())
+            val issuanceState = MutableSharedFlow<IssueDocumentsInteractorPartialState>(replay = 1)
+            whenever(documentOfferInteractor.issuanceState).thenReturn(issuanceState)
+
+            subject.setEvent(Event.Init(deepLink = null))
+            coroutineRule.testScope.testScheduler.runCurrent()
+            assertTrue(subject.viewState.value.browserAuthInProgress)
+
+            // Issuer requests a PID presentation; the presentation screen goes on top.
+            subject.setEvent(Event.OnDynamicPresentation("openid4vp://request"))
+            subject.setEvent(Event.OnPause)
+            coroutineRule.testScope.testScheduler.runCurrent()
+
+            // Presentation succeeds: the presentation screen pops back to this one...
+            subject.setEvent(Event.Init(deepLink = null))
+            coroutineRule.testScope.testScheduler.runCurrent()
+
+            // ...and posting the response to the verifier plus launching the browser
+            // for its redirect takes far longer than the regular grace period.
+            coroutineRule.testScope.testScheduler.advanceTimeBy(6_000)
+            coroutineRule.testScope.testScheduler.runCurrent()
+            assertNull(subject.viewState.value.error)
+            assertTrue(subject.viewState.value.isLoading)
+
+            subject.setEvent(Event.OnPause)
+            coroutineRule.testScope.testScheduler.runCurrent()
+
+            // The authorization round-trip in the browser takes several seconds.
+            coroutineRule.testScope.testScheduler.advanceTimeBy(5_000)
+            coroutineRule.testScope.testScheduler.runCurrent()
+            assertNull(subject.viewState.value.error)
+            assertTrue(subject.viewState.value.isLoading)
+
+            // The authorization redirect brings the app back.
+            subject.setEvent(Event.Init(deepLink = null))
+            subject.setEvent(Event.OnResumeIssuance("org.sprind.wallet.dev:/authorization?code=abc"))
+            issuanceState.tryEmit(IssueDocumentsInteractorPartialState.AwaitingConsent)
+            coroutineRule.testScope.testScheduler.runCurrent()
+            coroutineRule.testScope.testScheduler.advanceTimeBy(801)
+            coroutineRule.testScope.testScheduler.runCurrent()
+
+            assertTrue(subject.viewState.value.awaitingConsent)
+            assertFalse(subject.viewState.value.isLoading)
+            assertNull(subject.viewState.value.error)
+        }
+
+    @Test
+    fun `when returning from a dynamic presentation that never opens the browser, then it is not stuck loading`() =
+        coroutineRule.runTest {
+            stubResolveSuccess()
+            stubIssueDocuments(MutableSharedFlow())
+
+            subject.setEvent(Event.Init(deepLink = null))
+            coroutineRule.testScope.testScheduler.runCurrent()
+
+            subject.setEvent(Event.OnDynamicPresentation("openid4vp://request"))
+            subject.setEvent(Event.OnPause)
+            coroutineRule.testScope.testScheduler.runCurrent()
+
+            // Presentation cancelled: back on this screen, and no browser is coming.
+            subject.setEvent(Event.Init(deepLink = null))
+            coroutineRule.testScope.testScheduler.runCurrent()
+
+            coroutineRule.testScope.testScheduler.advanceTimeBy(801)
+            coroutineRule.testScope.testScheduler.runCurrent()
+            assertNull(subject.viewState.value.error)
+
+            coroutineRule.testScope.testScheduler.advanceTimeBy(9_200)
+            coroutineRule.testScope.testScheduler.runCurrent()
+
+            assertFalse(subject.viewState.value.isLoading)
+            assertFalse(subject.viewState.value.browserAuthInProgress)
+            assertNotNull(subject.viewState.value.error?.onRetry)
+        }
+
+    @Test
+    fun `when a redirect arrives after an abandonment error, then the stale error is cleared`() =
+        coroutineRule.runTest {
+            stubResolveSuccess()
+            stubIssueDocuments(MutableSharedFlow())
+            // Token exchange still pending.
+            whenever(documentOfferInteractor.issuanceState).thenReturn(MutableSharedFlow())
+
+            subject.setEvent(Event.Init(deepLink = null))
+            coroutineRule.testScope.testScheduler.runCurrent()
+            subject.setEvent(Event.Init(deepLink = null))
+            coroutineRule.testScope.testScheduler.runCurrent()
+            coroutineRule.testScope.testScheduler.advanceTimeBy(801)
+            coroutineRule.testScope.testScheduler.runCurrent()
+            assertNotNull(subject.viewState.value.error)
+
+            subject.setEvent(Event.OnResumeIssuance("org.sprind.wallet.dev:/authorization?code=abc"))
+            coroutineRule.testScope.testScheduler.runCurrent()
+
+            assertNull(subject.viewState.value.error)
+            assertTrue(subject.viewState.value.isLoading)
+        }
+
 
     @Test
     fun `when consent is confirmed but credential submission stalls, then it times out with a retryable error`() =

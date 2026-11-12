@@ -40,6 +40,7 @@ import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.onEach
 import org.sprind.wallet.cardreaderfeature.nfc.CardReaderNfcDispatcher
 import org.sprind.wallet.cardreaderfeature.nfc.NfcStateProvider
+import org.sprind.wallet.uilogic.component.HsmDelayScreen
 
 @Composable
 internal fun ReadCardScreen(
@@ -63,10 +64,19 @@ internal fun ReadCardScreen(
     // sync with the device without observing the adapter.
     val nfcStateProvider = remember(context) { NfcStateProvider(context) }
 
-    CardReaderRouteHost(
-        state = state,
-        onEventSend = viewModel::setEvent
-    )
+    val hsmDelay = state.hsmDelay
+    if (hsmDelay != null) {
+        HsmDelayScreen(
+            canRetry = hsmDelay.canRetry,
+            onRetry = { viewModel.setEvent(Event.RetryAfterHsmDelay) },
+            onClose = { viewModel.setEvent(Event.CloseHsmDelay) },
+        )
+    } else {
+        CardReaderRouteHost(
+            state = state,
+            onEventSend = viewModel::setEvent
+        )
+    }
 
     LaunchedEffect(Unit) {
         viewModel.effect.onEach { effect ->

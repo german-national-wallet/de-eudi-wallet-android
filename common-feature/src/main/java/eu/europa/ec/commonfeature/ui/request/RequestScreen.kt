@@ -38,11 +38,9 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import eu.europa.ec.businesslogic.extension.toUri
-import eu.europa.ec.commonfeature.ui.request.views.AccountLockedView
 import eu.europa.ec.commonfeature.ui.request.views.CredentialDetailsView
 import eu.europa.ec.commonfeature.ui.request.views.IdDeletionConfirmationDialog
 import eu.europa.ec.commonfeature.ui.request.views.TemporaryPinBlockView
-import eu.europa.ec.commonfeature.ui.request.views.footer.AccountLockedFooter
 import eu.europa.ec.commonfeature.ui.request.views.footer.DefaultFooter
 import eu.europa.ec.commonfeature.ui.request.views.footer.EnterPinFooter
 import eu.europa.ec.commonfeature.ui.request.views.footer.TemporaryPinBlockFooter
@@ -81,6 +79,7 @@ import eu.europa.ec.uilogic.component.wrap.WrapIcon
 import eu.europa.ec.uilogic.component.wrap.WrapModalBottomSheet
 import eu.europa.ec.uilogic.component.wrap.WrapText
 import eu.europa.ec.uilogic.extension.openDeepLink
+import eu.europa.ec.uilogic.extension.openInternetSettings
 import eu.europa.ec.uilogic.extension.openUrl
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.onEach
@@ -159,15 +158,15 @@ fun RequestScreen(
         )
     }
 
-    state.pendingReportIssueUrl?.let { link ->
+    state.pendingRedirectUrl?.let { link ->
         RedirectInfoDialog(
             config = RedirectInfoDialogConfig(
                 target = link.toUri(),
                 onConfirm = {
-                    viewModel.setEvent(Event.ReportIssueRedirectHandled)
+                    viewModel.setEvent(Event.RedirectHandled)
                     context.openUrl(link.toUri())
                 },
-                onDismiss = { viewModel.setEvent(Event.ReportIssueRedirectHandled) },
+                onDismiss = { viewModel.setEvent(Event.RedirectHandled) },
             )
         )
     }
@@ -225,6 +224,8 @@ fun RequestScreen(
                 Effect.HideKeyboard -> {
                     keyboardController?.hide()
                 }
+
+                Effect.OpenInternetSettings -> context.openInternetSettings()
             }
         }.collect()
     }
@@ -268,27 +269,23 @@ private fun Content(
     val navigatableAction =
         if (state.currentStep == RequestScreenStep.Initial ||
             state.currentStep is RequestScreenStep.TemporaryPinBlocked ||
-            state.currentStep is RequestScreenStep.DocumentDeletedConfirmation ||
-            state.currentStep is RequestScreenStep.AccountLocked
+            state.currentStep is RequestScreenStep.DocumentDeletedConfirmation
         ) {
             ScreenNavigateAction.NONE
         } else ScreenNavigateAction.BACKABLE
 
-    val onHelp: () -> Unit = { onEventSend(Event.HelpPressed) }
     val onClose: () -> Unit = { onEventSend(Event.CloseButtonPressed) }
 
     val toolbar: (@Composable () -> Unit)? = when {
         state.currentStep == RequestScreenStep.Initial -> {
             {
                 CancellableTopAppBar(
-                    onHelpClick = onHelp.takeUnless { state.isLoading },
                     onCloseClick = onClose.takeUnless { state.isLoading },
                 )
             }
         }
 
         state.isLoading ||
-            state.currentStep is RequestScreenStep.AccountLocked ||
             state.currentStep is RequestScreenStep.TemporaryPinBlocked ||
             state.currentStep is RequestScreenStep.DocumentDeletedConfirmation -> {
             {
@@ -395,14 +392,6 @@ private fun Content(
                         TemporaryPinBlockView(
                             modifier = Modifier.fillMaxSize(),
                             remainingTime = state.unBlockRemainingTime
-                        )
-                    }
-
-                    RequestScreenStep.AccountLocked -> {
-                        AccountLockedView(
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .padding(top = SPACING_MEDIUM.dp)
                         )
                     }
 
@@ -540,12 +529,6 @@ private fun StepFooter(
             isPinValid = pinState.isValid,
             securityInfoClicked = securityInfoClicked,
             onContinuePressed = onContinuePressed
-        )
-
-        RequestScreenStep.AccountLocked -> AccountLockedFooter(
-            modifier = modifier,
-            onPidDeletionButtonClicked = { onEventSend(Event.PidDeletionRequested) },
-            onGoToDashboardButtonPressed = { onEventSend(Event.GoToDashboardButtonPressed) }
         )
 
         is RequestScreenStep.TemporaryPinBlocked -> TemporaryPinBlockFooter(
@@ -754,27 +737,6 @@ private fun TemporaryPinBlockLastTryPreview() {
                     isLastTry = true,
                 ),
                 unBlockRemainingTime = "07:10:00"
-            ),
-            onEventSend = {},
-            bottomSheetState = bottomSheetState
-        )
-    }
-}
-
-@ThemeModeWithGermanAndEnglishPreviews
-@Composable
-private fun AccountLockedPreview() {
-    val bottomSheetState = rememberModalBottomSheetState(
-        skipPartiallyExpanded = false
-    )
-    PreviewTheme {
-        Content(
-            state = State(
-                isLoading = false,
-                headerConfig = ContentHeaderConfig(
-                    title = stringResource(R.string.pid_presentation_retry_counter_locked_title),
-                ),
-                currentStep = RequestScreenStep.AccountLocked
             ),
             onEventSend = {},
             bottomSheetState = bottomSheetState

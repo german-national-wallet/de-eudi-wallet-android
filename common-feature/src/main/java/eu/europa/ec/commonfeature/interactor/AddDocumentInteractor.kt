@@ -45,6 +45,9 @@ import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
+import org.sprind.wallet.corelogic.issuance.isExpiredAuthorization
+import org.sprind.wallet.networklogic.common.NetworkFailure
+import org.sprind.wallet.networklogic.common.toNetworkFailure
 
 sealed class AddDocumentInteractorPartialState {
     data class Success(val options: List<DocumentOptionItemUi>) :
@@ -87,7 +90,12 @@ interface AddDocumentInteractor {
 
 sealed interface IssuanceEvent {
     data object Completed : IssuanceEvent
-    data class Failed(val error: String) : IssuanceEvent
+    /** See [IssueDocumentPartialState.Failure] for [networkFailure] and [isAuthorizationExpired]. */
+    data class Failed(
+        val error: String,
+        val networkFailure: NetworkFailure? = null,
+        val isAuthorizationExpired: Boolean = false,
+    ) : IssuanceEvent
 }
 
 class AddDocumentInteractorImpl(
@@ -174,15 +182,25 @@ class AddDocumentInteractorImpl(
 
                         is IssueDocumentPartialState.Failure ->
                             _issuanceEvents.tryEmit(
-                                IssuanceEvent.Failed(state.errorMessage)
+                                IssuanceEvent.Failed(
+                                    error = state.errorMessage,
+                                    networkFailure = state.networkFailure,
+                                    isAuthorizationExpired = state.isAuthorizationExpired,
+                                )
                             )
 
                         else -> Unit
                     }
                 }.catch { t ->
                     val msg = t.localizedMessage ?: genericErrorMsg
-                    _issuanceState.value = IssueDocumentPartialState.Failure(errorMessage = msg)
-                    _issuanceEvents.emit(IssuanceEvent.Failed(msg))
+                    val networkFailure = t.toNetworkFailure()
+                    val isAuthorizationExpired = t.isExpiredAuthorization()
+                    _issuanceState.value = IssueDocumentPartialState.Failure(
+                        errorMessage = msg,
+                        networkFailure = networkFailure,
+                        isAuthorizationExpired = isAuthorizationExpired,
+                    )
+                    _issuanceEvents.emit(IssuanceEvent.Failed(msg, networkFailure, isAuthorizationExpired))
                 }.launchIn(interactorScope)
     }
 
@@ -227,7 +245,11 @@ class AddDocumentInteractorImpl(
                         IssueDocumentPartialState.Success(response.documentIds)
 
                     is IssueDocumentsPartialState.Failure ->
-                        IssueDocumentPartialState.Failure(response.errorMessage)
+                        IssueDocumentPartialState.Failure(
+                            errorMessage = response.errorMessage,
+                            networkFailure = response.networkFailure,
+                            isAuthorizationExpired = response.isAuthorizationExpired,
+                        )
 
                     is IssueDocumentsPartialState.DeferredSuccess ->
                         IssueDocumentPartialState.DeferredSuccess(response.deferredDocuments)
@@ -253,7 +275,13 @@ class AddDocumentInteractorImpl(
                         _issuanceEvents.tryEmit(IssuanceEvent.Completed)
 
                     is IssueDocumentPartialState.Failure ->
-                        _issuanceEvents.tryEmit(IssuanceEvent.Failed(mapped.errorMessage))
+                        _issuanceEvents.tryEmit(
+                            IssuanceEvent.Failed(
+                                error = mapped.errorMessage,
+                                networkFailure = mapped.networkFailure,
+                                isAuthorizationExpired = mapped.isAuthorizationExpired,
+                            )
+                        )
 
                     else -> Unit
                 }

@@ -41,6 +41,7 @@
     <string name="__variable_text_credential_data_var_label_country">Country</string>
     <string name="__variable_text_credential_data_var_label_created_at">Created at</string>
     <string name="__variable_text_credential_data_var_label_document_type">Document type</string>
+    <string name="__variable_text_credential_data_var_label_empty_value_a11y">No value given</string>
     <string name="__variable_text_credential_data_var_label_expire_date">Valid until</string>
     <string name="__variable_text_credential_data_var_label_first_names">Given name(s)</string>
     <string name="__variable_text_credential_data_var_label_issuing_authority">Issuing authority</string>
@@ -745,8 +746,12 @@
     <string name="global_generic_presentation_error_title">Something went wrong</string>
     <string name="global_hide_digits_button_a11y">Unread and hide all entered digits</string>
     <string name="global_info_button">More information</string>
+    <string name="global_native_bio_consent_paragraph_android">Your data stay protected.</string>
+    <string name="global_native_bio_consent_paragraph_ios">Confirm it’s you with Face ID. Your data stay protected.</string>
+    <string name="global_native_bio_consent_title_android">Verify it’s you</string>
     <string name="global_no_internet_error_paragraph">Connect to the internet and retry.</string>
     <string name="global_no_internet_error_prim_button">Retry</string>
+    <string name="global_no_internet_error_sec_button">Open internet settings</string>
     <string name="global_no_internet_error_title">You’re offline</string>
     <string name="global_office_button">Find a nearby Citizen\'s office</string>
     <string name="global_pid_credential_name">Digital ID</string>
@@ -765,7 +770,7 @@
     <string name="global_timeout_slow_internet_error_paragraph">There may be different reasons, such as a slow internet connection or a delayed server response.</string>
     <string name="global_timeout_slow_internet_error_prim_button">Retry</string>
     <string name="global_timeout_slow_internet_error_title">That took too long </string>
-    <string name="global_timeout_too_many_requests_paragraph">Please try in EXACT DATE again.</string>
+    <string name="global_timeout_too_many_requests_paragraph">Please try in %1$s again.</string>
     <string name="global_timeout_too_many_requests_prim_button">Retry later</string>
     <string name="global_timeout_too_many_requests_title">Something went wrong</string>
     <string name="global_to_overview_button">Go to overview</string>
@@ -865,7 +870,7 @@
     <string name="pid_inspection_dialog_delete_pid_title">Are you sure you want to reset this?</string>
     <string name="pid_inspection_initial_dashboard_paragraph">Create your Digital ID here in the app:</string>
     <string name="pid_inspection_initial_dashboard_prim_button">Get started</string>
-    <string name="pid_inspection_initial_dashboard_temp_label_1">Use simulated eID card</string>
+    <string name="pid_inspection_initial_dashboard_temp_label_1">Simulate ID card</string>
     <string name="pid_inspection_initial_dashboard_temp_label_2">Use doctype</string>
     <string name="pid_inspection_initial_dashboard_title">Secure and simple digital identification.</string>
     <string name="pid_inspection_pid_activity_label_last_month">Last 30 days</string>

@@ -85,7 +85,7 @@ fun hasDeepLink(deepLinkUri: Uri?): DeepLinkAction? {
         deepLinkUri,
         deepLinkUri?.scheme
     ) { uri, scheme ->
-        DeepLinkAction(link = uri, type = DeepLinkType.parse(scheme, uri.host))
+        DeepLinkAction(link = uri, type = DeepLinkType.parse(scheme, uri.path))
     }
 }
 
@@ -157,7 +157,7 @@ data class DeepLinkAction(val link: Uri, val type: DeepLinkType)
 
 /**
  * @param schemas the schemes the wallet recognises as this type.
- * @param host the host the wallet recognises as this type, when the scheme alone is not enough.
+ * @param path the path the wallet recognises as this type, when the scheme alone is not enough.
  * @param isAcceptedFromOtherApps whether the wallet acts on a link of this type when another app
  * sends it in. Types default to being ignored on intake: a type is only acted upon once the wallet
  * owns a scheme for it, so [EXTERNAL] - which is what every unrecognised scheme parses to - and
@@ -165,7 +165,7 @@ data class DeepLinkAction(val link: Uri, val type: DeepLinkType)
  */
 enum class DeepLinkType(
     val schemas: List<String>,
-    val host: String? = null,
+    val path: String? = null,
     val isAcceptedFromOtherApps: Boolean = false
 ) {
 
@@ -187,7 +187,7 @@ enum class DeepLinkType(
     ),
     ISSUANCE(
         schemas = listOf(BuildConfig.ISSUE_AUTHORIZATION_SCHEME),
-        host = BuildConfig.ISSUE_AUTHORIZATION_HOST,
+        path = BuildConfig.ISSUE_AUTHORIZATION_PATH,
         isAcceptedFromOtherApps = true
     ),
     EXTERNAL(
@@ -198,7 +198,7 @@ enum class DeepLinkType(
     );
 
     companion object {
-        fun parse(scheme: String, host: String? = null): DeepLinkType = when {
+        fun parse(scheme: String, path: String? = null): DeepLinkType = when {
 
             OPENID4VP.schemas.contains(scheme) -> {
                 OPENID4VP
@@ -208,7 +208,7 @@ enum class DeepLinkType(
                 CREDENTIAL_OFFER
             }
 
-            ISSUANCE.schemas.contains(scheme) && host == ISSUANCE.host -> {
+            ISSUANCE.schemas.contains(scheme) && path == ISSUANCE.path -> {
                 ISSUANCE
             }
 

@@ -38,8 +38,6 @@ import eu.europa.ec.uilogic.component.ListItemMainContentData
 import eu.europa.ec.uilogic.component.ListItemTrailingContentData
 import eu.europa.ec.uilogic.component.TextAndIcon
 import eu.europa.ec.uilogic.component.content.ContentScreen
-import eu.europa.ec.uilogic.component.content.ToolbarAction
-import eu.europa.ec.uilogic.component.content.ToolbarConfig
 import eu.europa.ec.uilogic.component.preview.PreviewTheme
 import eu.europa.ec.uilogic.component.preview.ThemeModeWithGermanAndEnglishPreviews
 import eu.europa.ec.uilogic.component.utils.SPACING_LARGE
@@ -62,11 +60,6 @@ fun IssuerDetailsContent(
 ) {
     val state: State by viewModel.viewState.collectAsStateWithLifecycle()
     ContentScreen(
-        toolBarConfig = ToolbarConfig(
-            actions = listOf(
-                ToolbarAction(icon = AppIcons.Help, onClick = { viewModel.setEvent(Event.HelpPressed) })
-            )
-        ),
         onBack = { viewModel.setEvent(Event.Pop) },
         stickyBottom = { padding ->
             IssuerDetailsStickyButton(

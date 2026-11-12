@@ -16,7 +16,7 @@
 
 package org.sprind.wallet.businesslogic.controller.storage
 
-import eu.europa.ec.businesslogic.controller.storage.PrefsController
+import eu.europa.ec.businesslogic.controller.storage.EncryptedPrefsController
 import org.junit.Assert.assertFalse
 import org.junit.Before
 import org.junit.Test
@@ -35,7 +35,7 @@ class StorageControllerTest {
     private val testAppDataVersion = 5
 
     @Mock
-    private lateinit var prefsController: PrefsController
+    private lateinit var prefsController: EncryptedPrefsController
 
     private lateinit var appDataCompatibility: AppDataCompatibility
 
@@ -81,11 +81,11 @@ class StorageControllerTest {
 
     companion object {
         /**
-         * A fake PrefsController that reads/writes currentVersion.value for
+         * A fake EncryptedPrefsController that reads/writes currentVersion.value for
          * reads/write access to the AppDataCompatibility pref entry.
          */
-        fun makeFakePrefsController(currentVersion: IntBox): PrefsController {
-            val result = mock(PrefsController::class.java)
+        fun makeFakePrefsController(currentVersion: IntBox): EncryptedPrefsController {
+            val result = mock(EncryptedPrefsController::class.java)
             whenever(
                 result.getInt(
                     eq(AppDataCompatibility.PREF_KEY),

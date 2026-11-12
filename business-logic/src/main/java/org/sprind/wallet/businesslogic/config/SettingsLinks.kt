@@ -19,24 +19,27 @@ package org.sprind.wallet.businesslogic.config
 /**
  * The web pages the settings menu opens in the app's own web view.
  *
- * None of these pages is published yet, so every link defaults to [BLANK_PAGE] and the menu entry
- * opens an empty page. Pointing an entry at the real document is a one-line change here or an
- * override in the flavor's `EnvironmentConfigImpl`.
+ * Every link defaults to [BLANK_PAGE]; the backend config points the published documents at their
+ * real pages (see `WalletBackendEnvironmentConfig.settingsLinks`), the rest open empty until they
+ * are published. The legal documents are published per language, hence [LocalizedUrl].
  *
  * @property faqAndSupport the FAQ and customer support page.
  * @property accessibilityDeclaration the declaration of accessibility.
  * @property about the page describing the wallet.
  * @property privacyPolicy the privacy policy.
+ * @property pidPrivacyPolicy the privacy policy shown during PID enrollment, not from the
+ *   settings menu.
  * @property termsAndConditions the terms and conditions.
  * @property imprint the imprint.
  */
 data class SettingsLinks(
-    val faqAndSupport: String = BLANK_PAGE,
-    val accessibilityDeclaration: String = BLANK_PAGE,
-    val about: String = BLANK_PAGE,
-    val privacyPolicy: String = BLANK_PAGE,
-    val termsAndConditions: String = BLANK_PAGE,
-    val imprint: String = BLANK_PAGE,
+    val faqAndSupport: LocalizedUrl = LocalizedUrl(en = BLANK_PAGE, de = BLANK_PAGE),
+    val accessibilityDeclaration: LocalizedUrl = LocalizedUrl(en = BLANK_PAGE, de = BLANK_PAGE),
+    val about: LocalizedUrl = LocalizedUrl(en = BLANK_PAGE, de = BLANK_PAGE),
+    val privacyPolicy: LocalizedUrl = LocalizedUrl(en = BLANK_PAGE, de = BLANK_PAGE),
+    val pidPrivacyPolicy: LocalizedUrl = LocalizedUrl(en = BLANK_PAGE, de = BLANK_PAGE),
+    val termsAndConditions: LocalizedUrl = LocalizedUrl(en = BLANK_PAGE, de = BLANK_PAGE),
+    val imprint: LocalizedUrl = LocalizedUrl(en = BLANK_PAGE, de = BLANK_PAGE),
 ) {
     companion object {
         /**

@@ -52,7 +52,7 @@ class RevocationNotificationManager(
             return
         }
         val notification = NotificationCompat.Builder(context, CHANNEL_ID)
-            .setSmallIcon(android.R.drawable.ic_dialog_alert)
+            .setSmallIcon(R.drawable.ic_notification_status_bar)
             .setContentTitle(resourceProvider.getString(R.string.notification_revoked_title))
             .setContentText(resourceProvider.getString(R.string.notification_revoked_body))
             .setPriority(NotificationCompat.PRIORITY_HIGH)

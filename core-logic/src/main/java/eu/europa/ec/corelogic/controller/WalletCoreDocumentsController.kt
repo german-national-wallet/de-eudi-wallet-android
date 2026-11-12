@@ -59,6 +59,7 @@ import eu.europa.ec.eudi.wallet.issue.openid4vci.IssueEvent
 import eu.europa.ec.eudi.wallet.issue.openid4vci.Offer
 import eu.europa.ec.eudi.wallet.issue.openid4vci.OfferResult
 import eu.europa.ec.eudi.wallet.issue.openid4vci.OpenId4VciManager
+import eu.europa.ec.eudi.wallet.issue.openid4vci.OpenId4VciManager.IssuanceProofProfile
 import eu.europa.ec.eudi.wallet.issue.openid4vci.reissue.ReissuanceAuthorizationException
 import eu.europa.ec.eudi.wallet.registration.RegistrationCertificateResult
 import eu.europa.ec.resourceslogic.R
@@ -98,12 +99,16 @@ import org.sprind.wallet.analyticslogic.controller.TelemetryConstants
 import org.sprind.wallet.businesslogic.util.SpanAttributes
 import org.sprind.wallet.corelogic.config.PidConfigurationOverridesProvider
 import org.sprind.wallet.corelogic.controller.ReissueDocumentPartialState
+import org.sprind.wallet.corelogic.issuance.isExpiredAuthorization
 import org.sprind.wallet.corelogic.issuance.isGrantRejection
 import org.sprind.wallet.corelogic.issuance.isIssuerMetadataVerificationFailure
 import org.sprind.wallet.corelogic.securearea.RwscaCreateKeySettings
 import org.sprind.wallet.corelogic.securearea.RwscaSecureArea
+import org.sprind.wallet.networklogic.common.NetworkFailure
+import org.sprind.wallet.networklogic.common.toNetworkFailure
 import java.net.URLDecoder
 import java.util.Locale
+import java.util.concurrent.ConcurrentHashMap
 import kotlin.time.Duration.Companion.seconds
 
 private const val REISSUE_DOCUMENT_LOG_TAG = "reissueDocument: "
@@ -119,7 +124,12 @@ sealed class IssueDocumentPartialState {
     data class DeferredSuccess(val deferredDocuments: Map<String, String>) :
         IssueDocumentPartialState()
 
-    data class Failure(val errorMessage: String) : IssueDocumentPartialState()
+    /** See [IssueDocumentsPartialState.Failure] for [networkFailure] and [isAuthorizationExpired]. */
+    data class Failure(
+        val errorMessage: String,
+        val networkFailure: NetworkFailure? = null,
+        val isAuthorizationExpired: Boolean = false,
+    ) : IssueDocumentPartialState()
     data class UserAuthRequired(
         val crypto: BiometricCrypto,
         val resultHandler: DeviceAuthenticationResult,
@@ -157,6 +167,10 @@ sealed class IssueDocumentsPartialState {
         val isGrantRejection: Boolean = false,
         /** The issuer's signed metadata could not be verified; [errorMessage] says so. */
         val isIssuerNotVerified: Boolean = false,
+        /** Set when a request timed out or was rate limited (see [toNetworkFailure]). */
+        val networkFailure: NetworkFailure? = null,
+        /** The authorization session expired after the eID step (see [isExpiredAuthorization]). */
+        val isAuthorizationExpired: Boolean = false,
     ) : IssueDocumentsPartialState()
     data class UserAuthRequired(
         val crypto: BiometricCrypto,
@@ -522,14 +536,18 @@ class WalletCoreDocumentsControllerImpl(
         errorMessage = issuanceErrorMessage(fallback),
         isGrantRejection = isGrantRejection(),
         isIssuerNotVerified = isIssuerMetadataVerificationFailure(),
+        networkFailure = toNetworkFailure(),
+        isAuthorizationExpired = isExpiredAuthorization(),
     )
 
     private fun IssueDocumentsPartialState.Failure.toIssueDocumentFailure() = IssueDocumentPartialState.Failure(
-        errorMessage = if (isIssuerNotVerified) errorMessage else documentErrorMessage
+        errorMessage = if (isIssuerNotVerified) errorMessage else documentErrorMessage,
+        networkFailure = networkFailure,
+        isAuthorizationExpired = isAuthorizationExpired,
     )
 
     private val openId4VciManagersDelegate = lazy {
-        walletCoreConfig.vciConfig.keys.associateWithTo(mutableMapOf()) { issuerUrl ->
+        walletCoreConfig.vciConfig.keys.associateWithTo(ConcurrentHashMap<String, OpenId4VciManager>()) { issuerUrl ->
             eudiWallet.createOpenId4VciManager(
                 config = configForIssuer(
                     configs = walletCoreConfig.vciConfig,
@@ -551,10 +569,14 @@ class WalletCoreDocumentsControllerImpl(
             runCatching {
 
                 val knownPidConfigurationIds = knownPidConfigurationIds()
+                val configuredOrder = walletCoreConfig.vciConfig.keys.withIndex()
+                    .associate { (index, issuerUrl) -> issuerUrl to index }
                 val metadata: Map<String, CredentialIssuerMetadata> =
-                    openId4VciManagers.mapValues { (issuerUrl, manager) ->
-                        manager.getIssuerMetadata(issuerUrl).getOrThrow()
-                    }
+                    openId4VciManagers.entries
+                        .sortedBy { (issuerUrl, _) -> configuredOrder[issuerUrl] ?: Int.MAX_VALUE }
+                        .associate { (issuerUrl, manager) ->
+                            issuerUrl to manager.getIssuerMetadata(issuerUrl).getOrThrow()
+                        }
 
                 val documents: List<ScopedDocumentDomain> =
                     metadata.flatMap { (issuer, meta) ->
@@ -717,7 +739,7 @@ class WalletCoreDocumentsControllerImpl(
             }
         }
     }.safeAsync {
-        IssueDocumentPartialState.Failure(errorMessage = it.issuanceErrorMessage(documentErrorMessage))
+        it.toIssueDocumentsFailure(documentErrorMessage).toIssueDocumentFailure()
     }
 
 
@@ -789,7 +811,7 @@ class WalletCoreDocumentsControllerImpl(
             }
         }
     }.safeAsync {
-        IssueDocumentPartialState.Failure(errorMessage = it.issuanceErrorMessage(documentErrorMessage))
+        it.toIssueDocumentsFailure(documentErrorMessage).toIssueDocumentFailure()
     }
 
     override fun issueDocumentAttested(
@@ -1013,9 +1035,7 @@ class WalletCoreDocumentsControllerImpl(
             val issuerId = extractCredentialIssuerFromOfferUri(offerUri).getOrNull()
 
             val manager = issuerId?.let(::getManagerForIssuer)
-                ?: openId4VciManagers.values.firstOrNull()
-
-            require(manager != null) { genericErrorMessage }
+                ?: defaultManager()
 
             manager.resolveDocumentOffer(offerUri) { result ->
                 when (result) {
@@ -1051,9 +1071,7 @@ class WalletCoreDocumentsControllerImpl(
         callbackFlow {
             val manager = document.issuerMetadata?.credentialIssuerIdentifier
                 ?.let(::getManagerForIssuer)
-                ?: openId4VciManagers.values.firstOrNull()
-
-            require(manager != null) { documentErrorMessage }
+                ?: defaultManager()
 
             manager.issueDeferredDocument(
                 deferredDocument = document,
@@ -1185,14 +1203,7 @@ class WalletCoreDocumentsControllerImpl(
     ): Flow<ReissueDocumentPartialState> = callbackFlow {
         val issuerId = document.issuerMetadata?.credentialIssuerIdentifier
         val manager = issuerId?.let(::getManagerForIssuer)
-            ?: openId4VciManagers.values.firstOrNull()
-
-        if (manager == null) {
-            sendReissueError(R.string.issuance_generic_error) {
-                "No OpenID4VCI manager available for reissue"
-            }
-            return@callbackFlow
-        }
+            ?: defaultManager()
 
         // NOTE: This must NOT set pendingAuthorizationIssuerUrl. Re-issuance uses the
         // non-interactive refresh-token grant (allowAuthorizationFallback = false in both
@@ -1735,26 +1746,69 @@ class WalletCoreDocumentsControllerImpl(
      *
      * The manager configuration is always derived through [configForIssuer] so
      * issuer-specific overrides stay in one place.
+     *
+     * The returned manager is cached per issuer, so a later
+     * [resumeOpenId4VciWithAuthorization] reaches the manager that suspended
+     * for browser authorization.
+     *
+     * For an issuer with no `vciConfig` entry, a call that passes
+     * [authorizationServerMetadata] always builds a fresh manager and replaces
+     * the cached one. A manager cached by an earlier call without the metadata
+     * (offer resolution, re-issuance, deferred issuance) was built by
+     * [fallbackConfig] without knowing whether the issuer requires
+     * `attest_jwt_client_auth`; reusing it would send PAR without client
+     * authentication and the issuer would answer `unauthorized_client`.
      */
     private fun getManagerForIssuer(
         httpsUrl: String,
         authorizationServerMetadata: CIAuthorizationServerMetadata? = null,
     ): OpenId4VciManager {
-        openId4VciManagers[httpsUrl]?.let { return it }
-
-        val config = configForIssuer(
-            configs = walletCoreConfig.vciConfig,
-            httpsUrl = httpsUrl,
-            authorizationServerMetadata = authorizationServerMetadata,
-        )
-
-        return openId4VciManagers.getOrPut(httpsUrl) {
-            eudiWallet.createOpenId4VciManager(
-                config = config,
-                ktorHttpClientFactory = ktorHttpClientFactory,
-            )
+        if (authorizationServerMetadata != null) {
+            val configs = walletCoreConfig.vciConfig
+            if (staticConfigFor(configs, httpsUrl) == null) {
+                return createManagerForIssuer(configs, httpsUrl, authorizationServerMetadata)
+                    .also { openId4VciManagers[httpsUrl] = it }
+            }
+        }
+        // computeIfAbsent, not getOrPut: getOrPut is a non-atomic get-then-put, so two
+        // threads could each create a manager and the caller holding the one that lost
+        // the race would start a flow that resumeOpenId4VciWithAuthorization never reaches.
+        return openId4VciManagers.computeIfAbsent(httpsUrl) {
+            createManagerForIssuer(walletCoreConfig.vciConfig, httpsUrl, authorizationServerMetadata)
         }
     }
+
+    /**
+     * The manager used when the issuer of a request is unknown (offer by
+     * reference, document without issuer metadata): the PID issuer's.
+     *
+     * Explicit rather than "first cached manager", because the cache iterates in
+     * hash order and also holds managers for issuers resolved from offers.
+     */
+    private fun defaultManager(): OpenId4VciManager = getManagerForIssuer(pidIssuerUrl)
+
+    private fun createManagerForIssuer(
+        configs: Map<String, OpenId4VciManager.Config>,
+        httpsUrl: String,
+        authorizationServerMetadata: CIAuthorizationServerMetadata?,
+    ): OpenId4VciManager = eudiWallet.createOpenId4VciManager(
+        config = configForIssuer(
+            configs = configs,
+            httpsUrl = httpsUrl,
+            authorizationServerMetadata = authorizationServerMetadata,
+        ),
+        ktorHttpClientFactory = ktorHttpClientFactory,
+    )
+
+    /**
+     * The static configuration for [httpsUrl], or null when the issuer is not
+     * configured. The single definition of "configured issuer": both the
+     * manager cache and [configForIssuer] decide through it.
+     */
+    private fun staticConfigFor(
+        configs: Map<String, OpenId4VciManager.Config>,
+        httpsUrl: String,
+    ): OpenId4VciManager.Config? = configs[httpsUrl]
 
     /**
      * Resolves the [OpenId4VciManager.Config] to use for [httpsUrl].
@@ -1773,7 +1827,7 @@ class WalletCoreDocumentsControllerImpl(
         httpsUrl: String,
         authorizationServerMetadata: CIAuthorizationServerMetadata? = null,
     ): OpenId4VciManager.Config {
-        val issuerConfig = configs[httpsUrl]
+        val issuerConfig = staticConfigFor(configs, httpsUrl)
             ?: fallbackConfig(configs, httpsUrl, authorizationServerMetadata)
 
         return if (httpsUrl == pidIssuerUrl) {
@@ -1794,9 +1848,7 @@ class WalletCoreDocumentsControllerImpl(
             issuerConfig.copy(
                 authorizationHandler = null,
                 dpopConfig = walletCoreConfig.defaultDPopConfig,
-                proofTypes = issuerConfig.proofTypes.copy(
-                    allowJwtProofWithoutKeyAttestation = true
-                ),
+                issuanceProofProfile = jwtProofWithoutKeyAttestationFirst(issuerConfig.issuanceProofProfile),
             )
         }
     }
@@ -1837,6 +1889,14 @@ class WalletCoreDocumentsControllerImpl(
         return template.copy(
             authFlowRedirectionURI = BuildConfig.ISSUE_AUTHORIZATION_DEEPLINK,
             parUsage = OpenId4VciManager.Config.ParUsage.IF_SUPPORTED,
+        )
+    }
+
+    private fun jwtProofWithoutKeyAttestationFirst(profile: IssuanceProofProfile): IssuanceProofProfile {
+        val proofType = IssuanceProofProfile.ProofType.JWT_WITHOUT_KEY_ATTESTATION
+        val (plainJwt, rest) = profile.preferenceOrder.partition { it.proofType == proofType }
+        return IssuanceProofProfile.Custom(
+            plainJwt.ifEmpty { listOf(IssuanceProofProfile.ProofTypeConfig(proofType)) } + rest
         )
     }
 }

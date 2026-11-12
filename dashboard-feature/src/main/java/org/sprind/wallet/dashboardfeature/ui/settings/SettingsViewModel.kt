@@ -19,6 +19,7 @@ package org.sprind.wallet.dashboardfeature.ui.settings
 import android.net.Uri
 import eu.europa.ec.businesslogic.config.ConfigLogic
 import eu.europa.ec.dashboardfeature.interactor.DashboardInteractor
+import eu.europa.ec.resourceslogic.provider.ResourceProvider
 import eu.europa.ec.uilogic.mvi.MviViewModel
 import eu.europa.ec.uilogic.mvi.ViewEvent
 import eu.europa.ec.uilogic.mvi.ViewSideEffect
@@ -26,7 +27,7 @@ import eu.europa.ec.uilogic.mvi.ViewState
 import eu.europa.ec.uilogic.navigation.DashboardScreens
 import eu.europa.ec.uilogic.navigation.RevocationScreens
 import org.koin.android.annotation.KoinViewModel
-import org.sprind.wallet.businesslogic.config.SettingsLinks
+import org.sprind.wallet.businesslogic.config.LocalizedUrl
 
 /**
  * @property menuGroups the menu as it is shown, already reduced to the rows this flavor carries.
@@ -59,6 +60,7 @@ sealed class Effect : ViewSideEffect {
 class SettingsViewModel(
     private val dashboardInteractor: DashboardInteractor,
     private val configLogic: ConfigLogic,
+    private val resourceProvider: ResourceProvider,
 ) : MviViewModel<Event, State, Effect>() {
 
     /**
@@ -68,13 +70,11 @@ class SettingsViewModel(
     private val isLogExportAvailable: Boolean
         get() = configLogic.isDebugMenuEnabled && configLogic.isLogWriterEnabled
 
-    override fun setInitialState(): State {
-        return State(
-            menuGroups = settingsMenuGroups(isLogExportAvailable = isLogExportAvailable),
-            appVersion = configLogic.appVersion,
-            appVersionCode = configLogic.appVersionCode,
-        )
-    }
+    override fun setInitialState(): State = State(
+        menuGroups = settingsMenuGroups(isLogExportAvailable = isLogExportAvailable),
+        appVersion = configLogic.appVersion,
+        appVersionCode = configLogic.appVersionCode,
+    )
 
     override fun handleEvents(event: Event) {
         when (event) {
@@ -83,38 +83,37 @@ class SettingsViewModel(
     }
 
     private fun onMenuEntryClicked(entry: SettingsMenuEntry) {
-        val links: SettingsLinks = configLogic.settingsLinks
+        val links = configLogic.settingsLinks
 
         when (entry) {
             SettingsMenuEntry.FAQ_AND_SUPPORT -> openWebPage(entry, links.faqAndSupport)
 
-            SettingsMenuEntry.WALLET_REVOCATION -> setEffect {
-                Effect.Navigation.SwitchScreen(RevocationScreens.KeyInfo.screenRoute)
-            }
+            SettingsMenuEntry.WALLET_REVOCATION -> openScreen(RevocationScreens.KeyInfo.screenRoute)
 
             SettingsMenuEntry.NOTIFICATIONS -> setEffect { Effect.OpenNotificationSettings }
 
             SettingsMenuEntry.ABOUT -> openWebPage(entry, links.about)
 
-            SettingsMenuEntry.ACCESSIBILITY_DECLARATION ->
-                openWebPage(entry, links.accessibilityDeclaration)
+            SettingsMenuEntry.ACCESSIBILITY_DECLARATION -> openWebPage(entry, links.accessibilityDeclaration)
 
             SettingsMenuEntry.PRIVACY_POLICY -> openWebPage(entry, links.privacyPolicy)
 
-            SettingsMenuEntry.TERMS_AND_CONDITIONS ->
-                openWebPage(entry, links.termsAndConditions)
+            SettingsMenuEntry.TERMS_AND_CONDITIONS -> openWebPage(entry, links.termsAndConditions)
 
             SettingsMenuEntry.IMPRINT -> openWebPage(entry, links.imprint)
 
             SettingsMenuEntry.EXPORT_LOGS -> exportLogs()
 
-            SettingsMenuEntry.DEBUG_CONFIG -> setEffect {
-                Effect.Navigation.SwitchScreen(DashboardScreens.DebugConfig.screenRoute)
-            }
+            SettingsMenuEntry.DEBUG_CONFIG -> openScreen(DashboardScreens.DebugConfig.screenRoute)
         }
     }
 
-    private fun openWebPage(entry: SettingsMenuEntry, url: String) {
+    private fun openScreen(screenRoute: String) {
+        setEffect { Effect.Navigation.SwitchScreen(screenRoute) }
+    }
+
+    private fun openWebPage(entry: SettingsMenuEntry, page: LocalizedUrl) {
+        val url = page.forLocale(resourceProvider.getLocale())
         setEffect {
             Effect.Navigation.OpenWebPage(
                 SettingsWebPageRoute(url = url, titleRes = entry.labelRes)

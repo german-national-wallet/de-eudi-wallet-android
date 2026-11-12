@@ -36,7 +36,6 @@ sealed class RequestScreenStep {
     data object CredentialPreview : RequestScreenStep()
     data object EnterPin : RequestScreenStep()
     data class TemporaryPinBlocked(val isLastTry: Boolean = false) : RequestScreenStep()
-    data object AccountLocked : RequestScreenStep()
     data object DocumentDeletedConfirmation : RequestScreenStep()
     data object Completed : RequestScreenStep()
 }
@@ -61,8 +60,10 @@ data class State(
     val reportUrl: String? = null,
     /** The relying party's support contact from its registration certificate. */
     val supportUrl: String? = null,
-    /** Report-issue page the user is asked to confirm before leaving the app. */
-    val pendingReportIssueUrl: String? = null,
+    /** The relying party's website, to restart a presentation there. */
+    val serviceProviderUrl: String? = null,
+    /** Page (report issue, support or service provider) the user is asked to confirm before leaving the app. */
+    val pendingRedirectUrl: String? = null,
     val toShowDataDetails: Boolean = false,
     val shouldDisplayConfirmCancelDialog: Boolean = false,
     val shouldDisplayCloseConfirmationDialog: Boolean = false,
@@ -74,7 +75,7 @@ data class State(
 sealed class Event : ViewEvent {
     data object DoWork : Event()
     data object DismissError : Event()
-    data object ReportIssueRedirectHandled : Event()
+    data object RedirectHandled : Event()
     data object Pop : Event()
     data object StickyButtonPressed : Event()
     data object CredentialDetailsView : Event()
@@ -105,12 +106,9 @@ sealed class Event : ViewEvent {
     data object DismissClickOnCloseConfirmationDialog : Event()
     data object ConfirmClickOnCloseConfirmationDialog : Event()
 
-    data object HelpPressed : Event()
-
     data object PidDeletionRequested : Event()
     data object IdDeletionDialogDismissed : Event()
     data object DeletePidDocumentsRequested : Event()
-    data object GoToDashboardButtonPressed : Event()
     data object TemporaryPinBlockedBottomSheetButtonPressed : Event()
 }
 
@@ -128,6 +126,12 @@ sealed class Effect : ViewSideEffect {
     data object ShowBottomSheet : Effect()
     data object CloseBottomSheet : Effect()
     data object HideKeyboard : Effect()
+
+    /**
+     * Opens the system Internet panel (WD-4685). An effect, not a ViewModel call, so that the
+     * screen starts it with the activity context and the panel slides up over the app.
+     */
+    data object OpenInternetSettings : Effect()
 }
 
 data class RequestBottomSheetContent(
@@ -166,6 +170,16 @@ abstract class RequestViewModel(
         setEvent(Event.ShowPinView)
     }
 
+    /**
+     * Called when the user confirms a complete wallet PIN, before it is consumed. Returning
+     * `false` blocks the submission and clears the PIN, so it never lingers in memory
+     * (e.g. while the device is offline, WD-4685).
+     *
+     * An implementation returning `false` must already have told the user why, e.g. with an
+     * error dialog: otherwise the confirmation silently does nothing.
+     */
+    protected open fun canSubmitPin(): Boolean = true
+
     override fun setInitialState(): State {
         return State(
             headerConfig = getHeaderConfig(),
@@ -188,8 +202,8 @@ abstract class RequestViewModel(
      * Called before navigating away from a request flow that the user has terminally abandoned.
      *
      * Use this for explicit user decisions where the current presentation can no longer continue,
-     * such as confirming request rejection, leaving the account-locked screen for Dashboard, or
-     * completing PID deletion after the account is locked. Do not call it for intermediate
+     * such as confirming request rejection, leaving for the locked Digital ID screen, or
+     * completing PID deletion from the PIN-blocked sheet. Do not call it for intermediate
      * navigation that preserves the presentation, such as moving to presentation loading/success.
      */
     protected open fun onRequestAbandoned() = Unit
@@ -279,7 +293,7 @@ abstract class RequestViewModel(
         when (event) {
             is Event.DoWork -> doWork()
             is Event.DismissError -> setState { copy(error = null, errorDialog = null) }
-            is Event.ReportIssueRedirectHandled -> setState { copy(pendingReportIssueUrl = null) }
+            is Event.RedirectHandled -> setState { copy(pendingRedirectUrl = null) }
             is Event.Pop -> doNavigation(NavigationType.Pop)
             is Event.StickyButtonPressed -> onStickyButtonPressed()
             is Event.CredentialDetailsView -> moveToStep(RequestScreenStep.CredentialPreview)
@@ -317,7 +331,10 @@ abstract class RequestViewModel(
             }
 
             is Event.ConfirmPin -> {
-                if (viewState.value.pinState.buffer.isComplete) {
+                val isPinComplete = viewState.value.pinState.buffer.isComplete
+                if (isPinComplete && !canSubmitPin()) {
+                    setState { copy(pinState = pinState.cleared()) }
+                } else if (isPinComplete) {
                     val pin = viewState.value.pinState.buffer.consumeAsPin()
                     setState {
                         copy(
@@ -363,12 +380,6 @@ abstract class RequestViewModel(
             Event.DismissClickOnCloseConfirmationDialog -> setState {
                 copy(shouldDisplayCloseConfirmationDialog = false)
             }
-
-            Event.HelpPressed -> {
-                // TODO: Will open the request's help sheet
-            }
-
-            Event.GoToDashboardButtonPressed -> leaveForDashboard()
 
             Event.DismissClickOnCancelConfirmationDialog -> setState {
                 copy(

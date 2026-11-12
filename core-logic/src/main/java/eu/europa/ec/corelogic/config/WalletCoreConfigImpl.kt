@@ -30,12 +30,17 @@ import eu.europa.ec.eudi.wallet.issue.openid4vci.AuthorizationHandler
 import eu.europa.ec.eudi.wallet.issue.openid4vci.OpenId4VciManager
 import eu.europa.ec.eudi.wallet.issue.openid4vci.dpop.DPopConfig
 import eu.europa.ec.eudi.wallet.registration.relyingparty.WrpRegistrationPolicy
+import eu.europa.ec.eudi.iso18013.transfer.readerauth.CrlCache
 import eu.europa.ec.eudi.iso18013.transfer.readerauth.RevocationPolicy
 import eu.europa.ec.eudi.wallet.transfer.openId4vp.ClientIdScheme
 import eu.europa.ec.eudi.wallet.transfer.openId4vp.EncryptionAlgorithm
 import eu.europa.ec.eudi.wallet.transfer.openId4vp.EncryptionMethod
 import eu.europa.ec.eudi.wallet.transfer.openId4vp.Format
+import eu.europa.ec.eudi.wallet.transfer.openId4vp.OpenId4VpConfig.ErrorDispatchPolicy
+import eu.europa.ec.eudi.wallet.trust.inCacheDirectory
+import io.ktor.client.HttpClient
 import org.sprind.wallet.corelogic.config.accessCaTrustAnchors
+import org.sprind.wallet.corelogic.config.readCertificate
 import org.sprind.wallet.corelogic.config.registrationCaTrustAnchors
 import org.sprind.wallet.corelogic.config.requireSignedIssuerMetadata
 import org.sprind.wallet.corelogic.securearea.RwscaCreateKeySettings
@@ -45,6 +50,7 @@ import org.multipaz.securearea.AndroidKeystoreSecureArea
 import org.multipaz.securearea.SecureArea
 import org.multipaz.storage.Storage
 import java.security.SecureRandom
+import kotlin.time.Duration.Companion.hours
 import kotlin.time.Duration.Companion.seconds
 
 internal class WalletCoreConfigImpl(
@@ -56,11 +62,22 @@ internal class WalletCoreConfigImpl(
     private val rwscSecureArea: SecureArea,
     private val androidKeystoreSecureArea: SecureArea,
     private val storage: Storage,
+    private val ktorHttpClient: HttpClient,
 ) : WalletCoreConfig {
 
     private var _config: EudiWalletConfig? = null
 
-    private val signedIssuerMetadataPolicy by lazy { requireSignedIssuerMetadata(context) }
+    private val sharedCrlCache by lazy { CrlCache.inCacheDirectory(context, CRL_REFRESH_INTERVAL) { ktorHttpClient } }
+
+    private val signedIssuerMetadataPolicy by lazy { requireSignedIssuerMetadata(context, sharedCrlCache) }
+
+    private val flavorErrorDispatchPolicy: ErrorDispatchPolicy
+        get() = when (configLogic.appFlavor) {
+            BuildConfig.FLAVOR_NAME_DEV,
+            BuildConfig.FLAVOR_NAME_SANDBOX -> ErrorDispatchPolicy.AllClients
+
+            else -> ErrorDispatchPolicy.OnlyAuthenticatedClients
+        }
 
     internal val defaultVciConfig: OpenId4VciManager.Config
         get() = OpenId4VciManager.Config {
@@ -92,6 +109,7 @@ internal class WalletCoreConfigImpl(
                                 EncryptionMethod.A256GCM
                             )
                         )
+                        withErrorDispatchPolicy(flavorErrorDispatchPolicy)
 
                         withClientIdSchemes(
                             listOf(
@@ -113,18 +131,15 @@ internal class WalletCoreConfigImpl(
 
                     configureOpenId4Vci(defaultVciConfig)
 
-                    // Explicit because the core-lib default is HardFail, which rejects the
-                    // development CAs that publish no CRL.
-                    configureReaderTrustStore(
-                        context,
-                        *accessCaTrustAnchors,
-                        revocationPolicy = RevocationPolicy.SoftFail,
+                    configureReaderAuthentication {
+                        trustedCertificates(context, *accessCaTrustAnchors)
+                        revocationPolicy(RevocationPolicy.HardFail)
+                    }
+                    configureWrpRegistrationTrust(
+                        registrationCaTrustAnchors.map { context.readCertificate(it) },
+                        revocationPolicy = RevocationPolicy.HardFail,
                     )
-                    configureRegistrationCertificateTrustStore(
-                        context,
-                        *registrationCaTrustAnchors,
-                        revocationPolicy = RevocationPolicy.SoftFail,
-                    )
+                    configureCrlCache(sharedCrlCache)
                     configureWrpRegistrationPolicy(WrpRegistrationPolicy.Enabled)
                 }
             }
@@ -204,13 +219,15 @@ internal class WalletCoreConfigImpl(
 
         val DOCUMENT_USER_AUTHENTICATION_TIMEOUT = 5.seconds
 
+        private val CRL_REFRESH_INTERVAL = 1.hours
+
         // HAIP: ECDH-ES on P-256 for alg, A256GCM (preferred) or A128GCM for enc.
         val RESPONSE_ENCRYPTION_ALGORITHMS: List<JWEAlgorithm> = listOf(JWEAlgorithm.ECDH_ES)
         val RESPONSE_ENCRYPTION_METHODS: List<JweEncryptionMethod> =
             listOf(JweEncryptionMethod.A256GCM, JweEncryptionMethod.A128GCM)
 
         val RESPONSE_ENCRYPTION_CONFIG = EncryptionSupportConfig(
-            credentialResponseEncryptionPolicy = CredentialResponseEncryptionPolicy.REQUIRED,
+            credentialResponseEncryptionPolicy = CredentialResponseEncryptionPolicy.SUPPORTED,
             ecConfig = EcConfig(
                 ecKeyCurve = Curve.P_256,
                 supportedJWEAlgorithms = RESPONSE_ENCRYPTION_ALGORITHMS,

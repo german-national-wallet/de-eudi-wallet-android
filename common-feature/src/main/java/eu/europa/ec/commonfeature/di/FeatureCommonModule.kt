@@ -18,10 +18,13 @@ package eu.europa.ec.commonfeature.di
 
 
 import eu.europa.ec.authenticationlogic.controller.authentication.BiometricAuthenticationController
+import eu.europa.ec.authenticationlogic.controller.authentication.IdentificationOnlyAuthenticationController
 import eu.europa.ec.authenticationlogic.controller.storage.BiometryStorageController
 import eu.europa.ec.businesslogic.controller.log.LogController
 import eu.europa.ec.commonfeature.interactor.BiometricInteractor
 import eu.europa.ec.commonfeature.interactor.BiometricInteractorImpl
+import eu.europa.ec.commonfeature.interactor.IdentificationOnlyAuthenticationInteractor
+import eu.europa.ec.commonfeature.interactor.IdentificationOnlyAuthenticationInteractorImpl
 import org.koin.core.annotation.ComponentScan
 import org.koin.core.annotation.Factory
 import org.koin.core.annotation.Single
@@ -113,6 +116,15 @@ class FeatureCommonModule {
         return BiometricInteractorImpl(
             biometryStorageController,
             biometricAuthenticationController,
+        )
+    }
+
+    @Factory
+    fun provideIdentificationOnlyAuthenticationInteractor(
+        identificationOnlyAuthenticationController: IdentificationOnlyAuthenticationController,
+    ): IdentificationOnlyAuthenticationInteractor {
+        return IdentificationOnlyAuthenticationInteractorImpl(
+            identificationOnlyAuthenticationController,
         )
     }
 

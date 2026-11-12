@@ -29,7 +29,6 @@ data class NotificationConsentEvent(
 ) : ViewEvent {
     sealed class Event {
         data object GrantConsent : Event()
-        data object HelpPressed : Event()
     }
 }
 
@@ -55,9 +54,6 @@ class NotificationConsentViewModel :
         when (event.event) {
             NotificationConsentEvent.Event.GrantConsent -> setEffect {
                 NotificationConsentEffect(NotificationConsentEffect.Effect.GrantConsent)
-            }
-            NotificationConsentEvent.Event.HelpPressed -> {
-                // TODO: - Provide action here
             }
         }
     }

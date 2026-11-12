@@ -17,7 +17,7 @@
 package org.sprind.wallet.corelogic.storage
 
 import android.util.Base64
-import eu.europa.ec.businesslogic.controller.storage.PrefsController
+import eu.europa.ec.businesslogic.controller.storage.EncryptedPrefsController
 import org.junit.Assert.assertArrayEquals
 import org.junit.Assert.assertEquals
 import org.junit.Test
@@ -39,7 +39,7 @@ class EncryptedStorageKeyManagerTest {
 
     @Test
     fun `cached key is returned across calls without hitting prefs again`() {
-        val prefsController = mock<PrefsController>()
+        val prefsController = mock<EncryptedPrefsController>()
         val existingKey = ByteArray(32) { 7 }
         val existingBase64 = Base64.encodeToString(existingKey, Base64.DEFAULT)
         whenever(prefsController.getString(ENCRYPTED_STORAGE_KEY, ""))
@@ -65,7 +65,7 @@ class EncryptedStorageKeyManagerTest {
 
     @Test
     fun `parallel callers observe the same key and only one write happens`() {
-        val prefsController = mock<PrefsController>()
+        val prefsController = mock<EncryptedPrefsController>()
         whenever(prefsController.getString(ENCRYPTED_STORAGE_KEY, ""))
             .thenReturn("")
 

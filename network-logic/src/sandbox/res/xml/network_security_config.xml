@@ -14,10 +14,18 @@
   ~ limitations under the License.
   -->
 
+<!--
+  Sandbox builds, debug and release: besides the system CAs, trust the CAs the tester
+  installed on the device (Settings → Security → Install a certificate). Hosts with
+  certificate pins keep their pins. The trust anchors have to sit inside base-config;
+  Android silently skips a trust-anchors element placed directly under
+  network-security-config.
+  -->
 <network-security-config>
-    <base-config cleartextTrafficPermitted="false" />
-    <trust-anchors>
-        <certificates src="system" />
-        <certificates src="user" />
-    </trust-anchors>
+    <base-config cleartextTrafficPermitted="false">
+        <trust-anchors>
+            <certificates src="system" />
+            <certificates src="user" />
+        </trust-anchors>
+    </base-config>
 </network-security-config>

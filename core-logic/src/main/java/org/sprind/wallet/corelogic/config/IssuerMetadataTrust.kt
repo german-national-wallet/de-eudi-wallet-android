@@ -17,6 +17,7 @@ package org.sprind.wallet.corelogic.config
 
 import android.content.Context
 import androidx.annotation.RawRes
+import eu.europa.ec.eudi.iso18013.transfer.readerauth.CrlCache
 import eu.europa.ec.eudi.iso18013.transfer.readerauth.RevocationPolicy
 import eu.europa.ec.eudi.openid4vci.CertificateChainTrust
 import eu.europa.ec.eudi.openid4vci.IssuerMetadataPolicy
@@ -36,22 +37,23 @@ import java.security.cert.X509Certificate
  * issuer.
  *
  * The anchors are read on the first check rather than while the issuer configs are built.
- * Revocation is checked with [RevocationPolicy.SoftFail], as for reader authentication.
+ * Revocation is checked with [RevocationPolicy.HardFail], as for reader authentication.
  */
-internal fun requireSignedIssuerMetadata(context: Context): IssuerMetadataPolicy {
+internal fun requireSignedIssuerMetadata(context: Context, crlCache: CrlCache): IssuerMetadataPolicy {
     if (accessCaTrustAnchors.isEmpty()) {
         return IssuerMetadataPolicy.RequireSigned(CertificateChainTrust { false })
     }
     val trust by lazy {
         X509CertificateChainTrust(
             trustAnchors = accessCaTrustAnchors.map { context.readCertificate(it) },
-            revocationPolicy = RevocationPolicy.SoftFail,
+            revocationPolicy = RevocationPolicy.HardFail,
+            crlCache = crlCache,
         )
     }
     return IssuerMetadataPolicy.RequireSigned(CertificateChainTrust { chain -> trust.isTrusted(chain) })
 }
 
-private fun Context.readCertificate(@RawRes resId: Int): X509Certificate =
+internal fun Context.readCertificate(@RawRes resId: Int): X509Certificate =
     resources.openRawResource(resId).use {
         CertificateFactory.getInstance("X.509").generateCertificate(it) as X509Certificate
     }

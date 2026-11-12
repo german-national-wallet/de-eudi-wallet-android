@@ -56,6 +56,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.autofill.ContentDataType
+import androidx.compose.ui.autofill.ContentType
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.focus.FocusRequester
@@ -69,6 +71,8 @@ import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.platform.LocalTextToolbar
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.contentDataType
+import androidx.compose.ui.semantics.contentType
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.input.ImeAction
@@ -99,6 +103,12 @@ import kotlin.time.Duration.Companion.milliseconds
 
 /** Test tag of the single real input widget behind a [CodeEntryField]. */
 const val CODE_ENTRY_FIELD_TEST_TAG = "codeEntryField"
+
+/**
+ * Content type of a [CodeEntryField]: an unrecognised hint displaces the Password hint Compose
+ * would otherwise publish; `ContentDataType.None` is what makes the node unfillable.
+ */
+val CODE_ENTRY_FIELD_CONTENT_TYPE = ContentType("off")
 
 /**
  * Digit counts of the codes the wallet asks for, named so call sites read as intent rather than as
@@ -630,6 +640,13 @@ private fun HiddenCodeTextField(
             state = textFieldState,
             modifier = modifier
                 .focusRequester(focusRequester)
+                // Overrides the Password content type Compose derives from NumberPassword, so
+                // password managers neither fill nor offer to save the code. Works only because
+                // this outer modifier's semantics are applied last; keep it in this chain.
+                .semantics {
+                    contentType = CODE_ENTRY_FIELD_CONTENT_TYPE
+                    contentDataType = ContentDataType.None
+                }
                 .exposeTestTagsAsResourceId()
                 .applyTestTag(CODE_ENTRY_FIELD_TEST_TAG),
             inputTransformation = transformation,

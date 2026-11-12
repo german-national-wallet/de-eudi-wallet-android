@@ -23,19 +23,26 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
+import androidx.core.net.toUri
 import eu.europa.ec.uilogic.component.content.ContentScreen
 import eu.europa.ec.uilogic.component.content.ScreenNavigateAction
 import eu.europa.ec.uilogic.component.content.ToolbarConfig
 import eu.europa.ec.uilogic.component.loader.LoadingIndicator
+import eu.europa.ec.uilogic.extension.openUrl
+import org.sprind.wallet.uilogic.component.dialog.RedirectInfoDialog
+import org.sprind.wallet.uilogic.component.dialog.RedirectInfoDialogConfig
 
 /**
  * One web page read inside the app rather than handed to a browser: the app's toolbar above a
  * [SecureWebView], so a legal document or a support page stays part of the wallet and cannot turn
  * into a browsing session.
  *
- * @param url the page to read. [SecureWebView] refuses anything but https pages on its host.
+ * @param url the page to read. [SecureWebView] refuses anything but https pages on its host; a tapped
+ *   link to another https host is offered to the browser, after the user confirms leaving the app.
  * @param onBack leaves the page; the toolbar's back action.
  * @param title names the page in the toolbar, so the screen has a name a screen reader can
  *   announce before the page itself has loaded. `null` leaves the toolbar bare for the pages whose
@@ -47,7 +54,9 @@ fun WebPageScreen(
     onBack: () -> Unit,
     title: String? = null,
 ) {
+    val context = LocalContext.current
     var isLoading by remember(url) { mutableStateOf(true) }
+    var pendingLink by rememberSaveable { mutableStateOf<String?>(null) }
 
     ContentScreen(
         toolBarConfig = title?.let { ToolbarConfig(title = it) },
@@ -63,11 +72,25 @@ fun WebPageScreen(
                 url = url,
                 modifier = Modifier.fillMaxSize(),
                 onLoadingChanged = { isLoading = it },
+                onExternalLink = { pendingLink = it.toString() },
             )
 
             if (isLoading) {
                 LoadingIndicator()
             }
         }
+    }
+
+    pendingLink?.let { link ->
+        RedirectInfoDialog(
+            config = RedirectInfoDialogConfig(
+                target = link.toUri(),
+                onConfirm = {
+                    pendingLink = null
+                    context.openUrl(link.toUri())
+                },
+                onDismiss = { pendingLink = null },
+            )
+        )
     }
 }

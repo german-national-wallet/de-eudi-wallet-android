@@ -1,10 +1,10 @@
 package eu.europa.ec.authenticationlogic.storage
 
 import eu.europa.ec.authenticationlogic.provider.WalletPinUnBlockTimeStorageProvider
-import eu.europa.ec.businesslogic.controller.storage.PrefsController
+import eu.europa.ec.businesslogic.controller.storage.EncryptedPrefsController
 
 internal class PrefsWalletPinUnBlockTimeStorageProvider(
-    private val prefsController: PrefsController,
+    private val prefsController: EncryptedPrefsController,
 ) : WalletPinUnBlockTimeStorageProvider {
 
     private companion object {

@@ -17,6 +17,7 @@
 package eu.europa.ec.businesslogic.config
 
 import eu.europa.ec.businesslogic.BuildConfig
+import org.sprind.wallet.businesslogic.config.LocalizedUrl
 import org.sprind.wallet.businesslogic.config.OkCertificatePinnerSpec
 import org.sprind.wallet.businesslogic.config.PidIssuerSpec
 import org.sprind.wallet.businesslogic.config.SettingsLinks
@@ -71,6 +72,7 @@ interface ConfigLogic {
      */
     val settingsLinks: SettingsLinks get() = environmentConfig.settingsLinks
 
+    val credentialCatalogueUrl: LocalizedUrl get() = environmentConfig.credentialCatalogueUrl
 }
 
 enum class AppFlavor {
@@ -124,6 +126,9 @@ abstract class EnvironmentConfig {
     /** Wallet page behind the report-issue actions of the presentation error states. */
     abstract val reportIssueUrl: String
 
+    /** Credential catalogue, opened by the dashboard's "add more credentials" teaser. */
+    abstract val credentialCatalogueUrl: LocalizedUrl
+
     val certificatePinnerSpecs: List<OkCertificatePinnerSpec>
         get() = walletBackendPinnerSpecs + pidIssuerSpec.okCertificatePinnerSpec
 
@@ -146,7 +151,8 @@ abstract class EnvironmentConfig {
     /**
      * The web pages the settings menu opens in the app's own web view.
      *
-     * Defaults to blank pages, because none of the documents is published yet; see [SettingsLinks].
+     * Defaults to blank pages, because some of the documents is not published yet;
+     * see [SettingsLinks].
      */
     open val settingsLinks: SettingsLinks = SettingsLinks()
 

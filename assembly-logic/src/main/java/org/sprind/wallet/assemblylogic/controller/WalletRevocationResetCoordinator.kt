@@ -16,7 +16,7 @@
 
 package org.sprind.wallet.assemblylogic.controller
 
-import eu.europa.ec.businesslogic.controller.storage.PrefsController
+import org.sprind.wallet.businesslogic.controller.storage.PlainPrefsController
 import org.sprind.wallet.corelogic.revocation.WalletRevocationHandler
 import org.sprind.wallet.pushnotificationsfeature.service.WalletFirebaseMessagingService
 import org.sprind.wallet.revocationfeature.provider.RevocationStorageProvider
@@ -37,7 +37,7 @@ import org.sprind.wallet.revocationfeature.provider.RevocationStorageProvider
 class WalletRevocationResetCoordinator(
     private val walletRevocationHandler: WalletRevocationHandler,
     private val revocationStorageProvider: RevocationStorageProvider,
-    private val prefsController: PrefsController,
+    private val prefsController: PlainPrefsController,
 ) {
 
     /** @return false when the reset failed and the wallet stays locked (caller may retry). */

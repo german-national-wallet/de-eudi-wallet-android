@@ -23,7 +23,12 @@ import eu.europa.ec.resourceslogic.theme.templates.structures.ThemeFontWeight
 import eu.europa.ec.resourceslogic.theme.templates.structures.ThemeTextAlign
 import eu.europa.ec.resourceslogic.theme.values.ThemeColors
 import eu.europa.ec.resourceslogic.theme.values.ThemeTypography
+import org.sprind.wallet.resourceslogic.generated.DesignTypography
 import org.sprind.wallet.resourceslogic.generated.eudiDiatypeMedium
+
+internal const val LEGACY_STYLE_MESSAGE =
+    "Not in the typescale since the 14 Oct 2026 export. Use the typescale style the screen's " +
+        "Figma design specifies."
 
 class ThemeTextStyles {
 
@@ -40,7 +45,8 @@ class ThemeTextStyles {
 
         val labelMediumProminent get() = ThemeTypography.labelMediumProminent.toTextStyle()
 
-        val titleMediumLarge get() = ThemeTypography.titleMediumLarge.toTextStyle()
+        @Deprecated(LEGACY_STYLE_MESSAGE)
+        val titleMediumLarge get() = DesignTypography.titleMediumLarge.toTextStyle()
 
         /**
          * Dialog title per Figma "M3/title/medium": 24sp, Medium (500), 28 line height, centered.

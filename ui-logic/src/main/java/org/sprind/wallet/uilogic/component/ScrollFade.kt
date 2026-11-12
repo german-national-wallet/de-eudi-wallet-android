@@ -80,26 +80,68 @@ fun ScrollFadeColumn(
  * A soft grey shadow along the bottom edge of a scrolling area, signalling that more content is
  * hidden below (e.g. behind a dialog's buttons). It fades out once the content reaches its end,
  * and never shows on content that fits. Place it in the [Box] that holds the scrolling content.
+ *
+ * For any other scroller or edge, use [ScrollFade] directly.
  */
 @Composable
 fun BoxScope.ScrollFadeIndicator(
     scrollState: ScrollState,
     modifier: Modifier = Modifier,
 ) {
+    ScrollFade(
+        visible = scrollState.canScrollForward,
+        edge = ScrollFadeEdge.BOTTOM,
+        modifier = modifier.align(Alignment.BottomCenter),
+    )
+}
+
+/** The edge of a scrolling area a [ScrollFade] is strongest at. */
+enum class ScrollFadeEdge {
+    /** Strongest at the top, fading out downwards: marks content hidden above. */
+    TOP,
+
+    /** Strongest at the bottom, fading out upwards: marks content hidden below. */
+    BOTTOM,
+}
+
+/** The height of a [ScrollFade], for placing it against a neighbouring element's edge. */
+val ScrollFadeHeight = SCROLL_FADE_HEIGHT.dp
+
+/**
+ * A soft grey shadow signalling that a scrolling area has more content beyond [edge]. It fades in
+ * and out with [visible], so drive that from the scroller, e.g. `canScrollForward` for a bottom
+ * fade or `canScrollBackward` for a top one.
+ *
+ * It has no position of its own: place it with the parent's alignment and offset in [modifier], on
+ * the area's edge or, for a header the area scrolls behind, just below the header.
+ *
+ * @param visible whether there is more content beyond [edge].
+ * @param edge the edge the content continues past, which is where the fade is strongest.
+ */
+@Composable
+fun ScrollFade(
+    visible: Boolean,
+    edge: ScrollFadeEdge,
+    modifier: Modifier = Modifier,
+) {
     val fadeAlpha by animateFloatAsState(
-        targetValue = if (scrollState.canScrollForward) 1f else 0f,
+        targetValue = if (visible) 1f else 0f,
         label = "scrollFadeAlpha",
     )
     val fadeColor = MaterialTheme.colorScheme.scrim.copy(alpha = SCROLL_FADE_ALPHA)
-    val fadeBrush = remember(fadeColor) {
-        Brush.verticalGradient(listOf(Color.Transparent, fadeColor))
+    val fadeBrush = remember(fadeColor, edge) {
+        Brush.verticalGradient(
+            when (edge) {
+                ScrollFadeEdge.TOP -> listOf(fadeColor, Color.Transparent)
+                ScrollFadeEdge.BOTTOM -> listOf(Color.Transparent, fadeColor)
+            }
+        )
     }
 
     Box(
         modifier = modifier
-            .align(Alignment.BottomCenter)
             .fillMaxWidth()
-            .height(SCROLL_FADE_HEIGHT.dp)
+            .height(ScrollFadeHeight)
             .graphicsLayer { alpha = fadeAlpha }
             .background(fadeBrush)
     )

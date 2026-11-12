@@ -111,6 +111,14 @@ gradlePlugin {
             id = "project.android.base.profile"
             implementationClass = "AndroidBaseLineProfilePlugin"
         }
+        register("androidAutomationFeature") {
+            id = "project.android.automation.feature"
+            implementationClass = "AndroidAutomationFeaturePlugin"
+        }
+        register("androidAutomationLogic") {
+            id = "project.android.automation.logic"
+            implementationClass = "AndroidAutomationLogicPlugin"
+        }
         register("kotlinRealm") {
             id = "project.kotlin.realm"
             implementationClass = "RealmPlugin"

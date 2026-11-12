@@ -17,13 +17,20 @@ import eu.europa.ec.uilogic.navigation.IssuanceScreens
 import eu.europa.ec.uilogic.navigation.helper.generateComposableArguments
 import eu.europa.ec.uilogic.navigation.helper.generateComposableNavigationLink
 import kotlinx.coroutines.CoroutineStart
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.cancel
+import kotlinx.coroutines.async
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withTimeoutOrNull
 import org.koin.android.annotation.KoinViewModel
 import org.koin.core.annotation.InjectedParam
 import org.sprind.wallet.analyticslogic.controller.Telemetry
+import org.sprind.wallet.analyticslogic.controller.TelemetryConstants
+import org.sprind.wallet.commonfeature.ui.error.authorizationExpiredDialogConfig
+import org.sprind.wallet.commonfeature.ui.error.toPidIssuanceErrorDialogConfig
+import org.sprind.wallet.corelogic.issuance.isExpiredAuthorization
+import org.sprind.wallet.networklogic.common.NetworkFailure
+import org.sprind.wallet.networklogic.common.toNetworkFailure
 import org.sprind.wallet.networklogic.trace.traceId
 import org.sprind.wallet.uilogic.component.CodeEntryBuffer
 import org.sprind.wallet.uilogic.component.CodeEntryState
@@ -31,11 +38,20 @@ import org.sprind.wallet.uilogic.component.CodeLength
 import org.sprind.wallet.uilogic.component.cleared
 import org.sprind.wallet.walletpinfeature.interactor.wscd.WscaRegistrationInteractor
 import org.sprind.wallet.walletpinfeature.interactor.wscd.WscaRegistrationResult
+import kotlin.time.Duration.Companion.seconds
 import kotlin.time.DurationUnit
 import kotlin.time.toDuration
 
 /** Reported when issuance could not be completed after the wallet PIN was set. */
 private const val ISSUANCE_FAILED_ERROR_CODE = "ISSUANCE_FAILED"
+
+/**
+ * Bounds the wait for the issuance outcome once the authorization has resumed. The interactor does
+ * not publish an [IssuanceEvent] for every way an issuance can end (a deferred issuance, for one),
+ * and system back is held while the loader shows, so without a bound the user would be stuck.
+ * Covers PID key creation in the remote HSM and the calls to the issuer, not user interaction.
+ */
+private val ISSUANCE_OUTCOME_TIMEOUT = 60.seconds
 
 sealed class WalletPinStep {
     data object Info : WalletPinStep()
@@ -84,7 +100,6 @@ class WalletPinSetViewModel(
      * as soon as the comparison is no longer needed, and never copied into a [String].
      */
     private val firstEntry = CodeEntryBuffer(CodeLength.WALLET_PIN)
-    private var issuanceEventsJob: Job? = null
 
     override fun setInitialState(): State = State(isLoading = false)
 
@@ -96,7 +111,15 @@ class WalletPinSetViewModel(
         super.onCleared()
     }
 
-    private fun handleError(errorCode: String, traceId: String?) =
+    /**
+     * For errors before the redirect is resumed, which the user can retry. Failures after it end the
+     * Issuance span instead, see [showIssuanceFailed].
+     */
+    private fun handleError(
+        errorCode: String,
+        traceId: String?,
+        onDismiss: () -> Unit = { setEvent(Event.OnDismissRequested) },
+    ) =
         setState {
             copy(
                 isLoading = false,
@@ -106,8 +129,8 @@ class WalletPinSetViewModel(
                     errorCode = errorCode,
                     traceId = traceId,
                     primaryButtonTextRes = R.string.global_error_prim_button,
-                    onDismiss = { setEvent(Event.OnDismissRequested) },
-                    onPrimaryButtonClick = { setEvent(Event.OnDismissRequested) }
+                    onDismiss = onDismiss,
+                    onPrimaryButtonClick = onDismiss
                 )
             )
         }
@@ -136,7 +159,7 @@ class WalletPinSetViewModel(
                                 startPinSessionResult.error.traceId
                             )
                         } else {
-                            showSuccessScreenAndContinueIssuance()
+                            continueIssuance()
                         }
                     } else {
                         wscaRegistrationInteractor.register(pin).collect { registrationResult ->
@@ -146,7 +169,7 @@ class WalletPinSetViewModel(
                                 }
 
                                 is WscaRegistrationResult.Success -> {
-                                    showSuccessScreenAndContinueIssuance()
+                                    continueIssuance()
                                 }
                             }
                         }
@@ -184,6 +207,9 @@ class WalletPinSetViewModel(
             }
 
             Event.OnDismissRequested -> {
+                // registration and issuance cannot be abandoned half-way; the toolbar hides its
+                // back action while loading, and system back must not step around that
+                if (viewState.value.isLoading) return
                 when (viewState.value.currentStep) {
                     WalletPinStep.Confirm -> setState {
                         firstEntry.wipe()
@@ -229,41 +255,116 @@ class WalletPinSetViewModel(
         }
     }
 
-    private suspend fun showSuccessScreenAndContinueIssuance() {
+    /**
+     * Finishes the issuance the wallet PIN was set for. The loader stays over the Confirm step until
+     * the issuance ends: the Success step is only shown once the document is issued, so a failure
+     * surfaces as an error dialog over the entry screen rather than under a success screen.
+     */
+    private suspend fun continueIssuance() {
+        // issuanceEvents does not replay, and the outcome may be published while the authorization
+        // is still resuming, so listen for it before resuming
+        val outcome = viewModelScope.async(start = CoroutineStart.UNDISPATCHED) {
+            addDocumentInteractor.issuanceEvents.first()
+        }
+        val result = addDocumentInteractor.authorizationHandler.resumeWithRedirectUri(redirectUrl)
+        if (result.isFailure) {
+            outcome.cancel()
+            rwscaPinHandler.clearPinSession()
+            val exception = result.exceptionOrNull()
+            showIssuanceFailed(
+                traceId = exception?.traceId() ?: telemetry.currentTraceId(),
+                networkFailure = exception?.toNetworkFailure(),
+                isAuthorizationExpired = exception?.isExpiredAuthorization() == true,
+            )
+            return
+        }
+
+        val event = withTimeoutOrNull(ISSUANCE_OUTCOME_TIMEOUT) { outcome.await() }
+        if (event == null) {
+            // stop observing the issuance and drop its pending authorization. This does not stop
+            // the wallet-core manager, which issues on its own scope; clearing the PIN session
+            // below makes any later signing fail rather than store a document behind the error
+            addDocumentInteractor.cancelIssuance()
+        }
+        rwscaPinHandler.clearPinSession()
+        when (event) {
+            IssuanceEvent.Completed -> {
+                setState {
+                    copy(
+                        currentStep = WalletPinStep.Success,
+                        isLoading = false
+                    )
+                }
+                // let the user see the Success step before leaving for the dashboard
+                delay(2.toDuration(DurationUnit.SECONDS))
+                navigateToDashboard()
+            }
+
+            is IssuanceEvent.Failed -> showIssuanceFailed(
+                traceId = telemetry.currentTraceId(),
+                networkFailure = event.networkFailure,
+                isAuthorizationExpired = event.isAuthorizationExpired,
+            )
+
+            null -> {
+                outcome.cancel()
+                showIssuanceFailed(traceId = telemetry.currentTraceId())
+            }
+        }
+    }
+
+    /**
+     * Ends the Issuance span and shows the issuance error over the entry screen. [traceId] must be
+     * read before the span ends, while it is still the live one.
+     */
+    private fun showIssuanceFailed(
+        traceId: String?,
+        networkFailure: NetworkFailure? = null,
+        isAuthorizationExpired: Boolean = false,
+    ) {
+        telemetry.endSpan(TelemetryConstants.ISSUANCE)
         setState {
             copy(
-                currentStep = WalletPinStep.Success,
-                isLoading = false
+                isLoading = false,
+                errorDialog = issuanceFailedDialog(traceId, networkFailure, isAuthorizationExpired),
             )
         }
-        // delay required to allow the user to see the Success screen otherwise the loader takes
-        // over very fast
-        delay(2.toDuration(DurationUnit.SECONDS))
-        setState { copy(isLoading = true) }
-        subscribeToIssuance()
-        val result = addDocumentInteractor.authorizationHandler.resumeWithRedirectUri(redirectUrl)
-        if (result.isSuccess) {
-            // Issuance completion is handled by the active subscription.
-        } else {
-            issuanceEventsJob?.cancel()
-            issuanceEventsJob = null
-            rwscaPinHandler.clearPinSession()
-            // show error then navigate to add document screen
-            setState {
-                copy(
-                    isLoading = false,
-                    errorDialog = GenericErrorDialogConfig(
-                        titleRes = R.string.global_error_title,
-                        bodyTextRes = R.string.global_error_paragraph,
-                        errorCode = ISSUANCE_FAILED_ERROR_CODE,
-                        traceId = result.exceptionOrNull()?.traceId()
-                            ?: telemetry.currentTraceId(),
-                        primaryButtonTextRes = R.string.global_error_prim_button,
-                        onDismiss = { navigateToAddDocumentScreen() },
-                        onPrimaryButtonClick = { navigateToAddDocumentScreen() }
-                    )
-                )
-            }
+    }
+
+    /**
+     * The dialog for an issuance that failed once the redirect was resumed. The eID session is used
+     * up by then, so retrying and starting again both restart the PID issuance from the document
+     * list. The timeout and expired session dialogs cannot be dismissed, so the user chooses between
+     * that and cancelling; a rate limit's "Retry later" also goes back to the document list.
+     */
+    private fun issuanceFailedDialog(
+        traceId: String?,
+        networkFailure: NetworkFailure?,
+        isAuthorizationExpired: Boolean,
+    ): GenericErrorDialogConfig {
+        val startAgain = { navigateToAddDocumentScreen() }
+        val cancel = { navigateToDashboard() }
+        return when {
+            isAuthorizationExpired -> authorizationExpiredDialogConfig(
+                onStartAgain = startAgain,
+                onCancel = cancel,
+            )
+
+            networkFailure != null -> networkFailure.toPidIssuanceErrorDialogConfig(
+                onRetry = startAgain,
+                onCancel = cancel,
+                onDismiss = startAgain,
+            )
+
+            else -> GenericErrorDialogConfig(
+                titleRes = R.string.global_error_title,
+                bodyTextRes = R.string.global_error_paragraph,
+                errorCode = ISSUANCE_FAILED_ERROR_CODE,
+                traceId = traceId,
+                primaryButtonTextRes = R.string.global_error_prim_button,
+                onDismiss = startAgain,
+                onPrimaryButtonClick = startAgain,
+            )
         }
     }
 
@@ -282,43 +383,6 @@ class WalletPinSetViewModel(
                 ),
                 inclusive = false
             )
-        }
-    }
-
-    private fun subscribeToIssuance() {
-        if (issuanceEventsJob?.isActive == true) return
-
-        issuanceEventsJob = viewModelScope.launch(start = CoroutineStart.UNDISPATCHED) {
-            addDocumentInteractor.issuanceEvents.collect { event ->
-                when (event) {
-                    IssuanceEvent.Completed -> {
-                        issuanceEventsJob = null
-                        rwscaPinHandler.clearPinSession()
-                        navigateToDashboard()
-                        this.cancel()
-                    }
-
-                    is IssuanceEvent.Failed -> {
-                        issuanceEventsJob = null
-                        rwscaPinHandler.clearPinSession()
-                        setState {
-                            copy(
-                                isLoading = false,
-                                errorDialog = GenericErrorDialogConfig(
-                                    titleRes = R.string.global_error_title,
-                                    bodyTextRes = R.string.global_error_paragraph,
-                                    errorCode = ISSUANCE_FAILED_ERROR_CODE,
-                                    traceId = telemetry.currentTraceId(),
-                                    primaryButtonTextRes = R.string.global_error_prim_button,
-                                    onDismiss = { navigateToAddDocumentScreen() },
-                                    onPrimaryButtonClick = { navigateToAddDocumentScreen() }
-                                )
-                            )
-                        }
-                        this.cancel()
-                    }
-                }
-            }
         }
     }
 

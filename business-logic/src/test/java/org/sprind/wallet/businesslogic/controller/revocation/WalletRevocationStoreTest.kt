@@ -16,7 +16,7 @@
 
 package org.sprind.wallet.businesslogic.controller.revocation
 
-import eu.europa.ec.businesslogic.controller.storage.PrefsController
+import org.sprind.wallet.businesslogic.controller.storage.PlainPrefsController
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -31,7 +31,7 @@ import org.mockito.kotlin.whenever
 class WalletRevocationStoreTest {
 
     @Mock
-    private lateinit var prefsController: PrefsController
+    private lateinit var prefsController: PlainPrefsController
 
     private lateinit var closeable: AutoCloseable
 

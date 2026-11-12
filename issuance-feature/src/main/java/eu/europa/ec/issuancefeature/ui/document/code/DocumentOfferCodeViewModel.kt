@@ -58,7 +58,6 @@ sealed class Event : ViewEvent {
     data object DismissError : Event()
     data object OnPinChange : Event()
     data class OnSendData(val context: Context) : Event()
-    data object HelpPressed : Event()
     data object Decline : Event()
     data object Cancel : Event()
     data object DismissCloseConfirmationDialog : Event()
@@ -123,10 +122,6 @@ class DocumentOfferCodeViewModel(
 
             is Event.OnSendData -> {
                 issueDocuments(event.context)
-            }
-
-            is Event.HelpPressed -> {
-                // TODO: Will open the offer's help sheet
             }
 
             Event.Cancel -> setState { copy(showCloseConfirmationDialog = true) }

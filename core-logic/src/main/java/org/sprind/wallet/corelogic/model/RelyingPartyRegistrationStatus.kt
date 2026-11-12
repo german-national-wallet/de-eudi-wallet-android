@@ -24,6 +24,7 @@ import eu.europa.ec.eudi.wallet.registration.OverAskedClaim
 import eu.europa.ec.eudi.wallet.registration.RegistrationCertificateResult
 import eu.europa.ec.eudi.wallet.registration.RegistrationFailureReason
 import kotlinx.serialization.Serializable
+import java.net.URI
 import java.util.Locale
 
 /** What the relying party's registration certificate said about the request. */
@@ -36,6 +37,7 @@ sealed interface RelyingPartyRegistrationStatus {
         val purpose: List<LocalizedTextDomain> = emptyList(),
         val supervisoryAuthorityUri: String? = null,
         val supportUri: String? = null,
+        val infoUri: String? = null,
     ) : RelyingPartyRegistrationStatus
 
     /** The certificate validated, but the request asks for claims it does not register. */
@@ -87,6 +89,19 @@ val RelyingPartyRegistrationStatus.rejectsRequest: Boolean
 val RelyingPartyRegistrationStatus.supportUri: String?
     get() = (this as? RelyingPartyRegistrationStatus.WithinRegisteredScope)?.supportUri
 
+/**
+ * The relying party's website, to restart a presentation there (WD-5012), from a validated
+ * certificate only: the first of its WRPRC `info_uri` and `support_uri` that is an HTTPS URI with a
+ * host (as on iOS). An `info_uri` that is not HTTPS therefore falls back to the `support_uri`.
+ */
+val RelyingPartyRegistrationStatus.serviceProviderUri: String?
+    get() = (this as? RelyingPartyRegistrationStatus.WithinRegisteredScope)
+        ?.let { listOfNotNull(it.infoUri, it.supportUri) }
+        ?.firstOrNull { uri ->
+            runCatching { URI(uri) }.getOrNull()
+                ?.let { it.scheme.equals("https", ignoreCase = true) && !it.host.isNullOrEmpty() } == true
+        }
+
 val RelyingPartyRegistrationStatus.reportUri: String?
     get() = when (this) {
         is RelyingPartyRegistrationStatus.OverAsking -> supervisoryAuthorityUri
@@ -119,6 +134,7 @@ private fun RegistrationCertificateResult.toRelyingPartyRegistrationStatus(): Re
                     purpose = registration.purpose.map { it.toDomain() },
                     supervisoryAuthorityUri = supervisoryAuthorityUri,
                     supportUri = registration.supportUri?.takeIf { it.isNotBlank() },
+                    infoUri = registration.infoUri?.takeIf { it.isNotBlank() },
                 )
             } else {
                 RelyingPartyRegistrationStatus.OverAsking(

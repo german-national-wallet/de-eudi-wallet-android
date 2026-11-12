@@ -26,9 +26,9 @@ import org.sprind.wallet.uilogic.component.WebPageScreen
 /**
  * Route to the page a settings menu entry opens — the support page and the legal documents.
  *
- * None of these documents is published yet, so the config hands over
- * [org.sprind.wallet.businesslogic.config.SettingsLinks.BLANK_PAGE] for now and the page opens
- * empty.
+ * The privacy policy and the terms of use arrive from the config resolved for the app's language;
+ * the pages not published yet still hand over
+ * [org.sprind.wallet.businesslogic.config.SettingsLinks.BLANK_PAGE] and open empty.
  *
  * @property url the page to read.
  * @property titleRes the label of the entry that led here, which names the screen in the toolbar.

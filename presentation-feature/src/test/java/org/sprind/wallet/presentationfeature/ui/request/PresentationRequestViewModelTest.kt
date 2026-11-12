@@ -19,7 +19,6 @@ import eu.europa.ec.commonfeature.ui.request.model.RequestDocumentItemUi
 import eu.europa.ec.corelogic.di.AppCoroutineScope
 import eu.europa.ec.presentationfeature.interactor.PresentationDocumentSubmissionPartialState
 import eu.europa.ec.presentationfeature.interactor.PresentationRejectionPartialState
-import eu.europa.ec.presentationfeature.interactor.PresentationRequestDeleteDocumentPartialState
 import eu.europa.ec.presentationfeature.interactor.PresentationRequestInteractor
 import eu.europa.ec.presentationfeature.interactor.PresentationRequestInteractorPartialState
 import eu.europa.ec.presentationfeature.interactor.PresentationRequestProcessPartialState
@@ -34,6 +33,7 @@ import eu.europa.ec.testlogic.extension.runTest
 import eu.europa.ec.testlogic.rule.CoroutineTestRule
 import eu.europa.ec.uilogic.component.ListItemData
 import eu.europa.ec.uilogic.component.ListItemMainContentData
+import eu.europa.ec.uilogic.component.dialog.GenericErrorDialogConfig
 import eu.europa.ec.uilogic.navigation.DashboardScreens
 import eu.europa.ec.uilogic.navigation.PresentationScreens
 import eu.europa.ec.uilogic.serializer.UiSerializer
@@ -65,10 +65,18 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import org.sprind.wallet.analyticslogic.controller.Telemetry
 import org.sprind.wallet.analyticslogic.controller.TelemetryConstants
+import org.sprind.wallet.authenticationlogic.model.MdvmError
+import org.sprind.wallet.authenticationlogic.model.RwscaError
 import org.sprind.wallet.businesslogic.model.UserPinImpl
+import org.sprind.wallet.commonfeature.interactor.DocumentDeletionPartialState
 import org.sprind.wallet.corelogic.presentationerror.PresentationError
+import org.sprind.wallet.networklogic.connectivity.ConnectivityChecker
+import org.sprind.wallet.networklogic.rwsca.model.error.RwscaErrorResponse
+import org.sprind.wallet.networklogic.mdvm.model.error.MdvmErrorType
+import org.sprind.wallet.networklogic.rwsca.model.error.RwscaErrorType
 import org.sprind.wallet.presentationfeature.error.BlockingErrorReason
 import org.sprind.wallet.presentationfeature.error.presentationErrorRoute
+import org.sprind.wallet.presentationfeature.interactor.PidDeletionInteractor
 import java.net.URI
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -87,6 +95,9 @@ class PresentationRequestViewModelTest {
 
     @Mock
     private lateinit var presentationRequestInteractor: PresentationRequestInteractor
+
+    @Mock
+    private lateinit var pidDeletionInteractor: PidDeletionInteractor
     @Mock
     private lateinit var resourceProvider: ResourceProvider
     @Mock
@@ -99,10 +110,13 @@ class PresentationRequestViewModelTest {
     private lateinit var telemetry: Telemetry
     @Mock
     private lateinit var configLogic: ConfigLogic
+    @Mock
+    private lateinit var connectivityChecker: ConnectivityChecker
 
     val subject: PresentationRequestViewModel by lazy {
         PresentationRequestViewModel(
             presentationRequestInteractor = presentationRequestInteractor,
+            pidDeletionInteractor = pidDeletionInteractor,
             resourceProvider = resourceProvider,
             uiSerializer = uiSerializer,
             rwscaPinHandler = rwscaPinHandler,
@@ -111,6 +125,7 @@ class PresentationRequestViewModelTest {
             requestUriConfigRaw = "",
             telemetry = telemetry,
             configLogic = configLogic,
+            connectivityChecker = connectivityChecker,
         )
     }
 
@@ -120,6 +135,11 @@ class PresentationRequestViewModelTest {
         whenever(resourceProvider.getString(any())).thenReturn("")
         whenever(presentationRequestInteractor.getWalletPinBlockTime()).thenReturn("")
         whenever(telemetry.currentTraceId()).thenReturn("")
+        whenever(connectivityChecker.isOnline()).thenReturn(true)
+        // OpenID4VP by default, so the WD-4685 offline checks apply. givenRequestDocuments()
+        // switches to BLE, where only the PIN session needs the internet.
+        whenever(uiSerializer.fromBase64(anyOrNull(), eq(RequestUriConfig::class.java), any()))
+            .thenReturn(RequestUriConfig(PresentationMode.OpenId4Vp(uri = "", initiatorRoute = "")))
     }
 
     @After
@@ -145,8 +165,8 @@ class PresentationRequestViewModelTest {
     @Test
     fun `when PID deletion confirmation is confirmed, then PID documents are deleted`() =
         coroutineRule.runTest {
-            whenever(presentationRequestInteractor.deletePidDocuments()).thenReturn(
-                flowOf(PresentationRequestDeleteDocumentPartialState.Success)
+            whenever(pidDeletionInteractor.deletePid()).thenReturn(
+                flowOf(DocumentDeletionPartialState.Success)
             )
 
             subject.effect.runFlowTest {
@@ -157,7 +177,7 @@ class PresentationRequestViewModelTest {
                 subject.setEvent(Event.DeletePidDocumentsRequested)
                 coroutineRule.testScope.advanceUntilIdle()
 
-                verify(presentationRequestInteractor).deletePidDocuments()
+                verify(pidDeletionInteractor).deletePid()
                 assertEquals(
                     RequestScreenStep.DocumentDeletedConfirmation,
                     subject.viewState.value.currentStep
@@ -308,13 +328,14 @@ class PresentationRequestViewModelTest {
         }
 
     @Test
-    fun `a request nothing in the wallet can satisfy is refused before the no-document screen opens`() =
+    fun `a request nothing in the wallet can satisfy is refused before the missing-credential screen opens`() =
         // Leaving the flow stops the presentation, which cancels a refusal still in flight, so the
         // screen may only open once the verifier has its answer (WD-4430).
         coroutineRule.runTest {
             val verifierAnswer = CompletableDeferred<PresentationRejectionPartialState>()
             whenever(presentationRequestInteractor.rejectPresentation())
                 .doSuspendableAnswer { verifierAnswer.await() }
+            whenever(telemetry.currentTraceId()).thenReturn("trace-4808")
             val sessionEvents = startRequest()
 
             subject.effect.runFlowTest {
@@ -329,14 +350,14 @@ class PresentationRequestViewModelTest {
 
                 val effect = assertIs<Effect.Navigation.SwitchScreen>(awaitItem())
                 assertEquals(
-                    PresentationScreens.PresentationNoDocument.screenRoute,
-                    effect.screenRoute
+                    presentationErrorRoute(BlockingErrorReason.MISSING_CREDENTIAL, "trace-4808"),
+                    effect.screenRoute,
                 )
             }
         }
 
     @Test
-    fun `a refusal of an unmatched request that fails still shows the no-document screen`() =
+    fun `a refusal of an unmatched request that fails still shows the missing-credential screen`() =
         coroutineRule.runTest {
             whenever(presentationRequestInteractor.rejectPresentation())
                 .thenReturn(PresentationRejectionPartialState.Failure("response_uri unreachable"))
@@ -348,10 +369,31 @@ class PresentationRequestViewModelTest {
 
                 val effect = assertIs<Effect.Navigation.SwitchScreen>(awaitItem())
                 assertEquals(
-                    PresentationScreens.PresentationNoDocument.screenRoute,
-                    effect.screenRoute
+                    presentationErrorRoute(BlockingErrorReason.MISSING_CREDENTIAL, traceId = ""),
+                    effect.screenRoute,
                 )
                 assertNull(subject.viewState.value.error)
+            }
+        }
+
+    @Test
+    fun `a request that needs a PID the wallet lacks is refused, then blocked by the missing-PID screen`() =
+        coroutineRule.runTest {
+            whenever(presentationRequestInteractor.rejectPresentation())
+                .thenReturn(PresentationRejectionPartialState.Delivered)
+            whenever(telemetry.currentTraceId()).thenReturn("trace-4759")
+            val sessionEvents = startRequest()
+
+            subject.effect.runFlowTest {
+                sessionEvents.emit(noData().copy(missingPid = true))
+                coroutineRule.testScope.advanceUntilIdle()
+
+                verify(presentationRequestInteractor).rejectPresentation()
+                val effect = assertIs<Effect.Navigation.SwitchScreen>(awaitItem())
+                assertEquals(
+                    presentationErrorRoute(BlockingErrorReason.MISSING_PID, "trace-4759"),
+                    effect.screenRoute,
+                )
             }
         }
 
@@ -577,6 +619,38 @@ class PresentationRequestViewModelTest {
         }
 
     @Test
+    fun `a locked Digital ID code refuses the request, then opens the locked Digital ID screen`() =
+        coroutineRule.runTest {
+            whenever(rwscaPinHandler.startPinSession(any())).thenReturn(
+                StartPinSessionResult.Failure(
+                    RwscaError.FromRwsca(
+                        type = RwscaErrorType.ACCOUNT_LOCKED,
+                        serverResponse = RwscaErrorResponse(code = RwscaErrorType.ACCOUNT_LOCKED.code),
+                    )
+                )
+            )
+            whenever(presentationRequestInteractor.rejectPresentation())
+                .thenReturn(PresentationRejectionPartialState.Delivered)
+            whenever(telemetry.currentTraceId()).thenReturn("trace-4980")
+
+            subject.effect.runFlowTest {
+                subject.typeIntoPinField("123456")
+                subject.setEvent(Event.ConfirmPin)
+                coroutineRule.testScope.advanceUntilIdle()
+
+                verify(presentationRequestInteractor).rejectPresentation()
+                verify(presentationRequestInteractor).stopPresentation()
+                // ConfirmPin first emits HideKeyboard; skip to the navigation effect.
+                skipItems(1)
+                val effect = assertIs<Effect.Navigation.SwitchScreen>(awaitItem())
+                assertEquals(
+                    presentationErrorRoute(BlockingErrorReason.PID_LOCKED, "trace-4980"),
+                    effect.screenRoute,
+                )
+            }
+        }
+
+    @Test
     fun `when requested documents are sent and interactor returns error, then error dialog with correct title, bodytext and primary button text should be set in the state`() =
         coroutineRule.runTest {
 
@@ -762,6 +836,8 @@ class PresentationRequestViewModelTest {
 
     private fun givenRequestDocuments(documents: Flow<PresentationRequestInteractorPartialState>) {
         whenever(presentationRequestInteractor.getRequestDocuments()).thenReturn(documents)
+        // BLE, unlike the OpenID4VP default of setUp(): a test using this helper does not reach
+        // the WD-4685 checks of the request fetch, the hand-off to loading or the resend.
         whenever(
             uiSerializer.fromBase64(
                 anyOrNull(),
@@ -914,7 +990,7 @@ class PresentationRequestViewModelTest {
 
             assertEquals(
                 "https://verifier.example.invalid/support",
-                subject.viewState.value.pendingReportIssueUrl,
+                subject.viewState.value.pendingRedirectUrl,
             )
             // The rejection stays visible behind the redirect confirmation.
             assertEquals(dialog, subject.viewState.value.errorDialog)
@@ -947,7 +1023,10 @@ class PresentationRequestViewModelTest {
             assertNull(dialog.secondaryButtonTextRes)
         }
 
-    private suspend fun givenVerifierRejectsTheResponse() {
+    private suspend fun givenVerifierRejectsTheResponse() =
+        givenSendingTheResponseFails(PresentationError.RelyingPartySideSubType.RELYING_PARTY_REJECTED)
+
+    private suspend fun givenSendingTheResponseFails(subType: PresentationError.RelyingPartySideSubType) {
         whenever(rwscaPinHandler.startPinSession(any())).thenReturn(StartPinSessionResult.Success)
         whenever(presentationRequestInteractor.processRequest()).thenReturn(
             flowOf(
@@ -956,12 +1035,82 @@ class PresentationRequestViewModelTest {
                         traceId = "rejected-trace-id",
                         cause = null,
                         displayMessage = "rejected",
-                        subType = PresentationError.RelyingPartySideSubType.RELYING_PARTY_REJECTED,
+                        subType = subType,
                     )
                 )
             )
         )
     }
+
+    //region WD-5012: relying party timeout
+
+    @Test
+    fun `when the response endpoint stays unreachable, the timeout dialog goes back to the service provider`() =
+        coroutineRule.runTest {
+            givenRequest(
+                PresentationRequestInteractorPartialState.Success(
+                    verifierName = "Verifier",
+                    verifierIsTrusted = true,
+                    requestDocuments = listOf(requestDocumentItemUi(DocumentType.EAA)),
+                    supportUri = "https://verifier.example.invalid/support",
+                    serviceProviderUri = "https://verifier.example.invalid",
+                )
+            )
+            subject.setEvent(Event.DoWork)
+            coroutineRule.testScope.advanceUntilIdle()
+            givenSendingTheResponseFails(PresentationError.RelyingPartySideSubType.RELYING_PARTY_TIMEOUT)
+
+            subject.typeIntoPinField("123456")
+            subject.setEvent(Event.ConfirmPin)
+            coroutineRule.testScope.advanceUntilIdle()
+
+            val dialog = assertNotNull(subject.viewState.value.errorDialog)
+            assertEquals(R.string.pid_presentation_timeout_rp_title, dialog.titleRes)
+            assertEquals(R.string.pid_presentation_timeout_rp_prim_button, dialog.primaryButtonTextRes)
+            assertTrue(dialog.primaryButtonOpensExternalLink)
+            assertEquals(R.string.pid_presentation_timeout_rp_sec_button, dialog.secondaryButtonTextRes)
+
+            dialog.onPrimaryButtonClick()
+
+            // The service provider's website, not its support contact.
+            assertEquals("https://verifier.example.invalid", subject.viewState.value.pendingRedirectUrl)
+            assertEquals(dialog, subject.viewState.value.errorDialog)
+
+            dialog.onSecondaryButtonClick()
+            coroutineRule.testScope.advanceUntilIdle()
+
+            val exit = subject.effect.awaitFirstOf<Effect.Navigation.SwitchScreen>()
+            assertEquals(DashboardScreens.Dashboard.screenRoute, exit.screenRoute)
+        }
+
+    @Test
+    fun `when fetching the request times out, the timeout dialog can only cancel the verification`() =
+        coroutineRule.runTest {
+            // Before the request arrived there is no registration naming the service provider.
+            givenRequestFetchEmitsFailure(
+                PresentationError.RelyingPartySide(
+                    traceId = "fetch-trace",
+                    cause = null,
+                    displayMessage = "timeout",
+                    subType = PresentationError.RelyingPartySideSubType.RELYING_PARTY_TIMEOUT,
+                )
+            )
+            subject.setEvent(Event.DoWork)
+            coroutineRule.testScope.advanceUntilIdle()
+
+            val dialog = assertNotNull(subject.viewState.value.errorDialog)
+            assertEquals(R.string.pid_presentation_timeout_rp_title, dialog.titleRes)
+            assertEquals(R.string.pid_presentation_timeout_rp_sec_button, dialog.primaryButtonTextRes)
+            assertNull(dialog.secondaryButtonTextRes)
+
+            dialog.onPrimaryButtonClick()
+            coroutineRule.testScope.advanceUntilIdle()
+
+            val exit = subject.effect.awaitFirstOf<Effect.Navigation.SwitchScreen>()
+            assertEquals(DashboardScreens.Dashboard.screenRoute, exit.screenRoute)
+        }
+
+    //endregion
 
     //region WD-4273: retry gated by the taxonomy on the request screen
 
@@ -1163,6 +1312,286 @@ class PresentationRequestViewModelTest {
         whenever(presentationRequestInteractor.getRequestDocuments()).thenReturn(
             flowOf(PresentationRequestInteractorPartialState.Failure(error = fetchError))
         )
+    }
+
+    //endregion
+
+    //region WD-4685: offline dialog before any request
+
+    @Test
+    fun `offline, the request is not fetched and the offline dialog is shown`() =
+        coroutineRule.runTest {
+            whenever(connectivityChecker.isOnline()).thenReturn(false)
+
+            subject.setEvent(Event.DoWork)
+            coroutineRule.testScope.advanceUntilIdle()
+
+            assertOfflineDialog()
+            verify(presentationRequestInteractor, never()).getRequestDocuments()
+            verify(telemetry, never()).startSpan(any(), any())
+        }
+
+    @Test
+    fun `retrying the offline request fetch once online fetches the request`() =
+        coroutineRule.runTest {
+            whenever(connectivityChecker.isOnline()).thenReturn(false)
+            whenever(presentationRequestInteractor.getRequestDocuments()).thenReturn(
+                flowOf(
+                    PresentationRequestInteractorPartialState.Success(
+                        verifierName = "Verifier",
+                        verifierIsTrusted = true,
+                        requestDocuments = listOf(requestDocumentItemUi(documentType = DocumentType.EAA)),
+                    )
+                )
+            )
+            subject.setEvent(Event.DoWork)
+            coroutineRule.testScope.advanceUntilIdle()
+
+            whenever(connectivityChecker.isOnline()).thenReturn(true)
+            assertOfflineDialog().onPrimaryButtonClick()
+            coroutineRule.testScope.advanceUntilIdle()
+
+            assertNull(subject.viewState.value.errorDialog)
+            assertTrue(subject.viewState.value.claimItems.isNotEmpty())
+        }
+
+    @Test
+    fun `closing the offline dialog of the request fetch leaves the screen`() =
+        coroutineRule.runTest {
+            whenever(connectivityChecker.isOnline()).thenReturn(false)
+            subject.setEvent(Event.DoWork)
+            coroutineRule.testScope.advanceUntilIdle()
+
+            assertOfflineDialog().onTertiaryButtonClick()
+            coroutineRule.testScope.advanceUntilIdle()
+
+            assertNull(subject.viewState.value.errorDialog)
+            subject.effect.awaitFirstOf<Effect.Navigation.Pop>()
+        }
+
+    @Test
+    fun `a BLE request is fetched offline`() =
+        coroutineRule.runTest {
+            whenever(connectivityChecker.isOnline()).thenReturn(false)
+            givenRequest(noData())
+
+            subject.setEvent(Event.DoWork)
+            coroutineRule.testScope.advanceUntilIdle()
+
+            verify(presentationRequestInteractor).getRequestDocuments()
+        }
+
+    @Test
+    fun `offline, a confirmed PIN starts no PIN session and is not reported as wrong`() =
+        coroutineRule.runTest {
+            whenever(connectivityChecker.isOnline()).thenReturn(false)
+
+            subject.typeIntoPinField("123456")
+            subject.setEvent(Event.ConfirmPin)
+            coroutineRule.testScope.advanceUntilIdle()
+
+            assertOfflineDialog()
+            verify(rwscaPinHandler, never()).startPinSession(any())
+            assertNull(subject.viewState.value.pinState.supportingText)
+            assertFalse(subject.viewState.value.pinState.buffer.isComplete)
+            assertFalse(subject.viewState.value.isLoading)
+        }
+
+    @Test
+    fun `retrying the offline PIN confirmation once online waits for a new PIN entry`() =
+        coroutineRule.runTest {
+            whenever(connectivityChecker.isOnline()).thenReturn(false)
+            whenever(rwscaPinHandler.startPinSession(any())).thenReturn(StartPinSessionResult.Success)
+            whenever(presentationRequestInteractor.processRequest()).thenReturn(MutableSharedFlow())
+            subject.typeIntoPinField("123456")
+            subject.setEvent(Event.ConfirmPin)
+            coroutineRule.testScope.advanceUntilIdle()
+
+            whenever(connectivityChecker.isOnline()).thenReturn(true)
+            assertOfflineDialog().onPrimaryButtonClick()
+            coroutineRule.testScope.advanceUntilIdle()
+
+            assertNull(subject.viewState.value.errorDialog)
+            verify(rwscaPinHandler, never()).startPinSession(any())
+
+            subject.typeIntoPinField("123456")
+            subject.setEvent(Event.ConfirmPin)
+            coroutineRule.testScope.advanceUntilIdle()
+
+            verify(rwscaPinHandler).startPinSession(any())
+        }
+
+    @Test
+    fun `retrying the offline PIN confirmation while still offline shows the dialog again`() =
+        coroutineRule.runTest {
+            whenever(connectivityChecker.isOnline()).thenReturn(false)
+            subject.typeIntoPinField("123456")
+            subject.setEvent(Event.ConfirmPin)
+            coroutineRule.testScope.advanceUntilIdle()
+
+            assertOfflineDialog().onPrimaryButtonClick()
+            coroutineRule.testScope.advanceUntilIdle()
+
+            assertOfflineDialog()
+            verify(rwscaPinHandler, never()).startPinSession(any())
+        }
+
+    @Test
+    fun `offline, a request without PID does not hand off to loading`() =
+        coroutineRule.runTest {
+            whenever(connectivityChecker.isOnline()).thenReturn(false)
+            subject.updateData(listOf(requestDocumentItemUi(documentType = DocumentType.EAA)))
+
+            subject.setEvent(Event.CredentialDetailsView)
+            subject.viewState.value.onContinueAction()
+            coroutineRule.testScope.advanceUntilIdle()
+
+            assertOfflineDialog()
+            verify(presentationRequestInteractor, never()).sendRequestedDocuments()
+        }
+
+    @Test
+    fun `open internet settings asks the screen to open the panel and keeps the offline dialog open`() =
+        coroutineRule.runTest {
+            whenever(connectivityChecker.isOnline()).thenReturn(false)
+            subject.typeIntoPinField("123456")
+            subject.setEvent(Event.ConfirmPin)
+            coroutineRule.testScope.advanceUntilIdle()
+
+            assertOfflineDialog().onSecondaryButtonClick()
+
+            subject.effect.awaitFirstOf<Effect.OpenInternetSettings>()
+            assertNotNull(subject.viewState.value.errorDialog)
+        }
+
+    @Test
+    fun `offline, the sticky button does not hand off to loading`() =
+        coroutineRule.runTest {
+            whenever(connectivityChecker.isOnline()).thenReturn(false)
+            subject.updateData(listOf(requestDocumentItemUi(documentType = DocumentType.EAA)))
+
+            subject.setEvent(Event.StickyButtonPressed)
+            coroutineRule.testScope.advanceUntilIdle()
+
+            assertOfflineDialog()
+            verify(presentationRequestInteractor, never()).sendRequestedDocuments()
+        }
+
+    @Test
+    fun `retrying a failed send while offline shows the offline dialog without re-sending`() =
+        coroutineRule.runTest {
+            val failedSendDialog = givenFailedSend()
+
+            whenever(connectivityChecker.isOnline()).thenReturn(false)
+            failedSendDialog.onPrimaryButtonClick()
+            coroutineRule.testScope.advanceUntilIdle()
+
+            assertOfflineDialog()
+            verify(presentationRequestInteractor, times(1)).sendRequestedDocuments()
+        }
+
+    @Test
+    fun `closing the offline dialog of a failed send returns to the failure with its trace id`() =
+        coroutineRule.runTest {
+            val failedSendDialog = givenFailedSend()
+            whenever(connectivityChecker.isOnline()).thenReturn(false)
+            failedSendDialog.onPrimaryButtonClick()
+            coroutineRule.testScope.advanceUntilIdle()
+
+            assertOfflineDialog().onTertiaryButtonClick()
+            coroutineRule.testScope.advanceUntilIdle()
+
+            val restored = assertNotNull(subject.viewState.value.errorDialog)
+            assertEquals(failedSendDialog.titleRes, restored.titleRes)
+            assertEquals("submit-trace", restored.traceId)
+            assertEquals(failedSendDialog.primaryButtonTextRes, restored.primaryButtonTextRes)
+        }
+
+    /** A send that failed intermittently; returns its error dialog, which offers Retry. */
+    private suspend fun givenFailedSend(): GenericErrorDialogConfig {
+        val processStates = MutableSharedFlow<PresentationRequestProcessPartialState>(replay = 1)
+        processStates.emit(PresentationRequestProcessPartialState.RequestReadyToBeSent)
+        whenever(rwscaPinHandler.startPinSession(any())).thenReturn(StartPinSessionResult.Success)
+        whenever(presentationRequestInteractor.processRequest()).thenReturn(processStates)
+        whenever(presentationRequestInteractor.sendRequestedDocuments()).thenReturn(
+            PresentationDocumentSubmissionPartialState.Failure.Unknown(
+                error = PresentationError.Intermittent(
+                    traceId = "submit-trace",
+                    cause = null,
+                    displayMessage = "timeout",
+                    subType = PresentationError.IntermittentSubType.NETWORK,
+                )
+            ),
+        )
+        subject.typeIntoPinField("123456")
+        subject.setEvent(Event.ConfirmPin)
+        coroutineRule.testScope.advanceUntilIdle()
+        return assertNotNull(subject.viewState.value.errorDialog)
+    }
+
+    @Test
+    fun `a PIN session that cannot reach rWSCA shows the offline dialog, not the wrong PIN error`() =
+        coroutineRule.runTest {
+            givenPinSessionFails(RwscaError.FromRwsca(RwscaErrorType.NO_INTERNET, serverResponse = null))
+
+            subject.typeIntoPinField("123456")
+            subject.setEvent(Event.ConfirmPin)
+            coroutineRule.testScope.advanceUntilIdle()
+
+            assertOfflineDialog()
+            assertNull(subject.viewState.value.pinState.supportingText)
+            assertFalse(subject.viewState.value.pinState.buffer.isComplete)
+            assertFalse(subject.viewState.value.isLoading)
+            verify(rwscaPinHandler).clearPinSession()
+        }
+
+    @Test
+    fun `a PIN session that cannot reach MDVM shows the offline dialog`() =
+        coroutineRule.runTest {
+            givenPinSessionFails(
+                RwscaError.FromMdvm(MdvmError(MdvmErrorType.NO_INTERNET, serverResponse = null))
+            )
+
+            subject.typeIntoPinField("123456")
+            subject.setEvent(Event.ConfirmPin)
+            coroutineRule.testScope.advanceUntilIdle()
+
+            assertOfflineDialog()
+        }
+
+    @Test
+    fun `retrying after a PIN session without connection waits for a new PIN entry`() =
+        coroutineRule.runTest {
+            givenPinSessionFails(RwscaError.FromRwsca(RwscaErrorType.NO_INTERNET, serverResponse = null))
+            subject.typeIntoPinField("123456")
+            subject.setEvent(Event.ConfirmPin)
+            coroutineRule.testScope.advanceUntilIdle()
+
+            whenever(connectivityChecker.isOnline()).thenReturn(false)
+            assertOfflineDialog().onPrimaryButtonClick()
+            coroutineRule.testScope.advanceUntilIdle()
+            assertOfflineDialog()
+
+            whenever(connectivityChecker.isOnline()).thenReturn(true)
+            assertOfflineDialog().onPrimaryButtonClick()
+            coroutineRule.testScope.advanceUntilIdle()
+
+            assertNull(subject.viewState.value.errorDialog)
+            verify(rwscaPinHandler, times(1)).startPinSession(any())
+        }
+
+    private suspend fun givenPinSessionFails(error: RwscaError) {
+        whenever(rwscaPinHandler.startPinSession(any())).thenReturn(StartPinSessionResult.Failure(error))
+    }
+
+    private fun assertOfflineDialog(): GenericErrorDialogConfig {
+        val dialog = assertNotNull(subject.viewState.value.errorDialog)
+        assertEquals(R.string.global_no_internet_error_title, dialog.titleRes)
+        assertEquals(R.string.global_no_internet_error_prim_button, dialog.primaryButtonTextRes)
+        assertEquals(R.string.global_no_internet_error_sec_button, dialog.secondaryButtonTextRes)
+        assertEquals(R.string.global_close_button, dialog.tertiaryButtonTextRes)
+        assertNull(dialog.errorCode)
+        return dialog
     }
 
     //endregion

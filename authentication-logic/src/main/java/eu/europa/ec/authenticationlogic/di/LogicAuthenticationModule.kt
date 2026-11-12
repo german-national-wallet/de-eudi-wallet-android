@@ -30,6 +30,8 @@ import eu.europa.ec.authenticationlogic.controller.authentication.BiometricAuthe
 import eu.europa.ec.authenticationlogic.controller.authentication.BiometricAuthenticationControllerImpl
 import eu.europa.ec.authenticationlogic.controller.authentication.DeviceAuthenticationController
 import eu.europa.ec.authenticationlogic.controller.authentication.DeviceAuthenticationControllerImpl
+import eu.europa.ec.authenticationlogic.controller.authentication.IdentificationOnlyAuthenticationController
+import eu.europa.ec.authenticationlogic.controller.authentication.IdentificationOnlyAuthenticationControllerImpl
 import eu.europa.ec.authenticationlogic.controller.storage.BiometryStorageController
 import eu.europa.ec.authenticationlogic.controller.storage.BiometryStorageControllerImpl
 import eu.europa.ec.authenticationlogic.controller.storage.HardwareKeyStorageController
@@ -55,7 +57,7 @@ import eu.europa.ec.authenticationlogic.storage.PrefsWalletRegistrationStoragePr
 import eu.europa.ec.businesslogic.config.ConfigLogic
 import eu.europa.ec.businesslogic.controller.crypto.CryptoController
 import eu.europa.ec.businesslogic.controller.log.LogController
-import eu.europa.ec.businesslogic.controller.storage.PrefsController
+import eu.europa.ec.businesslogic.controller.storage.EncryptedPrefsController
 import eu.europa.ec.resourceslogic.provider.ResourceProvider
 import org.koin.core.annotation.ComponentScan
 import org.koin.core.annotation.Factory
@@ -96,7 +98,7 @@ class LogicAuthenticationModule
 
 @Single
 fun provideStorageConfig(
-    prefsController: PrefsController,
+    prefsController: EncryptedPrefsController,
     jsonStorageProvider: JsonStorageProvider,
 ): StorageConfig = StorageConfigImpl(
     // EUDI-removed
@@ -125,6 +127,14 @@ fun provideDeviceAuthenticationController(
 ): DeviceAuthenticationController =
     DeviceAuthenticationControllerImpl(
         resourceProvider = resourceProvider,
+        biometricAuthenticationController = biometricAuthenticationController
+    )
+
+@Factory
+fun provideIdentificationOnlyAuthenticationController(
+    biometricAuthenticationController: BiometricAuthenticationController
+): IdentificationOnlyAuthenticationController =
+    IdentificationOnlyAuthenticationControllerImpl(
         biometricAuthenticationController = biometricAuthenticationController
     )
 
@@ -264,7 +274,8 @@ fun provideMdvmController(
     logController,
 )
 
-@Factory
+// Singleton to hold rwsca public key in-memory during app run
+@Single
 fun providerRwscaController(
     rwscaApiClient: RwscaApiClient,
     mdvmKeyManager: MdvmKeyManager,
@@ -289,12 +300,12 @@ fun provideGson(): Gson = Gson()
 
 @Factory
 fun provideJsonStorageProvider(
-    prefsController: PrefsController,
+    prefsController: EncryptedPrefsController,
     gson: Gson,
 ): JsonStorageProvider = PrefsJsonStorageProvider(prefsController, gson)
 
 @Factory
 fun provideRwscaStorageProvider(
-    prefsController: PrefsController,
+    prefsController: EncryptedPrefsController,
     gson: Gson,
 ): RwscaStorageController = RwscaStorageControllerImpl(prefsController, gson)

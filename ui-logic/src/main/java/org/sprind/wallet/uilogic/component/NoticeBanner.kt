@@ -36,6 +36,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import eu.europa.ec.resourceslogic.theme.values.ThemeColors
@@ -88,7 +89,9 @@ fun NoticeBanner(
                 horizontalArrangement = Arrangement.spacedBy(SPACING_SMALL.dp),
             ) {
                 Box(
-                    modifier = Modifier.size(if (title == null) SIZE_LARGE.dp else TITLED_ICON_SIZE),
+                    modifier = Modifier
+                        .size(if (title == null) SIZE_LARGE.dp else TITLED_ICON_SIZE)
+                        .clearAndSetSemantics { },
                     contentAlignment = Alignment.Center,
                 ) {
                     WrapIcon(

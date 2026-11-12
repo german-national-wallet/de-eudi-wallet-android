@@ -18,12 +18,12 @@ package eu.europa.ec.corelogic.di
 
 import android.content.Context
 import com.governikus.ausweisapp.sdkwrapper.SDKWrapper
-import com.governikus.ausweisapp.sdkwrapper.card.core.WorkflowCallbacks
 import eu.europa.ec.authenticationlogic.controller.appattestation.AppAttestationController
 import eu.europa.ec.authenticationlogic.controller.storage.HardwareKeyStorageController
+import eu.europa.ec.businesslogic.config.AppBuildType
 import eu.europa.ec.businesslogic.config.ConfigLogic
 import eu.europa.ec.businesslogic.controller.log.LogController
-import eu.europa.ec.businesslogic.controller.storage.PrefsController
+import eu.europa.ec.businesslogic.controller.storage.EncryptedPrefsController
 import eu.europa.ec.corelogic.config.WalletCoreConfig
 import eu.europa.ec.corelogic.config.WalletCoreConfigImpl
 import eu.europa.ec.corelogic.controller.WalletCoreDocumentsController
@@ -33,10 +33,6 @@ import eu.europa.ec.corelogic.controller.WalletCoreLogControllerImpl
 import eu.europa.ec.corelogic.handler.AusweisSdkAuthorizationHandler
 import eu.europa.ec.corelogic.handler.pid.RefreshUrlInteractor
 import eu.europa.ec.corelogic.handler.pid.RefreshUrlInteractorImpl
-import eu.europa.ec.corelogic.handler.reader.AusweisCallbacksImpl
-import eu.europa.ec.corelogic.handler.reader.CardReaderInteractor
-import eu.europa.ec.corelogic.handler.reader.CardReaderInteractorImpl
-import eu.europa.ec.corelogic.handler.reader.WorkflowEvent
 import eu.europa.ec.corelogic.interactor.walletattestation.WalletAttestationInteractor
 import eu.europa.ec.corelogic.interactor.walletattestation.WalletAttestationInteractorImpl
 import eu.europa.ec.corelogic.provider.WalletCoreAttestationProvider
@@ -54,7 +50,6 @@ import io.ktor.client.HttpClient
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.runBlocking
 import okhttp3.OkHttpClient
 import org.koin.core.annotation.ComponentScan
@@ -75,7 +70,12 @@ import org.sprind.wallet.corelogic.activity.ActivityLogRepositoryImpl
 import org.sprind.wallet.authenticationlogic.controller.rwsca.RwscaController
 import org.sprind.wallet.authenticationlogic.provider.RwscaPinSessionHolder
 import org.sprind.wallet.authenticationlogic.provider.RwscaRegistrationsProvider
+import org.sprind.wallet.businesslogic.config.UserRuntimeConfig
+import org.sprind.wallet.businesslogic.controller.crypto.EcKeyPairController
 import org.sprind.wallet.corelogic.config.PidConfigurationOverridesProvider
+import org.sprind.wallet.corelogic.eid.AusweisSdkPort
+import org.sprind.wallet.corelogic.eid.EidEngine
+import org.sprind.wallet.corelogic.eid.EidEngineImpl
 import org.sprind.wallet.corelogic.platformauth.PlatformAuthInvariant
 import eu.europa.ec.authenticationlogic.controller.storage.WalletPinUnBlockTimeStorageController
 import org.sprind.wallet.authenticationlogic.controller.mdvm.MdvmKeyManager
@@ -86,8 +86,10 @@ import org.sprind.wallet.corelogic.revocation.RevocationNotificationManager
 import org.sprind.wallet.corelogic.revocation.WalletRevocationHandler
 import org.sprind.wallet.corelogic.revocation.WalletRevocationHandlerImpl
 import org.sprind.wallet.corelogic.securearea.RwscaSecureArea
+import org.sprind.wallet.corelogic.status.NoOpDocumentStatusResolver
 import org.sprind.wallet.corelogic.storage.EncryptedStorageKeyManager
 import org.sprind.wallet.corelogic.storage.EncryptedStorageKeyManagerImpl
+import org.sprind.wallet.corelogic.storage.walletStorageDatabaseFile
 import org.sprind.wallet.storagelogic.storage.EncryptedStorage
 import java.security.SecureRandom
 
@@ -97,30 +99,23 @@ const val PRESENTATION_SCOPE_ID = "presentation_scope_id"
 @ComponentScan("eu.europa.ec.corelogic")
 class LogicCoreModule
 
-@Factory
-fun provideWorkFlowCallbacks(
-    coroutineScope: CoroutineScope = CoroutineScope(Dispatchers.Default),
-    events: MutableSharedFlow<WorkflowEvent> = MutableSharedFlow(),
-    logController: LogController,
-    resourceProvider: ResourceProvider
-): WorkflowCallbacks =
-    AusweisCallbacksImpl(coroutineScope, events, logController, resourceProvider)
-
 @Single
-fun provideCardReaderInteractor(
-    logController: LogController,
+fun provideEidEngine(
     context: Context,
-    auswiesCallbacks: WorkflowCallbacks,
     sdkWrapper: SDKWrapper,
     configLogic: ConfigLogic,
-): CardReaderInteractor =
-    CardReaderInteractorImpl(
-        logController,
-        context,
-        auswiesCallbacks,
-        sdkWrapper,
-        configLogic
-    )
+    logController: LogController,
+    appCoroutineScope: AppCoroutineScope,
+): EidEngine = EidEngineImpl(
+    port = AusweisSdkPort(
+        context = context,
+        workflowController = sdkWrapper.workflowController,
+        isDeveloperMode = configLogic.appBuildType == AppBuildType.DEBUG,
+        logController = logController,
+    ),
+    scope = appCoroutineScope,
+    logController = logController,
+)
 
 /**
  * Application-lifetime coroutine scope for fire-and-forget background work that must outlive a
@@ -138,9 +133,11 @@ fun provideSDKController() = SDKWrapper
 
 @Single
 fun provideAusweisAuthorizationHandler(
+    eidEngine: EidEngine,
+    userRuntimeConfig: UserRuntimeConfig,
     refreshUrlInteractor: RefreshUrlInteractor,
 ): AusweisSdkAuthorizationHandler =
-    AusweisSdkAuthorizationHandler(refreshUrlInteractor)
+    AusweisSdkAuthorizationHandler(eidEngine, userRuntimeConfig, refreshUrlInteractor)
 
 @Factory
 fun provideRefreshUrlInteractor(
@@ -189,14 +186,13 @@ fun provideWalletRevocationHandler(
 )
 
 @Single
-fun provideEncryptedStorageKeyManager(prefsController: PrefsController): EncryptedStorageKeyManager =
+fun provideEncryptedStorageKeyManager(prefsController: EncryptedPrefsController): EncryptedStorageKeyManager =
     EncryptedStorageKeyManagerImpl(prefsController)
 
 @Single
 fun provideMultipazStorage(context: Context, encryptedStorageKeyManager: EncryptedStorageKeyManager): org.multipaz.storage.Storage =
     EncryptedStorage(
-        databasePath = context.noBackupFilesDir.resolve(
-            "${EudiWalletConfig.DEFAULT_DOCUMENT_MANAGER_IDENTIFIER}.bin").path,
+        databasePath = walletStorageDatabaseFile(context).path,
         passphrase = encryptedStorageKeyManager.getOrGenerateEncryptedStorageKey(),
     )
 
@@ -232,13 +228,15 @@ fun provideWalletCoreConfig(
     @Rwsc rwscSecureArea: SecureArea,
     androidKeystoreSecureArea: AndroidKeystoreSecureArea,
     multipazStorage: org.multipaz.storage.Storage,
+    @OpenId4VciVp openId4VciVpKtorHttpClient: HttpClient,
 ): WalletCoreConfig = WalletCoreConfigImpl(
     context,
     configLogic,
     authorizationHandler,
     rwscSecureArea,
     androidKeystoreSecureArea,
-    multipazStorage
+    multipazStorage,
+    openId4VciVpKtorHttpClient,
 )
 
 @Single
@@ -282,10 +280,9 @@ fun provideSignatureProvider() = SignatureProvider()
 @Single
 fun providePlatformAuthInvariant(
     context: Context,
-    walletCoreDocumentsController: WalletCoreDocumentsController,
 ): PlatformAuthInvariant = PlatformAuthInvariant(
     keyguardManager = context.getSystemService(Context.KEYGUARD_SERVICE) as android.app.KeyguardManager,
-    walletCoreDocumentsController = walletCoreDocumentsController,
+    walletStorageDatabaseFile = walletStorageDatabaseFile(context),
 )
 
 @Qualifier
@@ -330,16 +327,22 @@ fun provideEudiWallet(
     withStorage(walletCoreConfig.storageToBeUsed)
     withWalletKeyManager(walletKeyManager)
     withKtorHttpClientFactory { openId4VciVpKtorHttpClient }
+    // The wallet never validates the status list of its own PID/EAA credentials (WD-4839).
+    withDocumentStatusResolver(NoOpDocumentStatusResolver)
 }
 
 @Single
 fun provideWalletCoreAttestationProvider(
     walletAttestationRepository: WalletAttestationRepository,
-    walletCoreConfig: WalletCoreConfig
+    walletCoreConfig: WalletCoreConfig,
+    appAttestationController: AppAttestationController,
+    ecKeyPairController: EcKeyPairController,
 ): WalletCoreAttestationProvider =
     WalletCoreAttestationProviderImpl(
         walletCoreConfig = walletCoreConfig,
-        walletAttestationRepository = walletAttestationRepository
+        walletAttestationRepository = walletAttestationRepository,
+        appAttestationController = appAttestationController,
+        ecKeyPairController = ecKeyPairController,
     )
 
 /**

@@ -102,8 +102,10 @@ class AndroidLibraryConventionPlugin : Plugin<Project> {
             val credentialOfferHaipScheme = "haip-vci"
             val credentialOfferHaipHost = "*"
 
-            val openId4VciAuthorizationScheme = "eu.europa.ec.euidi"
-            val openId4VciAuthorizationHost = "authorization"
+            // OpenID4VCI authorization redirect: <applicationId>:/authorization, per flavor,
+            // matching iOS (VCI_REDIRECT_URI). Issuers allowlist redirect URIs for
+            // attestation-based clients, so the scheme must be one we own and have registered.
+            val openId4VciAuthorizationPath = "/authorization"
 
             // Warn once per build (from a single module) if the removed flag is still set anywhere.
             if (path == LibraryModule.BusinessLogic.path &&
@@ -120,6 +122,14 @@ class AndroidLibraryConventionPlugin : Plugin<Project> {
             // Emulators only have a software keystore. Defaults to enabled on dev only.
             val enableSoftwareKeysProperty =
                 readProperty("enableSoftwareKeys")?.toBooleanStrictOrNull()
+
+            // The App Attestation key id the backend pairs with the secret a shielded
+            // build embeds (WD-5092). Set by the CI build hook; empty on local builds,
+            // which then do not announce a key.
+            val raspKeyIdProperty = readProperty("raspKeyId").orEmpty()
+            require(raspKeyIdProperty.matches(Regex("[A-Za-z0-9_-]*"))) {
+                "raspKeyId must be a plain identifier, got '$raspKeyIdProperty'"
+            }
 
             val enableEaaBiometricsProperty =
                 readProperty("enableEaaBiometrics")?.toBooleanStrictOrNull() ?: true
@@ -156,12 +166,6 @@ class AndroidLibraryConventionPlugin : Plugin<Project> {
                     addConfigField("HAIP_OPENID4VP_SCHEME", haipOpenId4VpScheme)
                     addConfigField("CREDENTIAL_OFFER_SCHEME", credentialOfferScheme)
                     addConfigField("CREDENTIAL_OFFER_HAIP_SCHEME", credentialOfferHaipScheme)
-                    addConfigField("ISSUE_AUTHORIZATION_SCHEME", openId4VciAuthorizationScheme)
-                    addConfigField("ISSUE_AUTHORIZATION_HOST", openId4VciAuthorizationHost)
-                    addConfigField(
-                        "ISSUE_AUTHORIZATION_DEEPLINK",
-                        "$openId4VciAuthorizationScheme://$openId4VciAuthorizationHost"
-                    )
 
                     // Manifest placeholders for Wallet deepLink
                     manifestPlaceholders["deepLinkScheme"] = walletScheme
@@ -183,14 +187,19 @@ class AndroidLibraryConventionPlugin : Plugin<Project> {
                     manifestPlaceholders["credentialOfferHaipHost"] = credentialOfferHaipHost
                     manifestPlaceholders["credentialOfferHaipScheme"] = credentialOfferHaipScheme
 
-                    // Manifest placeholders used for OpenId4VCI Authorization
+                }
+                configureFlavors(this) { flavor ->
+                    val openId4VciAuthorizationScheme = flavor.applicationId
+                    addConfigField("ISSUE_AUTHORIZATION_SCHEME", openId4VciAuthorizationScheme)
+                    addConfigField("ISSUE_AUTHORIZATION_PATH", openId4VciAuthorizationPath)
+                    addConfigField(
+                        "ISSUE_AUTHORIZATION_DEEPLINK",
+                        "$openId4VciAuthorizationScheme:$openId4VciAuthorizationPath"
+                    )
+                    // Manifest placeholder used for the OpenId4VCI authorization redirect
                     manifestPlaceholders["openId4VciAuthorizationScheme"] =
                         openId4VciAuthorizationScheme
-                    manifestPlaceholders["openId4VciAuthorizationHost"] =
-                        openId4VciAuthorizationHost
-
                 }
-                configureFlavors(this)
                 configureGradleManagedDevices(this)
             }
 
@@ -218,6 +227,7 @@ class AndroidLibraryConventionPlugin : Plugin<Project> {
                         put("ENABLE_EAA_BIOMETRICS", BuildConfigField("boolean", "$enableEaaBiometrics", null))
                         put("ENABLE_PNS_PERMISSION_POP_UP", BuildConfigField("boolean", "$enablePnsPermissionPopUp", null))
                         put("ENABLE_SOFTWARE_KEYS", BuildConfigField("boolean", "$enableSoftwareKeys", null))
+                        put("RASP_KEY_ID", BuildConfigField("String", "\"$raspKeyIdProperty\"", null))
                     }
                 }
             }

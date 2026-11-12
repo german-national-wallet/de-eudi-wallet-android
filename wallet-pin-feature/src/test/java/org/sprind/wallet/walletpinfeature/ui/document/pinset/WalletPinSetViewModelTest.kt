@@ -9,17 +9,19 @@ import org.sprind.wallet.businesslogic.model.UserPinImpl
 import eu.europa.ec.corelogic.handler.AusweisSdkAuthorizationHandler
 import eu.europa.ec.eudi.wallet.issue.openid4vci.AuthorizationResponse
 import eu.europa.ec.resourceslogic.R
+import eu.europa.ec.testlogic.extension.expectNoEvents
 import eu.europa.ec.testlogic.extension.runFlowTest
 import eu.europa.ec.testlogic.extension.runTest
 import eu.europa.ec.testlogic.rule.CoroutineTestRule
 import eu.europa.ec.uilogic.navigation.DashboardScreens
+import eu.europa.ec.uilogic.navigation.IssuanceScreens
 import eu.europa.ec.uilogic.navigation.helper.generateComposableNavigationLink
 import junit.framework.TestCase.assertEquals
 import junit.framework.TestCase.assertFalse
 import junit.framework.TestCase.assertTrue
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.flowOf
-import kotlinx.coroutines.test.advanceUntilIdle
+import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.runCurrent
 import org.junit.After
 import org.junit.Before
@@ -29,15 +31,24 @@ import org.mockito.Mock
 import org.mockito.MockitoAnnotations
 import org.mockito.kotlin.any
 import org.mockito.kotlin.doAnswer
+import org.mockito.kotlin.eq
 import org.mockito.kotlin.never
 import org.mockito.kotlin.verify
 import org.mockito.kotlin.whenever
 import org.sprind.wallet.analyticslogic.controller.Telemetry
+import org.sprind.wallet.analyticslogic.controller.TelemetryConstants
 import org.sprind.wallet.walletpinfeature.interactor.wscd.WscaRegistrationInteractor
 import org.sprind.wallet.walletpinfeature.interactor.wscd.WscaRegistrationResult
 import java.net.URLEncoder
 import java.nio.charset.StandardCharsets
 import kotlin.test.assertNotNull
+import kotlin.time.Duration.Companion.seconds
+import org.sprind.wallet.corelogic.issuance.AuthorizationRedirectException
+import org.sprind.wallet.networklogic.common.NetworkFailure
+import kotlin.time.Instant
+
+private const val LIVE_SPAN_TRACE_ID = "trace-live-span"
+private const val LAST_PROPAGATED_TRACE_ID = "trace-last-propagated"
 
 class WalletPinSetViewModelTest {
 
@@ -219,7 +230,7 @@ class WalletPinSetViewModelTest {
         }
 
     @Test
-    fun `If wsca is not registered, onWalletPinSet registers and shows success screen step`() =
+    fun `If wsca is not registered, onWalletPinSet registers and shows success step only once issued`() =
         coroutineRule.runTest {
             whenever(addDocumentInteractor.authorizationHandler).thenReturn(authorizationHandler)
             whenever(authorizationHandler.resumeWithRedirectUri(fakeRedirectUrl)).thenReturn(Result.success(
@@ -238,11 +249,16 @@ class WalletPinSetViewModelTest {
 
             subject.setEvent(Event.OnWalletPinSet)
 
-            coroutineRule.testScope.advanceUntilIdle()
             coroutineRule.testScope.runCurrent()
 
-            val state = subject.viewState.value
-            assertEquals(WalletPinStep.Success, state.currentStep)
+            // issuance still running: the loader stays over the Confirm step
+            assertEquals(WalletPinStep.Confirm, subject.viewState.value.currentStep)
+            assertTrue(subject.viewState.value.isLoading)
+
+            issuanceEvents.emit(IssuanceEvent.Completed)
+
+            assertEquals(WalletPinStep.Success, subject.viewState.value.currentStep)
+            assertFalse(subject.viewState.value.isLoading)
 
             verify(wscaRegistrationInteractor).isAlreadyRegistered()
             verify(wscaRegistrationInteractor).register(UserPinImpl("123456"))
@@ -287,11 +303,11 @@ class WalletPinSetViewModelTest {
 
             subject.setEvent(Event.OnWalletPinSet)
 
-            coroutineRule.testScope.advanceUntilIdle()
             coroutineRule.testScope.runCurrent()
 
-            // Success screen shown immediately
-            assertEquals(WalletPinStep.Success, subject.viewState.value.currentStep)
+            // Success step is not shown before the issuance completes
+            assertEquals(WalletPinStep.Confirm, subject.viewState.value.currentStep)
+            assertTrue(subject.viewState.value.isLoading)
 
             verify(rwscaPinHandler).startPinSession(UserPinImpl("123456"))
             // WD-2861: the PIN session must survive until issuance signing completes;
@@ -300,6 +316,7 @@ class WalletPinSetViewModelTest {
 
             // now VM is subscribed; emit issuance completed
             issuanceEvents.emit(IssuanceEvent.Completed)
+            assertEquals(WalletPinStep.Success, subject.viewState.value.currentStep)
 
             subject.effect.runFlowTest {
                 assertEquals(
@@ -332,7 +349,6 @@ class WalletPinSetViewModelTest {
             goToConfirmWithPin("123456")
             subject.setEvent(Event.OnWalletPinSet)
 
-            coroutineRule.testScope.advanceUntilIdle()
             coroutineRule.testScope.runCurrent()
 
             subject.effect.runFlowTest {
@@ -367,7 +383,6 @@ class WalletPinSetViewModelTest {
 
             subject.setEvent(Event.OnWalletPinSet)
 
-            coroutineRule.testScope.advanceUntilIdle()
             coroutineRule.testScope.runCurrent()
 
             verify(wscaRegistrationInteractor).register(UserPinImpl("123456"))
@@ -398,12 +413,13 @@ class WalletPinSetViewModelTest {
             goToConfirmWithPin("123456")
             subject.setEvent(Event.OnWalletPinSet)
 
-            coroutineRule.testScope.advanceUntilIdle()
             coroutineRule.testScope.runCurrent()
 
             val state = subject.viewState.value
             assertFalse(state.isLoading)
             assertNotNull(state.errorDialog)
+            // the error is shown over the Confirm step, never under the Success step
+            assertEquals(WalletPinStep.Confirm, state.currentStep)
 
             // WD-2861: session is cleared when authorization resume fails (issuance never starts).
             verify(rwscaPinHandler).clearPinSession()
@@ -424,8 +440,6 @@ class WalletPinSetViewModelTest {
 
         goToConfirmWithPin("123456")
         subject.setEvent(Event.OnWalletPinSet)
-        // we advance time because of the forced delay
-        coroutineRule.testScope.advanceUntilIdle()
         coroutineRule.testScope.runCurrent()
 
         issuanceEvents.emit(IssuanceEvent.Failed("ISSUANCE_FAILED"))
@@ -434,10 +448,230 @@ class WalletPinSetViewModelTest {
         assertFalse(state.isLoading)
         assertNotNull(state.errorDialog)
         assertEquals(R.string.global_error_title, state.errorDialog.titleRes)
+        assertEquals(WalletPinStep.Confirm, state.currentStep)
 
         // WD-2861: session is cleared on the issuance terminal event.
         verify(rwscaPinHandler).clearPinSession()
     }
+
+    @Test
+    fun `When resumeWithRedirectUri fails, the dialog shows the live span's trace id and the span is ended`() =
+        coroutineRule.runTest {
+            stubTraceIdThatChangesOnceTheSpanEnds()
+            whenever(rwscaPinHandler.startPinSession(any())).thenReturn(StartPinSessionResult.Success)
+            whenever(wscaRegistrationInteractor.isAlreadyRegistered()).thenReturn(true)
+            whenever(addDocumentInteractor.authorizationHandler).thenReturn(authorizationHandler)
+            whenever(authorizationHandler.resumeWithRedirectUri(fakeRedirectUrl)).thenReturn(
+                Result.failure(IllegalStateException("bad redirect"))
+            )
+
+            goToConfirmWithPin("123456")
+            subject.setEvent(Event.OnWalletPinSet)
+            coroutineRule.testScope.runCurrent()
+
+            assertEquals(LIVE_SPAN_TRACE_ID, subject.viewState.value.errorDialog?.traceId)
+            verify(telemetry).endSpan(eq(TelemetryConstants.ISSUANCE), any())
+        }
+
+    @Test
+    fun `When issuance Failed event, the dialog shows the live span's trace id and the span is ended`() =
+        coroutineRule.runTest {
+            stubTraceIdThatChangesOnceTheSpanEnds()
+            whenever(rwscaPinHandler.startPinSession(any())).thenReturn(StartPinSessionResult.Success)
+            whenever(wscaRegistrationInteractor.isAlreadyRegistered()).thenReturn(true)
+            whenever(addDocumentInteractor.authorizationHandler).thenReturn(authorizationHandler)
+            whenever(authorizationHandler.resumeWithRedirectUri(fakeRedirectUrl)).thenReturn(
+                Result.success(AuthorizationResponse("code", "state"))
+            )
+
+            goToConfirmWithPin("123456")
+            subject.setEvent(Event.OnWalletPinSet)
+            coroutineRule.testScope.runCurrent()
+
+            issuanceEvents.emit(IssuanceEvent.Failed("ISSUANCE_FAILED"))
+
+            assertEquals(LIVE_SPAN_TRACE_ID, subject.viewState.value.errorDialog?.traceId)
+            verify(telemetry).endSpan(eq(TelemetryConstants.ISSUANCE), any())
+        }
+
+    @Test
+    fun `When issuance Completed event, the Issuance span is left for the dashboard to end`() =
+        coroutineRule.runTest {
+            whenever(rwscaPinHandler.startPinSession(any())).thenReturn(StartPinSessionResult.Success)
+            whenever(wscaRegistrationInteractor.isAlreadyRegistered()).thenReturn(true)
+            whenever(addDocumentInteractor.authorizationHandler).thenReturn(authorizationHandler)
+            whenever(authorizationHandler.resumeWithRedirectUri(fakeRedirectUrl)).thenReturn(
+                Result.success(AuthorizationResponse("code", "state"))
+            )
+
+            goToConfirmWithPin("123456")
+            subject.setEvent(Event.OnWalletPinSet)
+            coroutineRule.testScope.runCurrent()
+
+            issuanceEvents.emit(IssuanceEvent.Completed)
+
+            verify(telemetry, never()).endSpan(eq(TelemetryConstants.ISSUANCE), any())
+        }
+
+    @Test
+    fun `When the authorization expired after the eID step, the dialog offers to start again or cancel`() =
+        coroutineRule.runTest {
+            whenever(rwscaPinHandler.startPinSession(any())).thenReturn(StartPinSessionResult.Success)
+            whenever(wscaRegistrationInteractor.isAlreadyRegistered()).thenReturn(true)
+            whenever(addDocumentInteractor.authorizationHandler).thenReturn(authorizationHandler)
+            whenever(authorizationHandler.resumeWithRedirectUri(fakeRedirectUrl)).thenReturn(
+                Result.failure(
+                    Exception("Error occurred", AuthorizationRedirectException("invalid_request", null))
+                )
+            )
+
+            goToConfirmWithPin("123456")
+            subject.setEvent(Event.OnWalletPinSet)
+            coroutineRule.testScope.runCurrent()
+
+            val dialog = assertNotNull(subject.viewState.value.errorDialog)
+            assertEquals(R.string.pid_issuance_timeout_par_request_expired_title, dialog.titleRes)
+            assertEquals(R.string.pid_issuance_timeout_par_request_expired_prim_button, dialog.primaryButtonTextRes)
+            assertEquals(R.string.pid_issuance_timeout_par_request_expired_sec_button, dialog.secondaryButtonTextRes)
+
+            subject.effect.runFlowTest {
+                dialog.onSecondaryButtonClick()
+                assertEquals(dashboardNavigation(), awaitItem())
+
+                dialog.onPrimaryButtonClick()
+                assertStartsAddDocumentAgain(awaitItem())
+            }
+        }
+
+    @Test
+    fun `When issuance times out after the redirect, the dialog's retry starts the PID issuance again`() =
+        coroutineRule.runTest {
+            whenever(rwscaPinHandler.startPinSession(any())).thenReturn(StartPinSessionResult.Success)
+            whenever(wscaRegistrationInteractor.isAlreadyRegistered()).thenReturn(true)
+            whenever(addDocumentInteractor.authorizationHandler).thenReturn(authorizationHandler)
+            whenever(authorizationHandler.resumeWithRedirectUri(fakeRedirectUrl)).thenReturn(
+                Result.success(AuthorizationResponse("code", "state"))
+            )
+
+            goToConfirmWithPin("123456")
+            subject.setEvent(Event.OnWalletPinSet)
+            coroutineRule.testScope.runCurrent()
+
+            issuanceEvents.emit(IssuanceEvent.Failed("ISSUANCE_FAILED", NetworkFailure.Timeout))
+
+            val dialog = assertNotNull(subject.viewState.value.errorDialog)
+            assertEquals(R.string.global_timeout_slow_internet_error_title, dialog.titleRes)
+            assertEquals(R.string.pid_issuance_timeout_par_request_expired_sec_button, dialog.secondaryButtonTextRes)
+            subject.effect.runFlowTest {
+                dialog.onPrimaryButtonClick()
+                assertStartsAddDocumentAgain(awaitItem())
+            }
+            verify(rwscaPinHandler).clearPinSession()
+        }
+
+    @Test
+    fun `When issuance is rate limited after the redirect, the dialog says when to retry`() =
+        coroutineRule.runTest {
+            whenever(rwscaPinHandler.startPinSession(any())).thenReturn(StartPinSessionResult.Success)
+            whenever(wscaRegistrationInteractor.isAlreadyRegistered()).thenReturn(true)
+            whenever(addDocumentInteractor.authorizationHandler).thenReturn(authorizationHandler)
+            whenever(authorizationHandler.resumeWithRedirectUri(fakeRedirectUrl)).thenReturn(
+                Result.success(AuthorizationResponse("code", "state"))
+            )
+
+            goToConfirmWithPin("123456")
+            subject.setEvent(Event.OnWalletPinSet)
+            coroutineRule.testScope.runCurrent()
+
+            issuanceEvents.emit(IssuanceEvent.Failed("ISSUANCE_FAILED", NetworkFailure.RateLimited(retryAt = Instant.parse("2026-10-24T10:05:00Z"))))
+
+            val dialog = assertNotNull(subject.viewState.value.errorDialog)
+            assertEquals(R.string.global_timeout_too_many_requests_title, dialog.titleRes)
+            assertEquals(null, dialog.secondaryButtonTextRes)
+        }
+
+    private fun dashboardNavigation() = Effect.Navigation.SwitchScreen(
+        screenRoute = generateComposableNavigationLink(
+            screen = DashboardScreens.Dashboard,
+            arguments = "",
+        ),
+        inclusive = false,
+    )
+
+    private fun assertStartsAddDocumentAgain(effect: Effect) {
+        val route = (effect as Effect.Navigation.SwitchScreen).screenRoute
+        assertTrue(route, route.startsWith(IssuanceScreens.AddDocument.screenName))
+    }
+
+    /**
+     * Mirrors the real [Telemetry]: the trace id is the live span's while it is active and falls
+     * back to the last propagated one (a different value) once the span has ended.
+     */
+    private fun stubTraceIdThatChangesOnceTheSpanEnds() {
+        var spanEnded = false
+        whenever(telemetry.currentTraceId()).thenAnswer {
+            if (spanEnded) LAST_PROPAGATED_TRACE_ID else LIVE_SPAN_TRACE_ID
+        }
+        doAnswer { spanEnded = true }.whenever(telemetry).endSpan(any(), any())
+    }
+
+    @Test
+    fun `onDismissRequested is ignored while issuance is running`() = coroutineRule.runTest {
+        whenever(rwscaPinHandler.startPinSession(any())).thenReturn(StartPinSessionResult.Success)
+        whenever(wscaRegistrationInteractor.isAlreadyRegistered()).thenReturn(true)
+        whenever(addDocumentInteractor.authorizationHandler).thenReturn(authorizationHandler)
+        whenever(authorizationHandler.resumeWithRedirectUri(fakeRedirectUrl)).thenReturn(
+            Result.success(AuthorizationResponse("code", "state"))
+        )
+
+        goToConfirmWithPin("123456")
+        subject.setEvent(Event.OnWalletPinSet)
+        coroutineRule.testScope.runCurrent()
+
+        subject.setEvent(Event.OnDismissRequested)
+
+        assertEquals(WalletPinStep.Confirm, subject.viewState.value.currentStep)
+        assertTrue(subject.viewState.value.isLoading)
+        // the else branch would leave the step alone too; ignoring back also means not navigating
+        subject.effect.expectNoEvents()
+    }
+
+    @Test
+    fun `When no issuance outcome is published, error dialog is shown after the timeout`() =
+        coroutineRule.runTest {
+            whenever(rwscaPinHandler.startPinSession(any())).thenReturn(StartPinSessionResult.Success)
+            whenever(wscaRegistrationInteractor.isAlreadyRegistered()).thenReturn(true)
+            whenever(addDocumentInteractor.authorizationHandler).thenReturn(authorizationHandler)
+            whenever(authorizationHandler.resumeWithRedirectUri(fakeRedirectUrl)).thenReturn(
+                Result.success(AuthorizationResponse("code", "state"))
+            )
+
+            goToConfirmWithPin("123456")
+            subject.setEvent(Event.OnWalletPinSet)
+            coroutineRule.testScope.runCurrent()
+
+            // e.g. a deferred issuance, for which the interactor publishes no IssuanceEvent
+            coroutineRule.testScope.advanceTimeBy(59.seconds)
+            coroutineRule.testScope.runCurrent()
+            assertTrue(subject.viewState.value.isLoading)
+            verify(rwscaPinHandler, never()).clearPinSession()
+            verify(addDocumentInteractor, never()).cancelIssuance()
+
+            coroutineRule.testScope.advanceTimeBy(1.seconds)
+            coroutineRule.testScope.runCurrent()
+
+            val state = subject.viewState.value
+            assertFalse(state.isLoading)
+            assertEquals("ISSUANCE_FAILED", state.errorDialog?.errorCode)
+            assertEquals(WalletPinStep.Confirm, state.currentStep)
+            // the still-running issuance is stopped, so it cannot store a document behind the error
+            verify(addDocumentInteractor).cancelIssuance()
+            verify(rwscaPinHandler).clearPinSession()
+
+            // a late outcome no longer moves the screen to the Success step
+            issuanceEvents.emit(IssuanceEvent.Completed)
+            assertEquals(WalletPinStep.Confirm, subject.viewState.value.currentStep)
+        }
 
     private fun goToConfirmWithPin(pin: String = "123456") {
         subject.setEvent(Event.OnContinueAction)   // Info -> Set

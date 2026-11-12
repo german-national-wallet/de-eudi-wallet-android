@@ -18,12 +18,8 @@ package eu.europa.ec.issuancefeature.interactor.document
 
 import eu.europa.ec.eudi.wallet.document.DocumentId
 import eu.europa.ec.eudi.wallet.document.IssuedDocument
-import eu.europa.ec.eudi.wallet.document.format.DocumentFormat
 import eu.europa.ec.businesslogic.extension.safeAsync
-import eu.europa.ec.commonfeature.ui.document_details.domain.DocumentDetailsDomain
-import eu.europa.ec.commonfeature.ui.document_details.transformer.DocumentDetailsTransformer
 import eu.europa.ec.corelogic.controller.WalletCoreDocumentsController
-import eu.europa.ec.corelogic.extension.localizedIssuerMetadata
 import eu.europa.ec.corelogic.model.isPid
 import eu.europa.ec.corelogic.model.toDocumentIdentifier
 import eu.europa.ec.resourceslogic.provider.ResourceProvider
@@ -32,19 +28,13 @@ import kotlinx.coroutines.flow.flow
 import org.sprind.wallet.commonfeature.interactor.DocumentDeletionPartialState
 import org.sprind.wallet.commonfeature.interactor.RwscaInteractor
 import org.sprind.wallet.commonfeature.interactor.deleteDocumentWithRwscaCleanup
-import java.net.URI
+import org.sprind.wallet.commonfeature.ui.credentialdata.CredentialDataItem
+import org.sprind.wallet.commonfeature.ui.credentialdata.CredentialDataTransformer
 
 sealed class DocumentDetailsInteractorPartialState {
     data class Success(
-        val issuerName: String?,
-        val issuerLogo: URI?,
-        val documentDetailsDomain: DocumentDetailsDomain,
-        val documentIsBookmarked: Boolean,
-        val documentFormat: DocumentFormat,
-        val topBarBackgroundColor: String? = null,
-        val topBarBackgroundImageUri: String? = null,
-        val topBarTextColor: String? = null,
-        val isPid: Boolean = false,
+        val isPid: Boolean,
+        val credentialData: List<CredentialDataItem>,
     ) : DocumentDetailsInteractorPartialState()
 
     data class Failure(val error: String) : DocumentDetailsInteractorPartialState()
@@ -95,6 +85,8 @@ class DocumentDetailsInteractorImpl(
     private val rwscaInteractor: RwscaInteractor,
 ) : DocumentDetailsInteractor {
 
+    private val credentialDataTransformer = CredentialDataTransformer(resourceProvider)
+
     private val genericErrorMsg
         get() = resourceProvider.genericErrorMessage()
 
@@ -107,35 +99,10 @@ class DocumentDetailsInteractorImpl(
                         as? IssuedDocument
 
             issuedDocument?.let { safeIssuedDocument ->
-                val documentDetailsDomainResult =
-                    DocumentDetailsTransformer.transformToDocumentDetailsDomain(
-                        document = safeIssuedDocument,
-                        resourceProvider = resourceProvider
-                    )
-
-                val documentDetailsDomain = documentDetailsDomainResult.getOrThrow()
-
-                val issuerName =
-                    safeIssuedDocument.localizedIssuerMetadata(resourceProvider.getLocale())?.name
-
-                val issuerLogo =
-                    safeIssuedDocument.localizedIssuerMetadata(resourceProvider.getLocale())?.logo
-
-                val issuerDisplay =
-                    safeIssuedDocument.localizedIssuerMetadata(resourceProvider.getLocale())
-
-
                 emit(
                     DocumentDetailsInteractorPartialState.Success(
-                        issuerName = issuerName,
-                        documentDetailsDomain = documentDetailsDomain,
-                        documentIsBookmarked = false,
-                        issuerLogo = issuerLogo?.uri,
-                        documentFormat = safeIssuedDocument.format,
-                        topBarBackgroundColor = issuerDisplay?.backgroundColor,
-                        topBarBackgroundImageUri = issuerDisplay?.backgroundImageUri?.toString(),
-                        topBarTextColor = issuerDisplay?.textColor,
                         isPid = safeIssuedDocument.toDocumentIdentifier().isPid,
+                        credentialData = credentialDataTransformer.transform(safeIssuedDocument),
                     )
                 )
             } ?: emit(DocumentDetailsInteractorPartialState.Failure(error = genericErrorMsg))

@@ -45,11 +45,11 @@ dependencies {
     implementation(libs.ktor.client.content.negotiation)
     implementation(libs.ktor.serialization.kotlinx.json)
     implementation(libs.okhttp.logging)
-    implementation(libs.okhttp.mockwebserver)
     implementation(libs.okio)
     implementation(libs.retrofit.gson)
 
     testImplementation(project(LibraryModule.TestLogic.path))
+    testImplementation(libs.okhttp.mockwebserver)
 }
 
 excludeFromKoverReport(

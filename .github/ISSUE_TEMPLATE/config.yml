@@ -1,0 +1,5 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Security vulnerability
+    url: https://hackerone.com/common_codes
+    about: Do not report vulnerabilities as issues. Use our bug bounty program, see SECURITY.md.

@@ -55,6 +55,14 @@ include(":presentation-feature")
 include(":issuance-feature")
 include(":analytics-logic")
 include(":baseline-profile")
+// The end-to-end suite is withheld from the open-source mirror (oss-sync/denylist), so include it
+// only when it is there.
+if (file("automation-logic").isDirectory) {
+    include(":automation-logic")
+}
+if (file("automation-feature").isDirectory) {
+    include(":automation-feature")
+}
 include(":authentication-logic")
 include(":core-logic")
 include(":core:wallet-core")

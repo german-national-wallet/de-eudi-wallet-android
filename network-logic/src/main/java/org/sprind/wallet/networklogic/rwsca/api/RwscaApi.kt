@@ -28,10 +28,12 @@ import org.sprind.wallet.networklogic.rwsca.model.response.RwscaInitializePinAnd
 import org.sprind.wallet.networklogic.rwsca.model.response.RwscaRegisterResponse
 import org.sprind.wallet.networklogic.rwsca.model.response.RwscaSignDataResponse
 import org.sprind.wallet.networklogic.rwsca.model.response.RwscaStartPinSessionResponse
+import org.sprind.wallet.networklogic.rwsca.model.response.RwscaWiMetaDataResponse
 import org.sprind.wallet.networklogic.rwsca.extensions.toRwscaApiResult
 import retrofit2.Response
 import retrofit2.http.Body
 import retrofit2.http.DELETE
+import retrofit2.http.GET
 import retrofit2.http.Header
 import retrofit2.http.POST
 import java.security.PrivateKey
@@ -42,10 +44,13 @@ private const val HEADER_RWSCA_ACCOUNT_ID = "rwsca-account-id"
 private const val HEADER_RWSCA_PIN_SESSION_TOKEN = "rwsca-pin-session-token"
 
 interface RwscaApi {
-    @POST("/v1/rwsca/challenge")
+    @POST("/v2/rwsca/challenge")
     suspend fun challenge(
         // no parameters
     ): Response<RwscaChallengeResponse>
+
+    @GET("/v2/rwsca/wiMetaData")
+    suspend fun wiMetaData(): Response<RwscaWiMetaDataResponse>
 }
 
 interface SigningRwscaApi {
@@ -58,13 +63,13 @@ interface SigningRwscaApi {
         )
     }
 
-    @POST("/v1/rwsca/register")
+    @POST("/v2/rwsca/register")
     suspend fun register(
         @Header(HEADER_AUTH_CHALLENGE) authChallenge: String,
         @Header(HEADER_MDVM_TOKEN) mdvmToken: String,
     ): Response<RwscaRegisterResponse>
 
-    @POST("/v1/rwsca/createKeys")
+    @POST("/v2/rwsca/createKeys")
     suspend fun createKeys(
         @Body request: RwscaCreateKeysRequest,
         @Header(HEADER_AUTH_CHALLENGE) authChallenge: String,
@@ -72,14 +77,14 @@ interface SigningRwscaApi {
         @Header(HEADER_RWSCA_ACCOUNT_ID) rwscaAccountId: String,
     ): Response<RwscaCreateKeysResponse>
 
-    @DELETE("/v1/rwsca/deleteAccount")
+    @DELETE("/v2/rwsca/deleteAccount")
     suspend fun deleteAccount(
         @Header(HEADER_AUTH_CHALLENGE) authChallenge: String,
         @Header(HEADER_MDVM_TOKEN) mdvmToken: String,
         @Header(HEADER_RWSCA_ACCOUNT_ID) rwscaAccountId: String,
     ): Response<Unit>
 
-    @POST("/v1/rwsca/signData")
+    @POST("/v2/rwsca/signData")
     suspend fun signData(
         @Body request: RwscaSignDataRequest,
         @Header(HEADER_AUTH_CHALLENGE) authChallenge: String,
@@ -98,7 +103,7 @@ interface DoubleSigningRwscaApi {
         )
     }
 
-    @POST("/v1/rwsca/initializePinAndStartPinSession")
+    @POST("/v2/rwsca/initializePinAndStartPinSession")
     suspend fun initializePinAndStartPinSession(
         @Body request: RwscaInitializePinAndStartPinSessionRequest,
         @Header(HEADER_AUTH_CHALLENGE) authChallenge: String,
@@ -106,7 +111,7 @@ interface DoubleSigningRwscaApi {
         @Header(value = HEADER_RWSCA_ACCOUNT_ID) rwscaAccountId: String,
     ): Response<RwscaInitializePinAndStartPinSessionResponse>
 
-    @POST("/v1/rwsca/startPinSession")
+    @POST("/v2/rwsca/startPinSession")
     suspend fun startPinSession(
         @Header(HEADER_AUTH_CHALLENGE) authChallenge: String,
         @Header(HEADER_MDVM_TOKEN) mdvmToken: String,
@@ -117,6 +122,8 @@ interface DoubleSigningRwscaApi {
 interface RwscaApiClient {
     suspend fun challenge(): RwscaApiResult<RwscaChallengeResponse>
 
+    suspend fun wiMetaData(): RwscaApiResult<RwscaWiMetaDataResponse>
+
     /**
      * Access to [SigningRwscaApi] endpoints.
      *
@@ -124,7 +131,11 @@ interface RwscaApiClient {
      */
     fun signingApi(mdvmAuthPrvk: PrivateKey): SigningRwscaApiClient
 
-    fun doubleSigningApi(mdvmAuthPrvk: PrivateKey, rwscaPinPrvk: PrivateKey): DoubleSigningRwscaApiClient
+    fun doubleSigningApi(
+        mdvmAuthPrvk: PrivateKey,
+        rwscaPinPrvk: PrivateKey,
+        encryptPinSignature: (ByteArray) -> ByteArray,
+    ): DoubleSigningRwscaApiClient
 }
 
 interface SigningRwscaApiClient {
@@ -181,6 +192,9 @@ internal class RwscaApiClientImpl(
         return response.toRwscaApiResult()
     }
 
+    override suspend fun wiMetaData(): RwscaApiResult<RwscaWiMetaDataResponse> =
+        api.wiMetaData().toRwscaApiResult()
+
     override fun signingApi(mdvmAuthPrvk: PrivateKey): SigningRwscaApiClient {
         val signingApi = signingApiFactory.create(
             apiClass = SigningRwscaApi::class.java,
@@ -190,7 +204,11 @@ internal class RwscaApiClientImpl(
         return SigningRwscaApiClientImpl(signingApi)
     }
 
-    override fun doubleSigningApi(mdvmAuthPrvk: PrivateKey, rwscaPinPrvk: PrivateKey): DoubleSigningRwscaApiClient {
+    override fun doubleSigningApi(
+        mdvmAuthPrvk: PrivateKey,
+        rwscaPinPrvk: PrivateKey,
+        encryptPinSignature: (ByteArray) -> ByteArray,
+    ): DoubleSigningRwscaApiClient {
         val doubleSigningApi = signingApiFactory.create(
             apiClass = DoubleSigningRwscaApi::class.java,
             headersToSign = DoubleSigningRwscaApi.HEADERS,
@@ -199,6 +217,7 @@ internal class RwscaApiClientImpl(
                 signingKey = rwscaPinPrvk,
                 signatureName = "rwsca-pin-sig",
                 keyId = "wi-rwsca-pin-key",
+                encryptSignature = encryptPinSignature,
             ),
         )
         return DoubleSigningRwscaApiClientImpl(doubleSigningApi)

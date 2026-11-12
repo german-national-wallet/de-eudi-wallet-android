@@ -44,9 +44,13 @@ import eu.europa.ec.uilogic.component.wrap.WrapText
 import org.sprind.wallet.resourceslogic.theme.values.ThemeTextStyles
 import org.sprind.wallet.uilogic.component.ScrollFadeColumn
 
+/**
+ * @property bodyTextArgs Format arguments for [bodyTextRes], for a body with placeholders.
+ */
 data class GenericErrorDialogConfig(
     val titleRes: Int,
     val bodyTextRes: Int,
+    val bodyTextArgs: List<Any> = emptyList(),
     val errorCode: String? = null,
     val traceId: String? = null,
     val dismissable: Boolean = true,
@@ -55,6 +59,8 @@ data class GenericErrorDialogConfig(
     val primaryButtonOpensExternalLink: Boolean = false,
     val secondaryButtonTextRes: Int? = null,
     val onSecondaryButtonClick: () -> Unit = {},
+    val tertiaryButtonTextRes: Int? = null,
+    val onTertiaryButtonClick: () -> Unit = {},
     val onDismiss: () -> Unit = {},
     val iconData: IconData = AppIcons.Warning,
     val bodyTextAlign: TextAlign = TextAlign.Center,
@@ -67,9 +73,15 @@ fun GenericErrorDialog(
     GenericErrorDialog(
         config = config,
         title = stringResource(config.titleRes),
-        bodyText = stringResource(config.bodyTextRes),
+        // Without args the text is not run through String.format, so a literal '%' stays safe.
+        bodyText = if (config.bodyTextArgs.isEmpty()) {
+            stringResource(config.bodyTextRes)
+        } else {
+            stringResource(config.bodyTextRes, *config.bodyTextArgs.toTypedArray())
+        },
         primaryButtonText = config.primaryButtonTextRes?.let { stringResource(it) },
         secondaryButtonText = config.secondaryButtonTextRes?.let { stringResource(it) },
+        tertiaryButtonText = config.tertiaryButtonTextRes?.let { stringResource(it) },
     )
 }
 
@@ -80,6 +92,7 @@ private fun GenericErrorDialog(
     bodyText: String,
     primaryButtonText: String?,
     secondaryButtonText: String?,
+    tertiaryButtonText: String?,
 ) {
     BasicAlertDialog(
         onDismissRequest = config.onDismiss,
@@ -161,7 +174,7 @@ private fun GenericErrorDialog(
                     }
                 }
 
-                if (primaryButtonText != null || secondaryButtonText != null) {
+                if (primaryButtonText != null || secondaryButtonText != null || tertiaryButtonText != null) {
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -181,6 +194,13 @@ private fun GenericErrorDialog(
                                 text = it,
                                 type = ButtonType.SECONDARY,
                                 onClick = config.onSecondaryButtonClick,
+                            )
+                        }
+                        tertiaryButtonText?.let {
+                            DialogButton(
+                                text = it,
+                                type = ButtonType.SECONDARY,
+                                onClick = config.onTertiaryButtonClick,
                             )
                         }
                     }
@@ -309,6 +329,8 @@ private fun GenericErrorDialogNoInternetPreview() {
                 titleRes = R.string.global_no_internet_error_title,
                 bodyTextRes = R.string.global_no_internet_error_paragraph,
                 primaryButtonTextRes = R.string.global_no_internet_error_prim_button,
+                secondaryButtonTextRes = R.string.global_no_internet_error_sec_button,
+                tertiaryButtonTextRes = R.string.global_close_button,
                 iconData = AppIcons.Warning,
                 bodyTextAlign = TextAlign.Center,
             )

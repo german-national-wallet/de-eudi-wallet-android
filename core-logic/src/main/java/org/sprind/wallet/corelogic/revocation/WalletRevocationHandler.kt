@@ -40,7 +40,7 @@ import org.sprind.wallet.corelogic.activity.ActivityLogRepository
  * finish, the notification renders, the blocking screen appears immediately) and the revoked
  * flag survives, so a revoked wallet cannot silently re-register as a fresh instance.
  *
- * The wipe never touches the document-storage encryption key (`wi_data_enc_symk`) or the
+ * The wipe never touches the document-storage encryption key (`wi_storage_db_key`) or the
  * document database file — documents are deleted through the live storage API instead, which
  * keeps the in-process key cache and open database handle consistent without a restart.
  */

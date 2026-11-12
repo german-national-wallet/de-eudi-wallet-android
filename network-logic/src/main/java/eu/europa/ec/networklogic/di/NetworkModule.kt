@@ -16,6 +16,8 @@
 
 package eu.europa.ec.networklogic.di
 
+import android.content.Context
+import android.net.ConnectivityManager
 import org.sprind.wallet.analyticslogic.controller.Telemetry
 import org.sprind.wallet.analyticslogic.interceptor.HttpTelemetryInterceptor
 import eu.europa.ec.businesslogic.config.ConfigLogic
@@ -23,7 +25,11 @@ import eu.europa.ec.businesslogic.controller.log.LogController
 import eu.europa.ec.networklogic.repository.WalletAttestationRepository
 import eu.europa.ec.networklogic.repository.WalletAttestationRepositoryImpl
 import org.sprind.wallet.networklogic.common.HeaderInterceptor
+import org.sprind.wallet.networklogic.common.HttpFailureInterceptor
 import org.sprind.wallet.networklogic.common.HttpMessageSigningApiFactory
+import org.sprind.wallet.networklogic.common.retryConnectionFailures
+import org.sprind.wallet.networklogic.connectivity.AndroidConnectivityChecker
+import org.sprind.wallet.networklogic.connectivity.ConnectivityChecker
 import org.sprind.wallet.networklogic.walletbackend.api.WalletApi
 import org.sprind.wallet.networklogic.walletbackend.api.WalletApiClient
 import org.sprind.wallet.networklogic.walletbackend.api.WalletApiClientImpl
@@ -67,6 +73,10 @@ import kotlin.time.Clock
 class LogicNetworkModule
 
 @Single
+internal fun provideConnectivityChecker(context: Context): ConnectivityChecker =
+    AndroidConnectivityChecker(context.getSystemService(ConnectivityManager::class.java))
+
+@Single
 fun provideWalletApi(retrofit: Retrofit): WalletApi = retrofit.create(WalletApi::class.java)
 
 
@@ -101,6 +111,10 @@ fun provideNetworkLogInterceptor(logController: LogController): NetworkLogInterc
 internal fun provideTraceContextInterceptor(telemetry: Telemetry): TraceContextInterceptor =
     TraceContextInterceptor(telemetry = telemetry)
 
+@Single
+internal fun provideHttpFailureInterceptor(clock: Clock): HttpFailureInterceptor =
+    HttpFailureInterceptor(clock = clock)
+
 private val secureSpec: ConnectionSpec
     get() = ConnectionSpec.Builder(ConnectionSpec.RESTRICTED_TLS)
         .tlsVersions(TlsVersion.TLS_1_3, TlsVersion.TLS_1_2)
@@ -128,6 +142,7 @@ internal fun provideBaseOkHttpClient(
     httpTelemetryInterceptor: HttpTelemetryInterceptor,
     networkLogInterceptor: NetworkLogInterceptor,
     traceContextInterceptor: TraceContextInterceptor,
+    httpFailureInterceptor: HttpFailureInterceptor,
 ): OkHttpClient = OkHttpClient.Builder()
     .connectionSpecs(listOf(secureSpec))
     .readTimeout(configLogic.environmentConfig.readTimeoutSeconds, TimeUnit.SECONDS)
@@ -135,6 +150,9 @@ internal fun provideBaseOkHttpClient(
     // Added first so it stays outermost and observes failures thrown by the interceptors below,
     // including connection failures that never reach a network interceptor.
     .addInterceptor(traceContextInterceptor)
+    // Inside the trace interceptor so its exceptions carry the trace id, and outside the log
+    // interceptor so the 408/429 response itself is still logged.
+    .addInterceptor(httpFailureInterceptor)
     .addInterceptor(networkLogInterceptor)
     .addNetworkInterceptor(httpTelemetryInterceptor)
     .certificatePinner(configLogic.environmentConfig.certificatePinnerSpecs.toCertificatePinner())
@@ -247,6 +265,10 @@ fun provideOpenId4VciVpKtorHttpClient(
         engine {
             preconfigured = okHttpClient
         }
+        // WD-5012: a request that cannot connect is sent twice more. This covers every request on
+        // this client: presentation, issuance and wallet attestation. Each attempt gets its own
+        // trace id, so an error shows the last one.
+        retryConnectionFailures()
         val ktorLogger = object : Logger {
             override fun log(message: String) {
                 logController.d(tag = "OpenId4VciVp") { message }

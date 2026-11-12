@@ -37,6 +37,7 @@ dependencies {
     implementation(project(LibraryModule.AuthenticationLogic.path))
 
     testImplementation(project(LibraryModule.TestLogic.path))
+    testImplementation(libs.androidx.compose.ui.test)
 }
 
 excludeFromKoverReport(

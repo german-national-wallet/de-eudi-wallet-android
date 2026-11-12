@@ -56,17 +56,15 @@ class Application : Application() {
         if (isAA2Process()) return
         initializeApplication(this)
         initializeKoin()
-        storageController.onInitializeStorage()
-        // Wipe wallet data when the Platform Authentication invariant is violated:
-        // the device has no secure lock screen (user removed their PIN/passcode/
-        // biometric) but wallet data is present. This runs before any Activity is
-        // created so the user can never reach data without a device lock. It is
-        // also re-checked on every ON_RESUME from MainActivity for the case where
-        // the lock is removed while the app is backgrounded.
+        // The user must never reach data without a device lock.
         if (platformAuthInvariant.shouldWipe()) {
             Toast.makeText(this, R.string.clear_app_data_success, Toast.LENGTH_LONG).show()
             storageController.wipeAppData()
         }
+        // OpenTelemetry RUM registers a process lifecycle observer, which is only allowed on
+        // the main thread. Resolve it here so that the first user of the HTTP stack (which may
+        // be the FCM service, on a Firebase worker thread) finds it already created.
+        telemetry
     }
 
     override fun onTerminate() {
